@@ -1,5 +1,3 @@
-quart
-quart-discord-oauth
 discord.py
 discord-pretty-help
 PyNaCl
