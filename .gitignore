@@ -1,0 +1,7 @@
+/.dockerignore
+/.env
+/.google-cookie
+/.idea
+/Dockerfile
+/innapropriate_text.csv
+/train.py

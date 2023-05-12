@@ -1,0 +1,15 @@
+quart
+quart-discord-oauth
+discord.py
+discord-pretty-help
+PyNaCl
+googlesearch-python
+aiofiles
+aiohttp
+pymongo
+motor
+torch
+torchaudio
+torchvision
+numpy
+pandas
