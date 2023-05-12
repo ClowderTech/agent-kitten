@@ -1,7 +1,8 @@
-/.dockerignore
-/.env
-/.google-cookie
-/.idea
-/Dockerfile
-/innapropriate_text.csv
-/train.py
+.dockerignore
+.env
+.google-cookie
+.idea
+Dockerfile
+innapropriate_text.csv
+train.py
+__pycache__

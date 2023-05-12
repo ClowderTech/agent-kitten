@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 class MyBot(AutoShardedBot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger("agent-kitten")
 
     async def setup_hook(self) -> None:
         self.logger.info('Setting up bot...')
@@ -109,7 +109,7 @@ class CustomFormatter(logging.Formatter):
 def main():
     load_dotenv()
 
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger("agent-kitten")
     logger.setLevel(logging.DEBUG)
     discord_logger = logging.getLogger('discord')
     discord_logger.setLevel(logging.INFO)
