@@ -11,7 +11,7 @@ def calculate_level(level, experience):
 
 
 def calculate_experience_gain():
-    return abs(math.floor(math.sqrt(math.ceil(random.random() * 100 + 1))) - 11)
+    return abs(math.floor(math.sqrt(math.ceil(random.random() * 400 + 1))) - 21)
 
 
 class Leveling(commands.Cog):
