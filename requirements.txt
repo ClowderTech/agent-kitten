@@ -6,8 +6,4 @@ aiofiles
 aiohttp
 pymongo
 motor
-torch
-torchaudio
-torchvision
-numpy
-pandas
+python-dotenv

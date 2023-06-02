@@ -58,6 +58,7 @@ class MyBot(AutoShardedBot):
             self.logger.debug(
                 f'@{message.author} ({message.author.id}) edited a message in #{message.channel} ({message.channel.id}) at {message.guild} ({message.guild.id}): {message.content} ({message.id})')
 
+
 menu = EmojiMenu(
     active_time=60,
     page_left="⬅️",

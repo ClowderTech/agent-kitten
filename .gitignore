@@ -6,3 +6,4 @@ Dockerfile
 innapropriate_text.csv
 train.py
 __pycache__
+.venv

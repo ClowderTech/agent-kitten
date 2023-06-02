@@ -20,14 +20,15 @@ class TextGen(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.event_loop = asyncio.get_event_loop()
-        self.instructions = f"You are Agent Kitten, a helpful AI assistant made by the Uefta Corperation. Below is an instruction that describes a task written by a user that may include some search results. Write a response that appropriately completes the request. Use context from previous answers, questions, and the provided search results that will help complete the request if you can not without them. Current date: {date.today().strftime('%d/%m/%Y')}.\n\n### User: How many letters are there in the English alphabet?\n### Search Results: [1] \"The English Alphabet consists of 26 letters: A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z.\" (https://www.worldometers.info/languages/how-many-letters-alphabet/)\n### Agent Kitten: There are 26 letters in the English Alphabet\n\n### User: What are those letters?\n### Search Results: None\n### Agent Kitten: The letters are A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, and Z.\n\n### User: Can you give me a link to where it states this?\n### Search Results: None\n### Agent Kitten: Here is the link of where it states that there are 26 letters in the English alphabet: https://www.worldometers.info/languages/how-many-letters-alphabet/"
+        self.instructions = f"You are Agent Kitten, a helpful AI assistant made by the ClowderTech Corperation. Below is an instruction that describes a task written by a user that may include some search results. Write a response that appropriately completes the request. Use context from previous answers, questions, and the provided search results that will help complete the request if you can not without them. Current date: {date.today().strftime('%d/%m/%Y')}.\n\n### User: How many letters are there in the English alphabet?\n### Search Results: [1] \"The English Alphabet consists of 26 letters: A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z.\" (https://www.worldometers.info/languages/how-many-letters-alphabet/)\n### Agent Kitten: There are 26 letters in the English Alphabet\n\n### User: What are those letters?\n### Search Results: None\n### Agent Kitten: The letters are A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, and Z.\n\n### User: Can you give me a link to where it states this?\n### Search Results: None\n### Agent Kitten: Here is the link of where it states that there are 26 letters in the English alphabet: https://www.worldometers.info/languages/how-many-letters-alphabet/"
         self.remembered = {}
         self.search_results_amount = 3
         self.api_url = "http://127.0.0.1:5000/api"
         self.collection = self.bot.database["text-gen"]
 
     async def generate(self, instructions: str, message: str, query: str):
-        pattern2 = re.compile(r"### User:|### Agent Kitten:|### Search Results:|### Human:|### Assistant:|</s>")
+        pattern2 = re.compile(
+            r"### User:|### Agent Kitten:|### Search Results:|### Human:|### Assistant:|</s>")
         message = pattern2.sub("", message).strip()
         query = pattern2.sub("", query)
 
@@ -66,12 +67,15 @@ class TextGen(commands.Cog):
                     try:
                         new_message = response_json["results"][0]["text"]
                         new_message = pattern2.sub("", new_message).strip()
-                        self.bot.logger.debug(f"Success with generate api call: {response.status} - {response.reason}")
+                        self.bot.logger.debug(
+                            f"Success with generate api call: {response.status} - {response.reason}")
                     except TypeError:
                         new_message = "There was an error generating my response, please try again later."
-                        self.bot.logger.warn(f"Error with generate api call: server returned nothing.")
+                        self.bot.logger.warn(
+                            f"Error with generate api call: server returned nothing.")
                 else:
-                    self.bot.logger.warn(f"Error with generate api call: {response.status} - {response.reason}")
+                    self.bot.logger.warn(
+                        f"Error with generate api call: {response.status} - {response.reason}")
                     new_message = "There was an error generating my response, please try again later."
 
         new_message_long = f"{instructions}\n\n### User: {message}\n### Search Results: {query}\n### Agent Kitten: {new_message}"
@@ -104,7 +108,8 @@ class TextGen(commands.Cog):
             }
         }
         await self.collection.update_one(key, data, upsert=True)
-        new_result = result + "\n\n*If the responce doesnt seem right, try /chatclear and retype your question(s). If that doesn\'t work, Report it in my support server with the data from your /rawchat.*"
+        new_result = result + \
+            "\n\n*If the responce doesnt seem right, try /chatclear and retype your question(s). If that doesn\'t work, Report it in my support server with the data from your /rawchat.*"
         if len(result) > 2000:
             await ctx.reply(new_result[:1999], allowed_mentions=discord.AllowedMentions.none())
         else:
@@ -118,7 +123,6 @@ class TextGen(commands.Cog):
         }
         await self.collection.delete_one(key)
         await ctx.reply(f"I have deleted your conversation with me, {ctx.author.mention}.")
-
 
     @commands.hybrid_command(name="rawchat",
                              description="Check raw conversation data with Agent Kitten. (Meant for debugging)",
