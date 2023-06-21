@@ -11,14 +11,15 @@ def calculate_level(level, experience):
 
 
 def calculate_experience_gain():
-    return abs(math.floor(math.sqrt(math.ceil(random.random() * 400 + 1))) - 21)
+    return abs(math.floor(math.sqrt(math.ceil(random.random() * 196 + 1))) - 15)
 
 
 class Leveling(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.collection = self.bot.database["leveling"]
-        self.user_talked = []
+        self.text_user_talked = []
+        self.voice_user_talked = []
         self.bg_task = self.bot.loop.create_task(self.talking_reset())
         self.bg_task2 = self.bot.loop.create_task(self.check_voice_talking())
 
@@ -26,8 +27,8 @@ class Leveling(commands.Cog):
     async def on_message(self, message: discord.Message):
         if message.author.bot:
             return
-        elif message.author.id not in self.user_talked:
-            self.user_talked.append(message.author.id)
+        elif message.author.id not in self.text_user_talked:
+            self.text_user_talked.append(message.author.id)
             points = calculate_experience_gain()
             key = {
                 "user-id": str(message.author.id)
@@ -63,7 +64,8 @@ class Leveling(commands.Cog):
         await self.bot.wait_until_ready()
         while not self.bot.is_closed():
             await asyncio.sleep(60)
-            self.user_talked = []
+            self.text_user_talked = []
+            self.voice_user_talked = []
 
     async def check_voice_talking(self):
         await self.bot.wait_until_ready()
@@ -82,8 +84,8 @@ class Leveling(commands.Cog):
                     continue
                 elif member.bot:
                     continue
-                elif member.id not in self.user_talked:
-                    self.user_talked.append(member.id)
+                elif member.id not in self.voice_user_talked:
+                    self.voice_user_talked.append(member.id)
                     points = calculate_experience_gain()
                     key = {
                         "user-id": str(member.id)
@@ -128,9 +130,9 @@ class Leveling(commands.Cog):
         if user_data:
             level = user_data["level"]
             experience = user_data["experience"]
-            await ctx.reply(f"{member_to_check.mention} is level {level} with {experience} experience.", allowed_mentions=discord.AllowedMentions.none())
+            await ctx.reply(f"{member_to_check.mention} is level {level} with {experience} experience. They need {calculate_level(level, experience)} more experience points to level up.", allowed_mentions=discord.AllowedMentions.none())
         else:
-            await ctx.reply(f"{member_to_check.mention} is level 0 with 0 experience.", allowed_mentions=discord.AllowedMentions.none())
+            await ctx.reply(f"{member_to_check.mention} does not have any data.", allowed_mentions=discord.AllowedMentions.none())
 
     @commands.hybrid_command(name="leaderboard", description="Pulls the top 10 users with the most experience.", with_app_command=True)
     async def leaderboard(self, ctx: commands.Context):

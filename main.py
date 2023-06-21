@@ -1,11 +1,12 @@
 import datetime as datetime
 import discord
 from discord.ext import commands
-from discord.ext.commands import AutoShardedBot
+from discord.ext.commands import AutoShardedBot, errors
 import asyncio
 import os
 import logging
 import datetime
+from discord.ext.commands.context import Context
 from pretty_help import EmojiMenu, PrettyHelp
 from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
@@ -21,7 +22,6 @@ class MyBot(AutoShardedBot):
         self.mongodb_client = AsyncIOMotorClient(os.getenv("MONGODB_URI"))
         self.database = self.mongodb_client["agent-kitten"]
         await self.load_cogs()
-        await bot.tree.sync()
         self.logger.info('Bot setup complete.')
 
     async def load_cogs(self):
@@ -57,6 +57,20 @@ class MyBot(AutoShardedBot):
         else:
             self.logger.debug(
                 f'@{message.author} ({message.author.id}) edited a message in #{message.channel} ({message.channel.id}) at {message.guild} ({message.guild.id}): {message.content} ({message.id})')
+            
+    async def on_command_error(self, ctx: Context, exception: commands.CommandError):
+        embed = discord.Embed(
+            title="Error",
+            description=f"{exception}",
+            color=0xff0000,
+            timestamp=datetime.datetime.now()
+        ).set_footer(
+            text="For help, join the support server: https://discord.gg/clowdertech"
+        ).set_author(
+            name=ctx.author.name,
+            icon_url=ctx.author.avatar.url
+        )
+        await ctx.reply(embed=embed)
 
 
 menu = EmojiMenu(
@@ -71,7 +85,7 @@ bot = MyBot(
     intents=discord.Intents.all(),
     activity=discord.Game(
         name="~help",
-        start=datetime.datetime.utcnow()
+        start=datetime.datetime.now()
     ),
     help_command=PrettyHelp(
         menu=menu,
@@ -79,36 +93,13 @@ bot = MyBot(
         show_index=True,
         show_check_failure=True,
         no_category="Commands",
-        ending_note="For more help, join the support server: https://discord.gg/uefta"
+        ending_note="For more help, join the support server: https://discord.gg/clowdertech"
     )
 )
 
-
-class CustomFormatter(logging.Formatter):
-    grey = "\x1b[90m"
-    green = "\x1b[92m"
-    yellow = "\x1b[33m"
-    red = "\x1b[91m"
-    bold_red = "\x1b[31m"
-    reset = "\x1b[0m"
-    format = "[%(asctime)s] [%(levelname)s] %(name)s: %(message)s [%(filename)s:%(lineno)d]"
-
-    FORMATS = {
-        logging.DEBUG: grey + format + reset,
-        logging.INFO: green + format + reset,
-        logging.WARNING: yellow + format + reset,
-        logging.ERROR: red + format + reset,
-        logging.CRITICAL: bold_red + format + reset
-    }
-
-    def format(self, record):
-        log_fmt = self.FORMATS.get(record.levelno)
-        formatter = logging.Formatter(log_fmt)
-        return formatter.format(record)
-
-
 def main():
-    load_dotenv()
+    if os.getenv("TOKEN") is None:
+        load_dotenv()
 
     logger = logging.getLogger("agent-kitten")
     logger.setLevel(logging.DEBUG)
@@ -117,10 +108,23 @@ def main():
 
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.DEBUG)
-    console_handler.setFormatter(CustomFormatter())
+    console_formatter = logging.Formatter(fmt="[%(asctime)s] [%(levelname)s] %(name)s: %(message)s [%(filename)s:%(lineno)d]", datefmt="%Y-%m-%d %H:%M:%S", style="%")
+    console_handler.setFormatter(console_formatter)
 
     logger.addHandler(console_handler)
     discord_logger.addHandler(console_handler)
+    
+    if os.getenv("TOKEN") is None:
+        logger.error("No token provided!")
+        return
+    
+    if os.getenv("MONGODB_URI") is None:
+        logger.error("No MongoDB URI provided!")
+        return
+    
+    if os.getenv("TEXTGEN_API_URL") is None:
+        logger.error("No Textgen API URL provided!")
+        return
 
     bot.run(os.getenv('TOKEN'), log_handler=None)
 

@@ -1,0 +1,100 @@
+import discord
+from discord.ext import commands
+from quart import Quart, render_template, request, redirect, url_for, session
+from quart_discord import DiscordOAuth2Session, requires_authorization, Unauthorized
+import os
+import multiprocessing
+import asyncio
+import shlex
+
+app = Quart("Agent Kitten Web UI")
+app.secret_key = "KittenServer666!"
+app.config["DISCORD_CLIENT_ID"] = os.getenv("CLIENT_ID")
+app.config["DISCORD_CLIENT_SECRET"] = os.getenv("CLIENT_SECRET")
+app.config["DISCORD_REDIRECT_URI"] = os.getenv("REDIRECT_URI")
+app.config["DISCORD_BOT_TOKEN"] = os.getenv("TOKEN")
+
+discordOAuth2 = DiscordOAuth2Session(app)
+
+def run_server(pipe):
+    global conn
+    conn = pipe
+    app.run(host="0.0.0.0", port=5000)
+
+@app.route("/login/")
+async def login():
+    return await discordOAuth2.create_session()
+
+
+@app.route("/callback/")
+async def callback():
+    await discordOAuth2.callback()
+    return redirect(url_for("me"))
+
+
+@app.errorhandler(Unauthorized)
+async def redirect_unauthorized(e):
+    return redirect(url_for("login"))
+
+
+@app.route("/me/")
+@requires_authorization
+async def me():
+    user = await discordOAuth2.fetch_user()
+    global conn
+    conn.send(f"LOG INFO \"{user.name}#{user.discriminator} ({user.id}) logged in.\"")
+    return f"""
+    <html>
+        <head>
+            <title>{user.name}</title>
+        </head>
+        <body>
+            <img src='{user.avatar_url}' />
+        </body>
+    </html>"""
+
+@app.route("/")
+async def index():
+    return "Hello, world!"
+
+class WebUI(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+        self.bg_task = self.bot.loop.create_task(self.prepare_server())
+
+    async def prepare_server(self):
+        await self.bot.wait_until_ready()
+        conn1, conn2 = multiprocessing.Pipe()
+        process = multiprocessing.Process(target=run_server, args=(conn2,))
+        process.start()
+        while not self.bot.is_closed():
+            if conn1.poll():
+                instruction = shlex.split(str(conn1.recv()))
+                if instruction[0] == "LOG":
+                    if instruction[1] == "DEBUG":
+                        self.bot.logger.debug(instruction[2])
+                    elif instruction[1] == "INFO":
+                        self.bot.logger.info(instruction[2])
+                    elif instruction[1] == "WARNING":
+                        self.bot.logger.warning(instruction[2])
+                    elif instruction[1] == "ERROR":
+                        self.bot.logger.error(instruction[2])
+                    elif instruction[1] == "CRITICAL":
+                        self.bot.logger.critical(instruction[2])
+                elif instruction[0] == "STOP":
+                    process.terminate()
+                    process.join()
+                    break
+                elif instruction[0] == "RESTART":
+                    process.terminate()
+                    process.join()
+                    process = multiprocessing.Process(target=run_server, args=(conn2,))
+                    process.start()
+                elif instruction[0] == "MESSAGE":
+                    await self.bot.get_channel(int(instruction[1])).send(instruction[2])
+            await asyncio.sleep(0.5)
+        process.terminate()
+        process.join()
+
+async def setup(bot):
+    await bot.add_cog(WebUI(bot))
