@@ -5,7 +5,7 @@ ENV MONGODB_URI=none
 ENV TEXTGEN_API_URL=none
 
 WORKDIR /app
-COPY * *
+COPY . .
 
 RUN pip install -r requirements.txt
 
