@@ -7,7 +7,7 @@ import os
 import logging
 import datetime
 from discord.ext.commands.context import Context
-from pretty_help import EmojiMenu, PrettyHelp
+from pretty_help import AppMenu, PrettyHelp
 from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
 
@@ -16,10 +16,15 @@ class MyBot(AutoShardedBot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.logger = logging.getLogger("agent-kitten")
+        self.cache = {}
+        self.temp_moderated_messages = {}
+        self.temp_edited_message_retain = {}
+        self.temp_deleted_message_retain = {}
+
 
     async def setup_hook(self) -> None:
         self.logger.info('Setting up bot...')
-        self.mongodb_client = AsyncIOMotorClient(os.getenv("MONGODB_URI"))
+        self.mongodb_client = AsyncIOMotorClient(str(os.getenv("MONGODB_URI")))
         self.database = self.mongodb_client["agent-kitten"]
         await self.load_cogs()
         self.logger.info('Bot setup complete.')
@@ -31,69 +36,122 @@ class MyBot(AutoShardedBot):
                 self.logger.info(f'Loaded {filename[:-3]}')
 
     async def on_ready(self):
+        if self.user is None:
+            return
+        
         self.logger.info(f'Logged in as {self.user} (ID: {self.user.id})')
 
+        for channel in self.get_all_channels():
+            if channel.permissions_for(channel.guild.me).read_message_history:
+                if isinstance(channel, (discord.TextChannel, discord.Thread, discord.VoiceChannel, discord.StageChannel)):
+                    async for message in channel.history(limit=2500):
+                        self.cache[message.id] = message
+
+        self.logger.info('Caching complete.')
+
+    async def on_guild_join(self, guild):
+        self.logger.info(f'Joined guild {guild.name} (ID: {guild.id})')
+
+        for channel in guild.channels:
+            if channel.permissions_for(guild.me).read_message_history:
+                if isinstance(channel, (discord.TextChannel, discord.Thread, discord.VoiceChannel, discord.StageChannel)):
+                    async for message in channel.history(limit=2500):
+                        self.cache[message.id] = message
+
+        self.logger.info('Caching complete.')
+
+    async def on_guild_channel_update(self, before, after):
+        if after.permissions_for(after.guild.me).read_message_history and not before.permissions_for(before.guild.me).read_message_history:
+            if isinstance(after, (discord.TextChannel, discord.Thread, discord.VoiceChannel, discord.StageChannel)):
+                async for message in after.history(limit=2500):
+                    self.cache[message.id] = message
+
+    async def on_thread_update(self, before, after):
+        if after.permissions_for(after.me).read_message_history and not before.permissions_for(before.me).read_message_history:
+            async for message in after.history(limit=2500):
+                self.cache[message.id] = message
+
     async def on_message(self, message):
-        if message.author.bot:
-            return
-        if message.guild is None:
-            self.logger.debug(
-                f'@{message.author} ({message.author.id}) sent a message in DMs: {message.content} ({message.id})')
-        else:
-            self.logger.debug(
-                f'@{message.author} ({message.author.id}) sent a message in #{message.channel} ({message.channel.id}) at {message.guild} ({message.guild.id}): {message.content} ({message.id})')
+        self.cache[message.id] = message
         await self.process_commands(message)
 
     async def on_raw_message_edit(self, payload):
+        self.temp_edited_message_retain[payload.message_id] = {}
+
         channel = self.get_channel(payload.channel_id)
+
         if channel is None:
+            channel = await self.fetch_channel(payload.channel_id)
+
+        if not isinstance(channel, (discord.TextChannel, discord.Thread, discord.VoiceChannel, discord.StageChannel)):
             return
+
         message = await channel.fetch_message(payload.message_id)
-        if message.author.bot:
-            return
-        if message.guild is None:
-            self.logger.debug(
-                f'@{message.author} ({message.author.id}) edited a message in DMs: {message.content} ({message.id})')
-        else:
-            self.logger.debug(
-                f'@{message.author} ({message.author.id}) edited a message in #{message.channel} ({message.channel.id}) at {message.guild} ({message.guild.id}): {message.content} ({message.id})')
-            
+        
+        await asyncio.sleep(0.1)
+        if len(self.temp_edited_message_retain[payload.message_id]) != 0:
+            while not all(event_done for event_done in self.temp_edited_message_retain[payload.message_id].values()):
+                await asyncio.sleep(0.1)
+
+        try:
+            self.cache[payload.message_id] = message
+        except KeyError:
+            pass
+        del self.temp_edited_message_retain[payload.message_id]
+
+    async def on_raw_message_delete(self, payload):
+        self.temp_deleted_message_retain[payload.message_id] = {}
+
+        await asyncio.sleep(0.1)
+        if len(self.temp_deleted_message_retain[payload.message_id]) != 0:
+            while not all(event_done for event_done in self.temp_deleted_message_retain[payload.message_id].values()):
+                await asyncio.sleep(0.1)
+
+        try:
+            del self.cache[payload.message_id]
+        except KeyError:
+            pass
+        del self.temp_deleted_message_retain[payload.message_id]
+
     async def on_command_error(self, ctx: Context, exception: commands.CommandError):
+        if ctx.author.avatar is None:
+            avatar_url = ctx.author.default_avatar.url
+        else:
+            avatar_url = ctx.author.avatar.url
+
         embed = discord.Embed(
             title="Error",
-            description=f"{exception}",
+            description=f"{exception}"[:4095],
             color=0xff0000,
             timestamp=datetime.datetime.now()
-        ).set_footer(
-            text="For help, join the support server: https://discord.gg/clowdertech"
         ).set_author(
             name=ctx.author.name,
-            icon_url=ctx.author.avatar.url
+            icon_url=avatar_url
+        ).set_footer(
+            text=f"For help, use {ctx.prefix}help <command> or join the support server at https://discord.gg/clowdertech.",
         )
-        await ctx.reply(embed=embed)
 
+        if ctx.interaction is None:
+            await ctx.reply(embed=embed, delete_after=10)
+        else:
+            await ctx.reply(embed=embed, ephemeral=True)
 
-menu = EmojiMenu(
-    active_time=60,
-    page_left="⬅️",
-    page_right="➡️",
-    remove="❌"
-)
+menu = AppMenu()
 
 bot = MyBot(
-    command_prefix='~',
+    command_prefix=commands.when_mentioned_or("ak!"),
     intents=discord.Intents.all(),
-    activity=discord.Game(
-        name="~help",
-        start=datetime.datetime.now()
-    ),
+    activity=discord.Activity(type=discord.ActivityType.watching, name="ak!help"),
+    allowed_mentions=discord.AllowedMentions.none(),
     help_command=PrettyHelp(
         menu=menu,
-        color=0xffffff,
+        color=discord.Color(0xffffff),
         show_index=True,
         show_check_failure=True,
-        no_category="Commands",
-        ending_note="For more help, join the support server: https://discord.gg/clowdertech"
+        delete_invoke=False,
+        send_typing=False,
+        sort_commands=True,
+
     )
 )
 
@@ -122,11 +180,15 @@ def main():
         logger.error("No MongoDB URI provided!")
         return
     
-    if os.getenv("TEXTGEN_API_URL") is None:
-        logger.error("No Textgen API URL provided!")
+    if os.getenv("OPENAI_ORG_ID") is None:
+        logger.error("No OpenAI Organization ID provided!")
+        return
+    
+    if os.getenv("OPENAI_API_KEY") is None:
+        logger.error("No OpenAI API key provided!")
         return
 
-    bot.run(os.getenv('TOKEN'), log_handler=None)
+    bot.run(str(os.getenv('TOKEN')), log_handler=None)
 
 
 if __name__ == "__main__":

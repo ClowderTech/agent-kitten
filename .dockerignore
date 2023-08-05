@@ -1,5 +1,8 @@
 .env
-.github
-.gitignore
-.venv
+.google-cookie
+.idea
 .vscode
+__pycache__
+.venv
+eval-output.txt
+run-docker.bat

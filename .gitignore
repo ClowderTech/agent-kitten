@@ -1,7 +1,8 @@
 .env
 .google-cookie
 .idea
-innapropriate_text.csv
-train.py
+.vscode
 __pycache__
 .venv
+eval-output.txt
+run-docker.bat
