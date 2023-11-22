@@ -7,5 +7,8 @@
 # Pull the latest changes from the Git repository
 git pull
 
+# Install the required Python packages
+pip install -r requirements.txt
+
 # Run main.py
 python main.py
