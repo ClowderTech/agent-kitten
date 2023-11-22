@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Clone the Git repository
 # git clone https://github.com/ClowderTech/agent-kitten.git agent-kitten
 
