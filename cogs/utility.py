@@ -1,4 +1,5 @@
 import discord
+from discord import app_commands
 from discord.ext import commands
 import os
 import sys
@@ -11,11 +12,11 @@ import pprint
 import datetime
 
 async def is_dev(ctx):
-    guild = ctx.bot.get_guild(748736032563920929)
+    guild = ctx.bot.get_guild(1157440778000420974)
     member = guild.get_member(ctx.author.id)
     if member is None:
         return False
-    roles = [guild.get_role(977371064864768040), guild.get_role(1106801021335908372)]
+    roles = [guild.get_role(1159580562449776791)]
     if any(role in member.roles for role in roles):
         return True
     return False
@@ -23,16 +24,18 @@ async def is_dev(ctx):
 class Utility(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.invite_link = "https://discord.com/api/oauth2/authorize?client_id=736086853932941423&permissions=416615353408&scope=bot%20applications.commands"
-        self.support_server = "https://discord.gg/clowdertech"
+        self.invite_link = "https://discord.com/api/oauth2/authorize?client_id=1169801069514194956&permissions=8&scope=bot%20applications.commands"
+        self.support_server = "https://discord.gg/EAGFV7ejwN"
+        self.valid_features = ["level_up_messaging"]
+        self.collection = self.bot.database["feature-opt"]
 
     @commands.hybrid_command(name="invite", description="Gets the link for you to invite me to your server.", with_app_command=True)
     async def invite(self, ctx: commands.Context):
-        await ctx.reply(f"Here is my invite link: {self.invite_link}")
+        await ctx.reply(f"Here is [my invite link!]({self.invite_link})")
 
     @commands.hybrid_command(name="support", description="Gets the link for my support server.", with_app_command=True)
     async def support(self, ctx: commands.Context):
-        await ctx.reply(f"Here is my support server link: {self.support_server}")
+        await ctx.reply(f"Here is my [support server link!]({self.support_server})")
 
     @commands.check(is_dev)
     @commands.hybrid_command(name="sync", description="Get all commands from the bot and update them. (Bot dev only)", with_app_command=True)
@@ -81,6 +84,35 @@ class Utility(commands.Cog):
                 output = "No output."
 
         await message.edit(content=f"Code executed!\n\nOutput: ```{output}```", allowed_mentions=discord.AllowedMentions.none())
+
+    async def opt_features_auto_complete(self, interaction: discord.Interaction, name: str) -> list[app_commands.Choice[str]]:
+        return [app_commands.Choice(name=feature, value=feature) for feature in self.valid_features if feature.lower().startswith(name.lower())]
+
+    @commands.hybrid_command(name="opt", description="Opt in or out to certain features of the bot.", with_app_command=True)
+    @app_commands.autocomplete(feature=opt_features_auto_complete)
+    async def opt(self, ctx: commands.Context, feature: str, opt_in: bool):
+        key = {
+            "user_id": str(ctx.author.id)
+        }
+
+        if feature not in self.valid_features:
+            raise commands.BadArgument(f"Feature must be one of {', '.join(self.valid_features)}.")
+
+        user_data = await self.collection.find_one(key)
+
+        if user_data:
+            user_data[feature] = opt_in
+            await self.collection.update_one(key, {"$set": user_data})
+        else:
+            await self.collection.insert_one({
+                "user_id": str(ctx.author.id),
+                feature: opt_in
+            })
+
+        if opt_in:
+            await ctx.reply(f"You have opted in to the `{feature}` feature of the bot.", allowed_mentions=discord.AllowedMentions.none())
+        else:
+            await ctx.reply(f"You have opted out of the `{feature}` feature of the bot.", allowed_mentions=discord.AllowedMentions.none())
         
 
 

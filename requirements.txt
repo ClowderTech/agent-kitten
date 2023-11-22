@@ -8,3 +8,5 @@ pymongo
 motor
 python-dotenv
 openai
+cloudscraper
+beautifulsoup4

@@ -15,11 +15,11 @@ def calculate_experience_gain():
 
 
 async def is_dev(ctx):
-    guild = ctx.bot.get_guild(748736032563920929)
+    guild = ctx.bot.get_guild(1157440778000420974)
     member = guild.get_member(ctx.author.id)
     if member is None:
         return False
-    roles = [guild.get_role(977371064864768040), guild.get_role(1106801021335908372)]
+    roles = [guild.get_role(1159580562449776791)]
     if any(role in member.roles for role in roles):
         return True
     return False
@@ -29,6 +29,7 @@ class Leveling(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.collection = self.bot.database["leveling"]
+        self.opt_collection = self.bot.database["feature-opt"]
         self.text_user_talked = []
         self.voice_user_talked = []
         self.bg_task = self.bot.loop.create_task(self.talking_reset())
@@ -39,10 +40,14 @@ class Leveling(commands.Cog):
             points = calculate_experience_gain()
 
         key = {
-            "user-id": str(user.id)
+            "user_id": str(user.id)
         }
 
         user_data = await self.collection.find_one(key)
+
+        opted_message = await self.opt_collection.find_one(key)
+        if opted_message is None:
+            opted_message = {}
 
         if user_data:
             level = user_data["level"]
@@ -53,10 +58,11 @@ class Leveling(commands.Cog):
                 new_experience -= calculate_level(new_level, 0)
                 new_level += 1
             if new_level > level:
-                try:
-                    await user.send(f"Congratulations, {user.mention}! You are now level {new_level}!", allowed_mentions=discord.AllowedMentions.none(), silent=True)
-                except discord.Forbidden:
-                    pass
+                if opted_message.get("level-up-messaging", False):
+                    try:
+                        await user.send(f"Congratulations, {user.mention}! You are now level {new_level}!", allowed_mentions=discord.AllowedMentions.none(), silent=True)
+                    except discord.Forbidden:
+                        pass
             data = {
                 "$set": {
                     "level": new_level,
@@ -73,13 +79,14 @@ class Leveling(commands.Cog):
                 new_experience -= calculate_level(new_level, 0)
                 new_level += 1
             if new_level > level:
-                try:
-                    await user.send(f"Congratulations, {user.mention}! You are now level {new_level}!", allowed_mentions=discord.AllowedMentions.none(), silent=True)
-                except discord.Forbidden:
-                    pass
+                if opted_message.get("level-up-messaging", False):
+                    try:
+                        await user.send(f"Congratulations, {user.mention}! You are now level {new_level}!", allowed_mentions=discord.AllowedMentions.none(), silent=True)
+                    except discord.Forbidden:
+                        pass
 
             data = {
-                "user-id": str(user.id),
+                "user_id": str(user.id),
                 "level": new_level,
                 "experience": new_experience
             }
@@ -87,10 +94,12 @@ class Leveling(commands.Cog):
 
     async def process_xp_set(self, user: discord.User, level: int = None, experience: int = None):
         key = {
-            "user-id": str(user.id)
+            "user_id": str(user.id)
         }
 
         user_data = await self.collection.find_one(key)
+
+        opted_message = await self.opt_collection.find_one(key)
 
         if user_data:
             if level is None:
@@ -107,16 +116,17 @@ class Leveling(commands.Cog):
             await self.collection.update_one(key, data)
         else:
             data = {
-                "user-id": str(user.id),
+                "user_id": str(user.id),
                 "level": level,
                 "experience": experience
             }
             await self.collection.insert_one(data)
 
-        try:
-            await user.send(f"Hello, {user.mention}! A bot developer has set your level to {level} and experience to {experience}!", allowed_mentions=discord.AllowedMentions.none(), silent=True)
-        except discord.Forbidden:
-            pass
+        if opted_message.get("level-up-messaging", False):
+            try:
+                await user.send(f"Hello, {user.mention}! A bot developer has set your level to {level} and experience to {experience}!", allowed_mentions=discord.AllowedMentions.none(), silent=True)
+            except discord.Forbidden:
+                pass
             
 
     @commands.Cog.listener()
@@ -162,7 +172,7 @@ class Leveling(commands.Cog):
         else:
             member_to_check = member_to_check
         key = {
-            "user-id": str(member_to_check.id)
+            "user_id": str(member_to_check.id)
         }
         user_data = await self.collection.find_one(key)
         if user_data:
@@ -182,7 +192,7 @@ class Leveling(commands.Cog):
         async for user in users:
             if i > 10:
                 break
-            user_id = int(user["user-id"])
+            user_id = int(user["user_id"])
             member = self.bot.get_user(user_id)
             if member:
                 embed.add_field(
@@ -205,7 +215,7 @@ class Leveling(commands.Cog):
             raise commands.BadArgument("Amount must be greater than 0.")
 
         key = {
-            "user-id": str(member.id)
+            "user_id": str(member.id)
         }
 
         user_data = await self.collection.find_one(key)
