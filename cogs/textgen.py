@@ -10,6 +10,7 @@ import json
 import openai
 import cloudscraper
 from bs4 import BeautifulSoup
+from contextlib import redirect_stdout
 import urllib
 import random
 import asyncio
@@ -41,25 +42,18 @@ class TextGen(commands.Cog):
             search_results = ""
             escaped_term = urllib.parse.quote_plus(query)
             start = 0
-            while start < self.search_results_amount:
-                async with session.get(f"https://www.google.com/search", params={"q": escaped_term, "num": self.search_results_amount + 2, "start": start}, headers={"User-Agent": random.choice(self.useragent_list)}) as response:
-                    response.raise_for_status()
-                    text = await response.text()
-                    soup = BeautifulSoup(text, "html.parser")
-                    result_block = soup.find_all("div", attrs={"class": "g"})
-                    if len(result_block) == 0:
-                        start += 1
-                    for result in result_block:
-                        link = result.find("a", href=True)
-                        title = result.find("h3")
-                        description_box = result.find(
-                            "div", {"style": "-webkit-line-clamp:2"})
-                        if description_box:
-                            description = description_box.text
-                            if link and title and description:
-                                search_results += f", [{start}] \"{description}\" ({link['href']})"
-                                start += 1
-                    await asyncio.sleep(0.25)
+            async with session.get(f"https://searx.clowdertech.com/search?q={escaped_term}&language=auto&time_range=&safesearch=0&categories=general&format=json") as response:
+                response.status()
+                if not response.ok:
+                    return f"Responce not ok. {response.status}"
+                results = await response.json()
+                results = results["results"]
+                for result in results:
+                    search_results += f"[{start + 1}] {result['link']} || {result["content"]}\n"
+                    start += 1
+                    if start == self.search_results_amount:
+                        break
+
             search_results = search_results[2:]
             return search_results
     
@@ -70,6 +64,20 @@ class TextGen(commands.Cog):
                 soup = BeautifulSoup(text, "html.parser")
                 text = soup.get_text()
                 return text
+            
+    async def python_eval(self, code: str):
+        new_code = f"async def __ex(bot):\n\twith open(\"eval_output.txt\", \"w\") as file:\n\t\twith redirect_stdout(file):\n\t\t\t" + "".join([f"\n\t\t\t{line}" for line in code.replace("\n", r"\n").split(r"\n")])
+        compiled = compile(new_code, "<string>", "exec")
+        exec(compiled, globals(), locals())
+
+        await locals()["__ex"](self.bot)
+        
+        with open("eval_output.txt", "r") as file:
+            output = file.read()
+            if len(output) == 0:
+                output = "No output."
+            
+        return output
 
     async def get_textgen_response(self, message: typing.List[typing.Dict[str, str]], tools: typing.List[typing.Dict] = None):
         # async with aiohttp.ClientSession() as session:
@@ -79,7 +87,7 @@ class TextGen(commands.Cog):
         #             return result["response"]
         #         else:
         #             return None
-        response = await self.bot.openai.chat.completions.create(model="gpt-4-1106-preview", messages=message, tools=tools, tool_choice="auto")
+        response = await self.bot.openai.chat.completions.create(model="gpt-4o", messages=message, tools=tools, tool_choice="auto")
         return response.model_dump(exclude_unset=True)["choices"][0]["message"]
     
     async def get_response(self, message: str, user_id: str, tools: typing.List[typing.Dict] = None, avaliable_functions: typing.Dict[str, typing.Callable] = None):
@@ -164,13 +172,36 @@ class TextGen(commands.Cog):
                         "required": ["url"],
                     },
                 },
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "python_eval",
+                    "description": "Execute python code. Make sure to not use any infinite loops, code that could harm your computer, and access senstive data. Make sure to use print() to get output.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "code": {
+                                "type": "string",
+                                "description": "The code to execute."
+                            },
+                        },
+                        "required": ["code"],
+                    },
+                },
             }
         ]
 
         avaliable_functions = {
             "search_google": self.search_google,
-            "scrape_website": self.scrape_website
+            "scrape_website": self.scrape_website,
+            "python_eval": self.python_eval
         }
+
+        if ctx.author.avatar is None:
+            avatar_url = ctx.author.default_avatar.url
+        else:
+            avatar_url = ctx.author.avatar.url
 
         result = await self.get_response(message, ctx.author.id, tools=tools, avaliable_functions=avaliable_functions)
         embed = discord.Embed(
@@ -182,7 +213,7 @@ class TextGen(commands.Cog):
             text="If the responce doesnt seem right, use `/chatclear` and retype your question(s). If that doesn\'t work, Report it in my support server with the data from your `/rawchat`."
         ).set_author(
             name=ctx.author.name,
-            icon_url=ctx.author.avatar.url
+            icon_url=avatar_url
         )
         await ctx.reply(embed=embed)
 

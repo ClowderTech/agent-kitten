@@ -7,11 +7,17 @@ import typing
 
 
 def calculate_level(level, experience):
-    return (3 * (level ** 2) + (20 * level) + 100) - experience
+    return round(level ** 2) + (10 * level) + 100 - experience
 
 
 def calculate_experience_gain():
-    return abs(math.floor(math.sqrt(math.ceil(random.random() * 196 + 1))) - 15)
+    xp_gain = random.uniform(1, 5)
+
+    if random.random() < 0.05:
+        bonus_xp = random.uniform(5, 25)
+        xp_gain += bonus_xp
+
+    return round(xp_gain)
 
 
 async def is_dev(ctx):
@@ -19,7 +25,7 @@ async def is_dev(ctx):
     member = guild.get_member(ctx.author.id)
     if member is None:
         return False
-    roles = [guild.get_role(1159580562449776791)]
+    roles = [guild.get_role(1240471128779259914)]
     if any(role in member.roles for role in roles):
         return True
     return False
@@ -31,9 +37,27 @@ class Leveling(commands.Cog):
         self.collection = self.bot.database["leveling"]
         self.opt_collection = self.bot.database["feature-opt"]
         self.text_user_talked = []
-        self.voice_user_talked = []
-        self.bg_task = self.bot.loop.create_task(self.talking_reset())
-        self.bg_task2 = self.bot.loop.create_task(self.check_voice_talking())
+        self.check_voice_talking.start()
+
+    async def level_up_message(self, user: discord.User, level: int):
+        try:
+            embed = discord.Embed(title="Level Up!", description=f"Congratulations, {user.mention}! You are now level {level}!", color=discord.Color.green())
+
+            embed.set_footer(text="You can opt out of these messages by using the opt command.")
+
+            await user.send(embed=embed, allowed_mentions=discord.AllowedMentions.none(), silent=True)
+        except discord.Forbidden:
+            pass
+
+    async def level_set_message(self, user: discord.User, level: int, experience: int):
+        try:
+            embed = discord.Embed(title="Level Update.", description=f"Hello, {user.mention}! An administrator has set your level to {level} and experience to {experience}!", color=discord.Color.green())
+
+            embed.set_footer(text="You can opt out of these messages by using the opt command.")
+
+            await user.send(embed=embed, allowed_mentions=discord.AllowedMentions.none(), silent=True)
+        except discord.Forbidden:
+            pass
 
     async def process_xp_gain(self, user: discord.User, points: int = None):
         if points is None:
@@ -58,11 +82,8 @@ class Leveling(commands.Cog):
                 new_experience -= calculate_level(new_level, 0)
                 new_level += 1
             if new_level > level:
-                if opted_message.get("level-up-messaging", False):
-                    try:
-                        await user.send(f"Congratulations, {user.mention}! You are now level {new_level}!", allowed_mentions=discord.AllowedMentions.none(), silent=True)
-                    except discord.Forbidden:
-                        pass
+                if opted_message.get("level_up_messaging", True):
+                    await self.level_up_message(user, new_level)
             data = {
                 "$set": {
                     "level": new_level,
@@ -79,11 +100,8 @@ class Leveling(commands.Cog):
                 new_experience -= calculate_level(new_level, 0)
                 new_level += 1
             if new_level > level:
-                if opted_message.get("level-up-messaging", False):
-                    try:
-                        await user.send(f"Congratulations, {user.mention}! You are now level {new_level}!", allowed_mentions=discord.AllowedMentions.none(), silent=True)
-                    except discord.Forbidden:
-                        pass
+                if opted_message.get("level_up_messaging", True):
+                    await self.level_up_message(user, new_level)
 
             data = {
                 "user_id": str(user.id),
@@ -122,11 +140,8 @@ class Leveling(commands.Cog):
             }
             await self.collection.insert_one(data)
 
-        if opted_message.get("level-up-messaging", False):
-            try:
-                await user.send(f"Hello, {user.mention}! A bot developer has set your level to {level} and experience to {experience}!", allowed_mentions=discord.AllowedMentions.none(), silent=True)
-            except discord.Forbidden:
-                pass
+        if opted_message.get("level_up_messaging", True):
+            await self.level_set_message(user, level, experience)
             
 
     @commands.Cog.listener()
@@ -137,23 +152,16 @@ class Leveling(commands.Cog):
             self.text_user_talked.append(message.author.id)
             await self.process_xp_gain(message.author)
 
-    async def talking_reset(self):
-        await self.bot.wait_until_ready()
-        while not self.bot.is_closed():
-            await asyncio.sleep(60)
-            self.text_user_talked = []
-            self.voice_user_talked = []
-
+    @tasks.loop(minutes=1)
     async def check_voice_talking(self):
-        await self.bot.wait_until_ready()
-        while not self.bot.is_closed():
-            members = list(self.bot.get_all_members())
-            wait_time = 60 / len(members)
+        self.text_user_talked = []
+        channels = list(self.bot.get_all_channels())
+        for voice_channel in [channel for channel in channels if channel.type == discord.ChannelType.voice or channel.type == discord.ChannelType.stage_voice]:
+            members = voice_channel.members
+            if len(members) <= 1:
+                continue
             for member in members:
-                await asyncio.sleep(wait_time)
-                if not member.voice:
-                    continue
-                elif member.voice.self_mute or member.voice.self_deaf:
+                if member.voice.self_mute or member.voice.self_deaf:
                     continue
                 elif member.voice.afk:
                     continue
@@ -161,8 +169,7 @@ class Leveling(commands.Cog):
                     continue
                 elif member.bot:
                     continue
-                elif member.id not in self.voice_user_talked:
-                    self.voice_user_talked.append(member.id)
+                else:
                     await self.process_xp_gain(member)
 
     @commands.hybrid_command(name="level", description="Pulls your level and experience.", with_app_command=True)
@@ -187,17 +194,18 @@ class Leveling(commands.Cog):
         users = self.collection.find().sort(
             [("level", -1), ("experience", -1)])
         embed = discord.Embed(title="Leaderboard",
-                              color=discord.Color.blurple())
+                              color=discord.Color(0x3498DB))
         i = 1
+        description = ""
         async for user in users:
             if i > 10:
                 break
             user_id = int(user["user_id"])
             member = self.bot.get_user(user_id)
             if member:
-                embed.add_field(
-                    name=f"{i}. {member.name}", value=f"Level {user['level']} with {user['experience']} experience.", inline=False)
+                description += f"{i}. {member.mention}\nLevel {user['level']} with {user['experience']} experience.\n\n"
                 i += 1
+        embed = discord.Embed(title="Leaderboard", color=discord.Color(0x3498DB), description=description)
         await ctx.reply(embed=embed)
 
     @commands.check(is_dev)
@@ -210,7 +218,7 @@ class Leveling(commands.Cog):
 
     @commands.check(is_dev)
     @commands.hybrid_command(name="addlvl", description="Adds levels to a user. (Bot dev only)", with_app_command=True)
-    async def addlvl(self, ctx: commands.Context, member: discord.Member, amount: int):
+    async def addlvl(self, ctx: commands.Context, member: discord.User, amount: int):
         if amount < 0:
             raise commands.BadArgument("Amount must be greater than 0.")
 

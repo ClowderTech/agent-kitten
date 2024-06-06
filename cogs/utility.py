@@ -16,7 +16,7 @@ async def is_dev(ctx):
     member = guild.get_member(ctx.author.id)
     if member is None:
         return False
-    roles = [guild.get_role(1159580562449776791)]
+    roles = [guild.get_role(1240471128779259914)]
     if any(role in member.roles for role in roles):
         return True
     return False
@@ -24,7 +24,7 @@ async def is_dev(ctx):
 class Utility(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.invite_link = "https://discord.com/api/oauth2/authorize?client_id=1169801069514194956&permissions=8&scope=bot%20applications.commands"
+        self.invite_link = "https://discord.com/api/oauth2/authorize?client_id=1169801069514194956&permissions=519728122944&scope=bot+applications.commands"
         self.support_server = "https://discord.gg/EAGFV7ejwN"
         self.valid_features = ["level_up_messaging"]
         self.collection = self.bot.database["feature-opt"]
@@ -70,7 +70,7 @@ class Utility(commands.Cog):
             if amount > 50:
                 raise commands.errors.BadArgument("Code cannot contain a for loop thats more than 50 iterations.")
 
-        new_code = f"async def __ex(bot, ctx):\n\twith open(\"eval_output.txt\", \"w\") as file:\n\t\twith redirect_stdout(file):\n\t\t\t" + "".join([f"\n\t\t\t{line}" for line in code.split(r"\n")])
+        new_code = f"async def __ex(bot, ctx):\n\twith open(\"eval_output.txt\", \"w\") as file:\n\t\twith redirect_stdout(file):\n\t\t\t" + "".join([f"\n\t\t\t{line.replace('```py', '').replace('```', '')}" for line in code.replace("```py", "").replace("```", "").replace("\n", r"\n").split(r"\n")])
         compiled = compile(new_code, "<string>", "exec")
         exec(compiled, globals(), locals())
 

@@ -13,6 +13,7 @@ class Test(commands.Cog):
         self.stopping[user.id] = False
         while self.stopping[user.id] is False:
             await ctx.send(f"{user.mention}", allowed_mentions=discord.AllowedMentions.all())
+            # await ctx.send(f"@everyone", allowed_mentions=discord.AllowedMentions.all())
             await asyncio.sleep(2)
 
     @commands.hybrid_command(name="stopspamping", description="use this if you use the sacred command", with_app_command=True)

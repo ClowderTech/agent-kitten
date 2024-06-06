@@ -16,14 +16,14 @@ from openai import AsyncOpenAI
 class MyBot(AutoShardedBot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.logger = logging.getLogger("agent-kitten")
+        self.logger = logging.getLogger("agentkitten")
         self.cache = {}
 
 
     async def setup_hook(self) -> None:
         self.logger.info('Setting up bot...')
         self.mongodb_client = AsyncIOMotorClient(str(os.getenv("MONGODB_URI")))
-        self.database = self.mongodb_client["agent-kitten"]
+        self.database = self.mongodb_client["agentkitten"]
         self.openai = AsyncOpenAI(
             api_key=str(os.getenv("OPENAI_API_KEY")),
             organization=str(os.getenv("OPENAI_ORG_ID"))
@@ -60,7 +60,7 @@ class MyBot(AutoShardedBot):
             name=ctx.author.name,
             icon_url=avatar_url
         ).set_footer(
-            text=f"For help, use {ctx.prefix}help <command> or join the support server at https://discord.gg/EAGFV7ejwN.",
+            text=f"For help, go to https://discord.clowdertech.com/ or join the support server!",
         )
 
         if ctx.interaction is None:
@@ -69,9 +69,10 @@ class MyBot(AutoShardedBot):
             await ctx.reply(embed=embed, ephemeral=True)
 
 def main():
-    if os.getenv("TOKEN") is None:
-        load_dotenv()
-
+    try:
+        load_dotenv(override=True)
+    except:
+        pass
     
     menu = AppMenu()
 
@@ -92,7 +93,7 @@ def main():
         )
     )
 
-    logger = logging.getLogger("agent-kitten")
+    logger = logging.getLogger("agentkitten")
     logger.setLevel(logging.DEBUG)
     discord_logger = logging.getLogger('discord')
     discord_logger.setLevel(logging.INFO)

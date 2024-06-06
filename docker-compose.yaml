@@ -1,0 +1,7 @@
+services:
+  rotunes:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    env_file:
+      - .env

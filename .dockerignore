@@ -1,0 +1,7 @@
+.env
+.github
+.gitignore
+.venv
+.vscode
+eval_output
+__pycache__
