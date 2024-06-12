@@ -46,8 +46,7 @@ class TextGen(commands.Cog):
                 results = await response.json()
                 results = results["results"]
                 for result in results:
-                    search_results += f"[{start + 1}] {result['link']
-                                                       } || {result["content"]}\n"
+                    search_results += f"[{start + 1}] {result['link']} || {result["content"]}\n"
                     start += 1
                     if start == self.search_results_amount:
                         break
