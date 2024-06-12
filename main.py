@@ -11,6 +11,7 @@ from pretty_help import AppMenu, PrettyHelp
 from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
+import signal
 
 
 class MyBot(AutoShardedBot):
@@ -18,6 +19,12 @@ class MyBot(AutoShardedBot):
         super().__init__(*args, **kwargs)
         self.logger = logging.getLogger("agentkitten")
         self.cache = {}
+
+    def exit_gracefully(self, signal, frame):
+        self.logger.info(f"Received signal {signal}. Exiting...")
+        self.mongodb_client.close()
+        asyncio.create_task(self.openai.close())
+        asyncio.create_task(self.close())
 
     async def setup_hook(self) -> None:
         self.logger.info('Setting up bot...')
@@ -127,6 +134,9 @@ def main():
     if os.getenv("OPENAI_API_KEY") is None:
         logger.error("No OpenAI API key provided!")
         return
+
+    signal.signal(signal.SIGINT, bot.exit_gracefully)
+    signal.signal(signal.SIGTERM, bot.exit_gracefully)
 
     bot.run(str(os.getenv('TOKEN')), log_handler=None)
 
