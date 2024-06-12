@@ -19,7 +19,6 @@ class MyBot(AutoShardedBot):
         self.logger = logging.getLogger("agentkitten")
         self.cache = {}
 
-
     async def setup_hook(self) -> None:
         self.logger.info('Setting up bot...')
         self.mongodb_client = AsyncIOMotorClient(str(os.getenv("MONGODB_URI")))
@@ -40,11 +39,15 @@ class MyBot(AutoShardedBot):
     async def on_ready(self):
         if self.user is None:
             return
-        
+
         self.logger.info(f'Logged in as {self.user} (ID: {self.user.id})')
 
-    async def on_command_error(self, ctx: Context, exception: commands.CommandError):
-        self.logger.error(f"Error in command {ctx.command}:", exc_info=exception)
+    async def on_command_error(
+            self,
+            ctx: Context,
+            exception: commands.CommandError):
+        self.logger.error(f"Error in command {
+                          ctx.command}:", exc_info=exception)
 
         if ctx.author.avatar is None:
             avatar_url = ctx.author.default_avatar.url
@@ -68,18 +71,20 @@ class MyBot(AutoShardedBot):
         else:
             await ctx.reply(embed=embed, ephemeral=True)
 
+
 def main():
     try:
         load_dotenv(override=True)
-    except:
+    except BaseException:
         pass
-    
+
     menu = AppMenu()
 
     bot = MyBot(
         command_prefix=commands.when_mentioned_or("ak!"),
         intents=discord.Intents.all(),
-        activity=discord.Activity(type=discord.ActivityType.watching, name="ak!help"),
+        activity=discord.Activity(
+            type=discord.ActivityType.watching, name="ak!help"),
         allowed_mentions=discord.AllowedMentions.none(),
         help_command=PrettyHelp(
             menu=menu,
@@ -88,8 +93,7 @@ def main():
             show_check_failure=True,
             delete_invoke=False,
             send_typing=False,
-            sort_commands=True,
-
+            sort_commands=True
         )
     )
 
@@ -100,24 +104,26 @@ def main():
 
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.DEBUG)
-    console_formatter = logging.Formatter(fmt="[%(asctime)s] [%(levelname)s] %(name)s: %(message)s [%(filename)s:%(lineno)d]", datefmt="%Y-%m-%d %H:%M:%S", style="%")
+    console_formatter = logging.Formatter(
+        fmt="[%(asctime)s] [%(levelname)s] %(name)s: %(message)s [%(filename)s:%(lineno)d]",
+        datefmt="%Y-%m-%d %H:%M:%S", style="%")
     console_handler.setFormatter(console_formatter)
 
     logger.addHandler(console_handler)
     discord_logger.addHandler(console_handler)
-    
+
     if os.getenv("TOKEN") is None:
         logger.error("No token provided!")
         return
-    
+
     if os.getenv("MONGODB_URI") is None:
         logger.error("No MongoDB URI provided!")
         return
-    
+
     if os.getenv("OPENAI_ORG_ID") is None:
         logger.error("No OpenAI Organization ID provided!")
         return
-    
+
     if os.getenv("OPENAI_API_KEY") is None:
         logger.error("No OpenAI API key provided!")
         return

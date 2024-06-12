@@ -41,19 +41,33 @@ class Leveling(commands.Cog):
 
     async def level_up_message(self, user: discord.User, level: int):
         try:
-            embed = discord.Embed(title="Level Up!", description=f"Congratulations, {user.mention}! You are now level {level}!", color=discord.Color.green())
+            embed = discord.Embed(
+                title="Level Up!",
+                description=f"Congratulations, {
+                    user.mention}! You are now level {level}!",
+                color=discord.Color.green())
 
-            embed.set_footer(text="You can opt out of these messages by using the opt command.")
+            embed.set_footer(
+                text="You can opt out of these messages by using the opt command.")
 
             await user.send(embed=embed, allowed_mentions=discord.AllowedMentions.none(), silent=True)
         except discord.Forbidden:
             pass
 
-    async def level_set_message(self, user: discord.User, level: int, experience: int):
+    async def level_set_message(
+            self,
+            user: discord.User,
+            level: int,
+            experience: int):
         try:
-            embed = discord.Embed(title="Level Update.", description=f"Hello, {user.mention}! An administrator has set your level to {level} and experience to {experience}!", color=discord.Color.green())
+            embed = discord.Embed(
+                title="Level Update.",
+                description=f"Hello, {
+                    user.mention}! An administrator has set your level to {level} and experience to {experience}!",
+                color=discord.Color.green())
 
-            embed.set_footer(text="You can opt out of these messages by using the opt command.")
+            embed.set_footer(
+                text="You can opt out of these messages by using the opt command.")
 
             await user.send(embed=embed, allowed_mentions=discord.AllowedMentions.none(), silent=True)
         except discord.Forbidden:
@@ -110,7 +124,11 @@ class Leveling(commands.Cog):
             }
             await self.collection.insert_one(data)
 
-    async def process_xp_set(self, user: discord.User, level: int = None, experience: int = None):
+    async def process_xp_set(
+            self,
+            user: discord.User,
+            level: int = None,
+            experience: int = None):
         key = {
             "user_id": str(user.id)
         }
@@ -142,7 +160,6 @@ class Leveling(commands.Cog):
 
         if opted_message.get("level_up_messaging", True):
             await self.level_set_message(user, level, experience)
-            
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -156,7 +173,10 @@ class Leveling(commands.Cog):
     async def check_voice_talking(self):
         self.text_user_talked = []
         channels = list(self.bot.get_all_channels())
-        for voice_channel in [channel for channel in channels if channel.type == discord.ChannelType.voice or channel.type == discord.ChannelType.stage_voice]:
+        for voice_channel in [
+                channel for channel in channels
+                if channel.type == discord.ChannelType.voice or channel.type
+                == discord.ChannelType.stage_voice]:
             members = voice_channel.members
             if len(members) <= 1:
                 continue
@@ -172,8 +192,11 @@ class Leveling(commands.Cog):
                 else:
                     await self.process_xp_gain(member)
 
-    @commands.hybrid_command(name="level", description="Pulls your level and experience.", with_app_command=True)
-    async def level(self, ctx: commands.Context, member_to_check: typing.Optional[discord.User]):
+    @commands.hybrid_command(name="level",
+                             description="Pulls your level and experience.",
+                             with_app_command=True)
+    async def level(self, ctx: commands.Context,
+                    member_to_check: typing.Optional[discord.User]):
         if member_to_check is None:
             member_to_check = ctx.author
         else:
@@ -189,7 +212,9 @@ class Leveling(commands.Cog):
         else:
             await ctx.reply(f"{member_to_check.mention} does not have any data.", allowed_mentions=discord.AllowedMentions.none())
 
-    @commands.hybrid_command(name="leaderboard", description="Pulls the top 10 users with the most experience.", with_app_command=True)
+    @commands.hybrid_command(name="leaderboard",
+                             description="Pulls the top 10 users with the most experience.",
+                             with_app_command=True)
     async def leaderboard(self, ctx: commands.Context):
         users = self.collection.find().sort(
             [("level", -1), ("experience", -1)])
@@ -203,22 +228,36 @@ class Leveling(commands.Cog):
             user_id = int(user["user_id"])
             member = self.bot.get_user(user_id)
             if member:
-                description += f"{i}. {member.mention}\nLevel {user['level']} with {user['experience']} experience.\n\n"
+                description += f"{i}. {member.mention}\nLevel {
+                    user['level']} with {user['experience']} experience.\n\n"
                 i += 1
-        embed = discord.Embed(title="Leaderboard", color=discord.Color(0x3498DB), description=description)
+        embed = discord.Embed(title="Leaderboard", color=discord.Color(
+            0x3498DB), description=description)
         await ctx.reply(embed=embed)
 
     @commands.check(is_dev)
-    @commands.hybrid_command(name="addxp", description="Adds experience to a user. (Bot dev only)", with_app_command=True)
-    async def addxp(self, ctx: commands.Context, member: discord.Member, amount: int):
+    @commands.hybrid_command(name="addxp",
+                             description="Adds experience to a user. (Bot dev only)",
+                             with_app_command=True)
+    async def addxp(
+            self,
+            ctx: commands.Context,
+            member: discord.Member,
+            amount: int):
         if amount < 0:
             raise commands.BadArgument("Amount must be greater than 0.")
         await self.process_xp_gain(member, amount)
         await ctx.reply(f"Added {amount} experience to {member.mention}.", allowed_mentions=discord.AllowedMentions.none())
 
     @commands.check(is_dev)
-    @commands.hybrid_command(name="addlvl", description="Adds levels to a user. (Bot dev only)", with_app_command=True)
-    async def addlvl(self, ctx: commands.Context, member: discord.User, amount: int):
+    @commands.hybrid_command(name="addlvl",
+                             description="Adds levels to a user. (Bot dev only)",
+                             with_app_command=True)
+    async def addlvl(
+            self,
+            ctx: commands.Context,
+            member: discord.User,
+            amount: int):
         if amount < 0:
             raise commands.BadArgument("Amount must be greater than 0.")
 
@@ -247,14 +286,26 @@ class Leveling(commands.Cog):
         await ctx.reply(f"Added {amount} levels to {member.mention}.", allowed_mentions=discord.AllowedMentions.none())
 
     @commands.check(is_dev)
-    @commands.hybrid_command(name="setxp", description="Sets experience to a user. (Bot dev only)", with_app_command=True)
-    async def setxp(self, ctx: commands.Context, member: discord.Member, amount: int):
+    @commands.hybrid_command(name="setxp",
+                             description="Sets experience to a user. (Bot dev only)",
+                             with_app_command=True)
+    async def setxp(
+            self,
+            ctx: commands.Context,
+            member: discord.Member,
+            amount: int):
         await self.process_xp_set(member, experience=amount)
         await ctx.reply(f"Set {amount} experience to {member.mention}.", allowed_mentions=discord.AllowedMentions.none())
 
     @commands.check(is_dev)
-    @commands.hybrid_command(name="setlvl", description="Sets levels to a user. (Bot dev only)", with_app_command=True)
-    async def setlvl(self, ctx: commands.Context, member: discord.Member, amount: int):
+    @commands.hybrid_command(name="setlvl",
+                             description="Sets levels to a user. (Bot dev only)",
+                             with_app_command=True)
+    async def setlvl(
+            self,
+            ctx: commands.Context,
+            member: discord.Member,
+            amount: int):
         await self.process_xp_set(member, level=amount)
         await ctx.reply(f"Set {amount} levels to {member.mention}.", allowed_mentions=discord.AllowedMentions.none())
 

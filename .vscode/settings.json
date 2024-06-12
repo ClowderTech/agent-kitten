@@ -1,6 +1,13 @@
 {
     "[python]": {
-        "editor.defaultFormatter": "ms-python.autopep8"
+        "editor.defaultFormatter": "ms-python.autopep8",
+        "editor.formatOnSave": true
     },
-    "python.formatting.provider": "none"
+    "autopep8.args": [
+        "--max-line-length=100",
+        "--aggressive",
+        "--aggressive",
+        "--aggressive",
+        "--experimental"
+    ]
 }

@@ -22,11 +22,9 @@ class TextGen(commands.Cog):
         self.collection = self.bot.database["text-gen"]
         self.search_results_amount = 3
         self.chat_instructions = [
-            {
-                "role": "system",
-                "content": "You are Agent Kitten, a helpful AI assistant made by the ClowderTech Corperation. You are here to help people with their problems."
-            }
-        ]
+            {"role": "system",
+             "content":
+             "You are Agent Kitten, a helpful AI assistant made by the ClowderTech Corperation. You are here to help people with their problems."}]
         self.useragent_list = [
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:66.0) Gecko/20100101 Firefox/66.0',
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
@@ -34,8 +32,7 @@ class TextGen(commands.Cog):
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
             'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36 Edg/111.0.1661.62',
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/111.0'
-        ]
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/111.0']
 
     async def search_google(self, query: str):
         async with aiohttp.ClientSession() as session:
@@ -49,14 +46,15 @@ class TextGen(commands.Cog):
                 results = await response.json()
                 results = results["results"]
                 for result in results:
-                    search_results += f"[{start + 1}] {result['link']} || {result["content"]}\n"
+                    search_results += f"[{start + 1}] {result['link']
+                                                       } || {result["content"]}\n"
                     start += 1
                     if start == self.search_results_amount:
                         break
 
             search_results = search_results[2:]
             return search_results
-    
+
     async def scrape_website(self, url: str):
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
@@ -64,22 +62,26 @@ class TextGen(commands.Cog):
                 soup = BeautifulSoup(text, "html.parser")
                 text = soup.get_text()
                 return text
-            
+
     async def python_eval(self, code: str):
-        new_code = f"async def __ex(bot):\n\twith open(\"eval_output.txt\", \"w\") as file:\n\t\twith redirect_stdout(file):\n\t\t\t" + "".join([f"\n\t\t\t{line}" for line in code.replace("\n", r"\n").split(r"\n")])
+        new_code = f"async def __ex(bot):\n\twith open(\"eval_output.txt\", \"w\") as file:\n\t\twith redirect_stdout(file):\n\t\t\t" + \
+            "".join([f"\n\t\t\t{line}" for line in code.replace(
+                "\n", r"\n").split(r"\n")])
         compiled = compile(new_code, "<string>", "exec")
         exec(compiled, globals(), locals())
 
         await locals()["__ex"](self.bot)
-        
+
         with open("eval_output.txt", "r") as file:
             output = file.read()
             if len(output) == 0:
                 output = "No output."
-            
+
         return output
 
-    async def get_textgen_response(self, message: typing.List[typing.Dict[str, str]], tools: typing.List[typing.Dict] = None):
+    async def get_textgen_response(
+            self, message: typing.List[typing.Dict[str, str]],
+            tools: typing.List[typing.Dict] = None):
         # async with aiohttp.ClientSession() as session:
         #     async with session.post("http://172.16.237.83:8000/api/v1/textgen", json={"message": message}) as response:
         #         if response.ok:
@@ -89,8 +91,11 @@ class TextGen(commands.Cog):
         #             return None
         response = await self.bot.openai.chat.completions.create(model="gpt-4o", messages=message, tools=tools, tool_choice="auto")
         return response.model_dump(exclude_unset=True)["choices"][0]["message"]
-    
-    async def get_response(self, message: str, user_id: str, tools: typing.List[typing.Dict] = None, avaliable_functions: typing.Dict[str, typing.Callable] = None):
+
+    async def get_response(self, message: str, user_id: str,
+                           tools: typing.List[typing.Dict] = None,
+                           avaliable_functions: typing.Dict
+                           [str, typing.Callable] = None):
         user_instruction_data = await self.collection.find_one({
             "user_id": str(user_id)
         })
@@ -101,7 +106,8 @@ class TextGen(commands.Cog):
         user_instruction.append({"role": "user", "content": f"{message}"})
         result = await self.get_textgen_response(user_instruction, tools)
         if result is None:
-            raise commands.CommandError("Something went wrong with the textgen API.")
+            raise commands.CommandError(
+                "Something went wrong with the textgen API.")
         tool_calls = result.get("tool_calls", None)
         while tool_calls is not None:
             user_instruction.append(result)
@@ -110,10 +116,14 @@ class TextGen(commands.Cog):
                 function_to_call = avaliable_functions[function_name]
                 function_args = json.loads(tool_call["function"]["arguments"])
                 response = await function_to_call(**function_args)
-                user_instruction.append({"tool_call_id": tool_call["id"], "role": "tool", "name": function_name, "content": response})
+                user_instruction.append(
+                    {"tool_call_id": tool_call["id"],
+                     "role": "tool", "name": function_name,
+                     "content": response})
             result = await self.get_textgen_response(user_instruction, tools)
             if result is None:
-                raise commands.CommandError("Something went wrong with the textgen API.")
+                raise commands.CommandError(
+                    "Something went wrong with the textgen API.")
             tool_calls = result.get("tool_calls", None)
         user_instruction.append(result)
         test_for_existance = await self.collection.find_one({
@@ -133,11 +143,13 @@ class TextGen(commands.Cog):
                 "instruction": user_instruction
             })
         return result
-                
-    @commands.hybrid_command(name="chat", description="Chat with Agent Kitten.", with_app_command=True)
+
+    @commands.hybrid_command(name="chat",
+                             description="Chat with Agent Kitten.",
+                             with_app_command=True)
     async def chat(self, ctx: commands.Context, *, message: str):
         await ctx.defer()
-        
+
         tools = [
             {
                 "type": "function",
@@ -217,7 +229,8 @@ class TextGen(commands.Cog):
         )
         await ctx.reply(embed=embed)
 
-    @commands.hybrid_command(name="chatclear", description="Clear your current conversation with Agent Kitten.",
+    @commands.hybrid_command(name="chatclear",
+                             description="Clear your current conversation with Agent Kitten.",
                              with_app_command=True)
     async def chatclear(self, ctx: commands.Context):
         await self.collection.delete_one({
@@ -225,27 +238,30 @@ class TextGen(commands.Cog):
         })
         await ctx.reply(f"I have deleted your conversation with me, {ctx.author.mention}.")
 
-    @commands.hybrid_command(name="rawchat",
-                             description="Check raw conversation data with Agent Kitten. (Meant for debugging)",
-                             with_app_command=True)
+    @commands.hybrid_command(
+        name="rawchat",
+        description="Check raw conversation data with Agent Kitten. (Meant for debugging)",
+        with_app_command=True)
     async def rawchat(self, ctx: commands.Context):
         sendable_instructions = await self.collection.find_one({
             "user_id": str(ctx.author.id)
         })
         if sendable_instructions:
-            instruction = json.dumps(sendable_instructions["instruction"], indent=4)
+            instruction = json.dumps(
+                sendable_instructions["instruction"], indent=4)
             async with aiofiles.open(f"{ctx.author.id}.json", mode="wb") as file:
                 await file.write(bytes(instruction, 'utf8'))
             # async with aiofiles.open(f"{ctx.author.id}.txt", mode="wb") as file:
             #     await file.write(instruction.encode("utf-8"))
             await ctx.reply(
                 f"Here is my chat data with you, {ctx.author.mention}.",
-                file=discord.File(f"{ctx.author.id}.json", filename=f"{ctx.author.id}.json")
+                file=discord.File(f"{ctx.author.id}.json",
+                                  filename=f"{ctx.author.id}.json")
             )
             os.remove(f"{ctx.author.id}.json")
         else:
             await ctx.reply(f"I have no chat data with you, {ctx.author.mention}.")
-        
+
 
 async def setup(bot):
     await bot.add_cog(TextGen(bot))

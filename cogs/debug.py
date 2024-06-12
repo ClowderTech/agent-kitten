@@ -9,7 +9,9 @@ class Debug(commands.Cog):
         self.bot = bot
         self.start_time = time.time()
 
-    @commands.hybrid_command(name="debug", description="Pulls any debug information", with_app_command=True)
+    @commands.hybrid_command(name="debug",
+                             description="Pulls any debug information",
+                             with_app_command=True)
     async def debug(self, ctx: commands.Context):
         embed = discord.Embed(title="Debug Information", color=0x00ff00)
         embed.add_field(name="Guilds", value=len(self.bot.guilds))
