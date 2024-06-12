@@ -40,7 +40,6 @@ class TextGen(commands.Cog):
             escaped_term = urllib.parse.quote_plus(query)
             start = 0
             async with session.get(f"https://searx.clowdertech.com/search?q={escaped_term}&language=auto&time_range=&safesearch=0&categories=general&format=json") as response:
-                response.status()
                 if not response.ok:
                     return f"Responce not ok. {response.status}"
                 results = await response.json()
