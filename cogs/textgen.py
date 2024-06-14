@@ -35,7 +35,9 @@ class TextGen(commands.Cog):
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/111.0']
 
     async def search_google(self, query: str):
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(headers={
+            "User-Agent": random.choice(self.useragent_list)
+        }) as session:
             search_results = ""
             escaped_term = urllib.parse.quote_plus(query)
             start = 0

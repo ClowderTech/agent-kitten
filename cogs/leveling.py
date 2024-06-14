@@ -238,7 +238,8 @@ class Leveling(commands.Cog):
     @commands.check(is_dev)
     @commands.hybrid_command(name="addxp",
                              description="Adds experience to a user. (Bot dev only)",
-                             with_app_command=True)
+                             with_app_command=True,
+                             guild_id=1185316093078802552)
     async def addxp(
             self,
             ctx: commands.Context,
@@ -252,7 +253,8 @@ class Leveling(commands.Cog):
     @commands.check(is_dev)
     @commands.hybrid_command(name="addlvl",
                              description="Adds levels to a user. (Bot dev only)",
-                             with_app_command=True)
+                             with_app_command=True,
+                             guild_id=1185316093078802552)
     async def addlvl(
             self,
             ctx: commands.Context,
@@ -288,7 +290,8 @@ class Leveling(commands.Cog):
     @commands.check(is_dev)
     @commands.hybrid_command(name="setxp",
                              description="Sets experience to a user. (Bot dev only)",
-                             with_app_command=True)
+                             with_app_command=True,
+                             guild_id=1185316093078802552)
     async def setxp(
             self,
             ctx: commands.Context,
@@ -300,7 +303,8 @@ class Leveling(commands.Cog):
     @commands.check(is_dev)
     @commands.hybrid_command(name="setlvl",
                              description="Sets levels to a user. (Bot dev only)",
-                             with_app_command=True)
+                             with_app_command=True,
+                             guild_id=1185316093078802552)
     async def setlvl(
             self,
             ctx: commands.Context,
