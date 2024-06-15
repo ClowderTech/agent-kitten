@@ -43,6 +43,24 @@ class Utility(commands.Cog):
     async def support(self, ctx: commands.Context):
         await ctx.reply(f"Here is my [support server link!]({self.support_server})")
 
+    @commands.hybrid_command(
+        name="setchannelcooldown",
+        description="Sets the cooldown for a channel (because discord doesn't support custom values through the UI).",
+        with_app_command=True)
+    async def setchannelcooldown(
+            self,
+            ctx: commands.Context,
+            cooldown: int,
+            channel: discord.TextChannel):
+        if cooldown < 0 or cooldown > 21600:
+            await ctx.reply("Cooldown must be between 0 and 21600 seconds.", allowed_mentions=discord.AllowedMentions.none())
+            return
+        try:
+            await channel.edit(slowmode_delay=cooldown)
+            await ctx.reply(f"Set the cooldown for {channel.mention} to {cooldown} seconds.", allowed_mentions=discord.AllowedMentions.none())
+        except discord.Forbidden:
+            await ctx.reply("I don't have permission to edit that channel's cooldown.", allowed_mentions=discord.AllowedMentions.none())
+
     @commands.check(is_dev)
     @commands.hybrid_command(name="sync",
                              description="Get all commands from the bot and update them. (Bot dev only)",
@@ -50,7 +68,7 @@ class Utility(commands.Cog):
                              guild_id=1185316093078802552)
     async def sync(self, ctx: commands.Context, guild_id: int = None):
         message = await ctx.reply("Syncing commands...", allowed_mentions=discord.AllowedMentions.none())
-        await self.bot.tree.sync(guild_id=guild_id)
+        await self.bot.tree.sync(guild=guild_id)
         await message.edit(content="Synced commands!", allowed_mentions=discord.AllowedMentions.none())
 
     @commands.check(is_dev)

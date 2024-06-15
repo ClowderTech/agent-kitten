@@ -56,7 +56,9 @@ class TextGen(commands.Cog):
             return search_results
 
     async def scrape_website(self, url: str):
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(headers={
+            "User-Agent": random.choice(self.useragent_list)
+        }) as session:
             async with session.get(url) as response:
                 text = await response.text()
                 soup = BeautifulSoup(text, "html.parser")
