@@ -74,7 +74,15 @@ class TextGen(commands.Cog):
             async with session.get(url) as response:
                 text = await response.text()
                 soup = BeautifulSoup(text, "html.parser")
+
+                # Replace all <a> tags with their corresponding links in the text
+                for a in soup.find_all('a', href=True):
+                    link_text = f"[{a.get_text()}]({a['href']})"
+                    a.replace_with(link_text)
+
+                # Get the text with links embedded
                 text = soup.get_text()
+
                 return text
 
     async def python_eval(self, code: str):
