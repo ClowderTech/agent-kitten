@@ -14,6 +14,7 @@ from contextlib import redirect_stdout
 import urllib
 import random
 import asyncio
+import io
 
 
 async def is_dev(ctx):
@@ -106,17 +107,32 @@ class TextGen(commands.Cog):
 
         chunks = []
         current_chunk = ""
+        code_block_open = False
 
         for line in lines:
+            # Check for code block markers and track their state
+            if line.strip().startswith("```"):
+                code_block_open = not code_block_open
+
             # Check if adding the line would make the current chunk too long
             if len(current_chunk) + len(line) > max_length:
-                chunks.append(current_chunk.strip())
-                current_chunk = line
+                # If a code block is open, close it in the current chunk and reopen in the next
+                if code_block_open:
+                    current_chunk += "```\n"
+                    chunks.append(current_chunk.strip())
+
+                    # Reopen in the next chunk
+                    current_chunk = "```\n" + line
+                else:
+                    chunks.append(current_chunk.strip())
+                    current_chunk = line
             else:
                 current_chunk += line
 
-        # Add the last chunk if it has content
+        # Handle the last chunk and the case where the code block may still be open
         if current_chunk.strip():
+            if code_block_open:
+                current_chunk += "```"
             chunks.append(current_chunk.strip())
 
         return chunks
@@ -302,7 +318,7 @@ class TextGen(commands.Cog):
                 sendable_instructions["instruction"], indent=4)
             await ctx.reply(
                 f"Here is my chat data with {user.mention}.",
-                file=discord.File(bytes(instruction, 'utf8'),
+                file=discord.File(fp=io.BytesIO(bytes(instruction, 'utf8')),
                                   filename=f"{ctx.author.id}.json")
             )
         else:
