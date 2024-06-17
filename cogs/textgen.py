@@ -16,6 +16,17 @@ import random
 import asyncio
 
 
+async def is_dev(ctx):
+    guild = ctx.bot.get_guild(1157440778000420974)
+    member = guild.get_member(ctx.author.id)
+    if member is None:
+        return False
+    roles = [guild.get_role(1240471128779259914)]
+    if any(role in member.roles for role in roles):
+        return True
+    return False
+
+
 class TextGen(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -24,7 +35,7 @@ class TextGen(commands.Cog):
         self.chat_instructions = [
             {"role": "system",
              "content":
-             "You are Agent Kitten, a helpful AI assistant made by the ClowderTech Corperation. You are here to help people with their problems."}]
+             "You are Agent Kitten, a helpful AI powered discord bot made by the ClowderTech LLC. You are here to help people with their problems."}]
         self.useragent_list = [
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:66.0) Gecko/20100101 Firefox/66.0',
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
@@ -80,6 +91,35 @@ class TextGen(commands.Cog):
                 output = "No output."
 
         return output
+
+    def split_text(text, max_length=4096):
+        """
+        Splits text into chunks, ensuring each chunk is no longer than max_length
+        and splits are done only at newline characters while preserving markdown formatting.
+
+        :param text: The text to be split
+        :param max_length: Maximum length of each split chunk
+        :return: A list of text chunks
+        """
+        # Split the text by lines first
+        lines = text.splitlines(True)  # True keeps the newline characters
+
+        chunks = []
+        current_chunk = ""
+
+        for line in lines:
+            # Check if adding the line would make the current chunk too long
+            if len(current_chunk) + len(line) > max_length:
+                chunks.append(current_chunk.strip())
+                current_chunk = line
+            else:
+                current_chunk += line
+
+        # Add the last chunk if it has content
+        if current_chunk.strip():
+            chunks.append(current_chunk.strip())
+
+        return chunks
 
     async def get_textgen_response(
             self, message: typing.List[typing.Dict[str, str]],
@@ -218,18 +258,24 @@ class TextGen(commands.Cog):
             avatar_url = ctx.author.avatar.url
 
         result = await self.get_response(message, ctx.author.id, tools=tools, avaliable_functions=avaliable_functions)
-        embed = discord.Embed(
-            title="Response",
-            description=result["content"][:4095],
-            color=discord.Color.blue(),
-            timestamp=datetime.datetime.now()
-        ).set_footer(
-            text="If the responce doesnt seem right, use `/chatclear` and retype your question(s). If that doesn\'t work, Report it in my support server with the data from your `/rawchat`."
-        ).set_author(
-            name=ctx.author.name,
-            icon_url=avatar_url
-        )
-        await ctx.reply(embed=embed)
+
+        results = self.split_text(result["content"])
+        embeds = []
+        for result_piece in results:
+            embeds.append(
+                discord.Embed(
+                    title="Response",
+                    description=result_piece,
+                    color=discord.Color.purple(),
+                    timestamp=datetime.datetime.now()
+                ).set_footer(
+                    text=""
+                ).set_author(
+                    name=ctx.author.name,
+                    icon_url=avatar_url
+                )
+            )
+        await ctx.reply(embeds=embeds)
 
     @commands.hybrid_command(name="chatclear",
                              description="Clear your current conversation with Agent Kitten.",
@@ -240,29 +286,27 @@ class TextGen(commands.Cog):
         })
         await ctx.reply(f"I have deleted your conversation with me, {ctx.author.mention}.")
 
+    @commands.check(is_dev)
     @commands.hybrid_command(
-        name="rawchat",
+        name="chatraw",
         description="Check raw conversation data with Agent Kitten. (Meant for debugging)",
         with_app_command=True)
-    async def rawchat(self, ctx: commands.Context):
+    async def chatraw(self, ctx: commands.Context, user: discord.User = None):
+        if user is None:
+            user = ctx.author
         sendable_instructions = await self.collection.find_one({
-            "user_id": str(ctx.author.id)
+            "user_id": str(user.id)
         })
         if sendable_instructions:
             instruction = json.dumps(
                 sendable_instructions["instruction"], indent=4)
-            async with aiofiles.open(f"{ctx.author.id}.json", mode="wb") as file:
-                await file.write(bytes(instruction, 'utf8'))
-            # async with aiofiles.open(f"{ctx.author.id}.txt", mode="wb") as file:
-            #     await file.write(instruction.encode("utf-8"))
             await ctx.reply(
-                f"Here is my chat data with you, {ctx.author.mention}.",
-                file=discord.File(f"{ctx.author.id}.json",
+                f"Here is my chat data with {user.mention}.",
+                file=discord.File(bytes(instruction, 'utf8'),
                                   filename=f"{ctx.author.id}.json")
             )
-            os.remove(f"{ctx.author.id}.json")
         else:
-            await ctx.reply(f"I have no chat data with you, {ctx.author.mention}.")
+            await ctx.reply(f"I have no chat data with {user.mention}.")
 
 
 async def setup(bot):

@@ -96,18 +96,6 @@ class Utility(commands.Cog):
                              guild_id=1185316093078802552)
     async def eval(self, ctx: commands.Context, *, code: str):
         message = await ctx.reply("Code executing...", allowed_mentions=discord.AllowedMentions.none())
-        amount = 1
-        for line in code.split(r"\n"):
-            if "while True:" in line.strip():
-                raise commands.errors.BadArgument(
-                    "Code cannot contain a while True loop.")
-            if not line.strip().startswith("for"):
-                continue
-            amount *= int(line.strip().split(" ")
-                          [-1].removesuffix("):").removeprefix("range("))
-            if amount > 50:
-                raise commands.errors.BadArgument(
-                    "Code cannot contain a for loop thats more than 50 iterations.")
 
         new_code = f"async def __ex(bot, ctx):\n\twith open(\"eval_output.txt\", \"w\") as file:\n\t\twith redirect_stdout(file):\n\t\t\t" + "".join(
             [f"\n\t\t\t{line.replace('```py', '').replace('```', '')}" for line in code.replace("```py", "").replace("```", "").replace("\n", r"\n").split(r"\n")])
