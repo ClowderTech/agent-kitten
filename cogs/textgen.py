@@ -92,7 +92,7 @@ class TextGen(commands.Cog):
 
         return output
 
-    def split_text(text, max_length=4096):
+    def split_text(self, text, max_length=4096):
         """
         Splits text into chunks, ensuring each chunk is no longer than max_length
         and splits are done only at newline characters while preserving markdown formatting.
