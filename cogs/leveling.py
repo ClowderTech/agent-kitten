@@ -73,93 +73,89 @@ class Leveling(commands.Cog):
         except discord.Forbidden:
             pass
 
+    async def update_user_data(self, key, new_level, new_experience):
+        data = {
+            "$set": {
+                "level": new_level,
+                "experience": new_experience
+            }
+        }
+        await self.collection.update_one(key, data)
+
+    async def insert_user_data(self, key, new_level, new_experience):
+        data = {
+            "user_id": key["user_id"],
+            "level": new_level,
+            "experience": new_experience
+        }
+        await self.collection.insert_one(data)
+
+    async def process_experience_gain(self, user, level, experience, points):
+        new_experience = experience + points
+        new_level = level
+        while new_experience >= calculate_level(new_level, 0):
+            new_experience -= calculate_level(new_level, 0)
+            new_level += 1
+        return new_level, new_experience
+
+    async def handle_level_up_message(self, user, new_level, opted_message):
+        if opted_message.get("level_up_messaging", True):
+            await self.level_up_message(user, new_level)
+
+    async def handle_level_set_message(self, user, level, experience, opted_message):
+        if opted_message.get("level_up_messaging", True):
+            await self.level_set_message(user, level, experience)
+
+    async def get_user_data(self, key):
+        return await self.collection.find_one(key)
+
+    async def get_opted_message(self, key):
+        opted_message = await self.opt_collection.find_one(key)
+        return opted_message if opted_message else {}
+
     async def process_xp_gain(self, user: discord.User, points: int = None):
         if points is None:
-            points = calculate_experience_gain()
+            points = self.calculate_experience_gain()
 
-        key = {
-            "user_id": str(user.id)
-        }
-
-        user_data = await self.collection.find_one(key)
-
-        opted_message = await self.opt_collection.find_one(key)
-        if opted_message is None:
-            opted_message = {}
+        key = {"user_id": str(user.id)}
+        user_data = await self.get_user_data(self, key)
+        opted_message = await self.get_opted_message(self, key)
 
         if user_data:
             level = user_data["level"]
             experience = user_data["experience"]
-            new_experience = experience + points
-            new_level = level
-            while new_experience >= calculate_level(new_level, 0):
-                new_experience -= calculate_level(new_level, 0)
-                new_level += 1
-            if new_level > level:
-                if opted_message.get("level_up_messaging", True):
-                    await self.level_up_message(user, new_level)
-            data = {
-                "$set": {
-                    "level": new_level,
-                    "experience": new_experience
-                }
-            }
-            await self.collection.update_one(key, data)
         else:
             level = 0
             experience = 0
-            new_experience = experience + points
-            new_level = level
-            while new_experience >= calculate_level(new_level, 0):
-                new_experience -= calculate_level(new_level, 0)
-                new_level += 1
-            if new_level > level:
-                if opted_message.get("level_up_messaging", True):
-                    await self.level_up_message(user, new_level)
 
-            data = {
-                "user_id": str(user.id),
-                "level": new_level,
-                "experience": new_experience
-            }
-            await self.collection.insert_one(data)
+        new_level, new_experience = await self.process_experience_gain(self, user, level, experience, points)
 
-    async def process_xp_set(
-            self,
-            user: discord.User,
-            level: int = None,
-            experience: int = None):
-        key = {
-            "user_id": str(user.id)
-        }
-
-        user_data = await self.collection.find_one(key)
-
-        opted_message = await self.opt_collection.find_one(key)
+        if new_level > level:
+            await self.handle_level_up_message(self, user, new_level, opted_message)
 
         if user_data:
+            await self.update_user_data(self, key, new_level, new_experience)
+        else:
+            await self.insert_user_data(self, key, new_level, new_experience)
+
+    async def process_xp_set(self, user: discord.User, level: int = None, experience: int = None):
+        key = {"user_id": str(user.id)}
+        user_data = await self.get_user_data(self, key)
+        opted_message = await self.get_opted_message(self, key)
+
+        if not user_data:
+            data_level = level if level is not None else 0
+            data_experience = experience if experience is not None else 0
+            await self.insert_user_data(self, key, data_level, data_experience)
+        else:
             if level is None:
                 level = user_data["level"]
             if experience is None:
                 experience = user_data["experience"]
 
-            data = {
-                "$set": {
-                    "level": level,
-                    "experience": experience
-                }
-            }
-            await self.collection.update_one(key, data)
-        else:
-            data = {
-                "user_id": str(user.id),
-                "level": level,
-                "experience": experience
-            }
-            await self.collection.insert_one(data)
+            await self.update_user_data(self, key, level, experience)
 
-        if opted_message.get("level_up_messaging", True):
-            await self.level_set_message(user, level, experience)
+            await self.handle_level_set_message(self, user, level, experience, opted_message)
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -269,20 +265,12 @@ class Leveling(commands.Cog):
 
         user_data = await self.collection.find_one(key)
 
-        if user_data:
-            level = user_data["level"]
-            new_experience = 0
-            new_level = level
-            while (amount + level) > new_level:
-                new_experience += calculate_level(new_level, 0)
-                new_level += 1
-
-        else:
-            new_experience = 0
-            new_level = 0
-            while (amount + level) > calculate_level(new_level, 0):
-                new_experience += calculate_level(new_level, 0)
-                new_level += 1
+        level = user_data["level"] if user_data else 0
+        new_experience = 0
+        new_level = level
+        while (amount + level) > new_level:
+            new_experience += calculate_level(new_level, 0)
+            new_level += 1
 
         await self.process_xp_gain(member, new_experience)
         await ctx.reply(f"Added {amount} levels to {member.mention}.", allowed_mentions=discord.AllowedMentions.none())

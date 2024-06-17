@@ -55,7 +55,7 @@ class TextGen(commands.Cog):
             start = 0
             async with session.get(f"https://searx.clowdertech.com/search?q={escaped_term}&language=auto&time_range=&safesearch=0&categories=general&format=json") as response:
                 if not response.ok:
-                    return f"Responce not ok. {response.status}"
+                    return f"Responce not ok. Status {response.status}."
                 results = await response.json()
                 results = results["results"]
                 for result in results:
@@ -64,7 +64,6 @@ class TextGen(commands.Cog):
                     if start == self.search_results_amount:
                         break
 
-            search_results = search_results[2:]
             return search_results
 
     async def scrape_website(self, url: str):
