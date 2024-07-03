@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome Page</title>
+    <style>
+        body {
+            font-family: 'Arial, sans-serif';
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: #333;
+        }
+        .card {
+            background: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 300px;
+        }
+        .profile-pic {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 20px;
+        }
+        .welcome-message {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+        .user-name {
+            font-size: 1.2em;
+            color: #6a1b9a;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <img src="profile.jpg" alt="User Profile Picture" class="profile-pic" id="profile-pic">
+        <div class="welcome-message">Welcome,</div>
+        <div class="user-name" id="user-name">User Name</div>
+    </div>
+
+    <script>
+        // JavaScript to inject dynamic data
+        const userProfile = {
+            name: "{{ user.name }}",
+            pictureUrl: " {{ user.avatar_url }}"
+        };
+
+        document.getElementById('user-name').textContent = userProfile.name;
+        document.getElementById('profile-pic').src = userProfile.pictureUrl;
+    </script>
+</body>
+</html>

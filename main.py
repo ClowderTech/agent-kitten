@@ -12,6 +12,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 import signal
+from quart import Quart
 
 
 class MyBot(AutoShardedBot):
@@ -23,8 +24,9 @@ class MyBot(AutoShardedBot):
     def exit_gracefully(self, signal, frame):
         self.logger.info(f"Received signal {signal}. Exiting...")
         self.mongodb_client.close()
-        asyncio.create_task(self.openai.close())
-        asyncio.create_task(self.close())
+        self.loop.create_task(self.openai.close())
+        self.loop.create_task(self.app.shutdown())
+        self.loop.create_task(self.close())
 
     async def setup_hook(self) -> None:
         self.logger.info('Setting up bot...')
@@ -35,6 +37,14 @@ class MyBot(AutoShardedBot):
             organization=str(os.getenv("OPENAI_ORG_ID"))
         )
         await self.load_cogs()
+        self.app = Quart("Agent Kitten Web UI")
+        self.app.secret_key = os.getenv("SECRET_KEY")
+        self.app.config["DISCORD_CLIENT_ID"] = os.getenv("CLIENT_ID")
+        self.app.config["DISCORD_CLIENT_SECRET"] = os.getenv("CLIENT_SECRET")
+        self.app.config["DISCORD_REDIRECT_URI"] = os.getenv("REDIRECT_URI")
+        self.app.config["DISCORD_BOT_TOKEN"] = os.getenv("TOKEN")
+        await self.load_blueprints()
+        self.loop.create_task(self.app.run_task(host="0.0.0.0", port=5000))
         self.logger.info('Bot setup complete.')
 
     async def load_cogs(self):
@@ -42,6 +52,15 @@ class MyBot(AutoShardedBot):
             if filename.endswith('.py'):
                 await self.load_extension(f'cogs.{filename[:-3]}')
                 self.logger.info(f'Loaded {filename[:-3]}')
+
+    async def load_blueprints(self):
+        for foldername in os.listdir('./blueprints'):
+            blueprint = __import__(f'blueprints.{foldername}', fromlist=['blueprint'])
+            try:
+                await blueprint.init(self.app, self.loop)
+            except AttributeError:
+                pass
+            self.app.register_blueprint(blueprint.blueprint)
 
     async def on_ready(self):
         if self.user is None:

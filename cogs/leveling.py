@@ -6,20 +6,6 @@ import asyncio
 import typing
 
 
-def calculate_level(level, experience):
-    return round(level ** 2) + (10 * level) + 100 - experience
-
-
-def calculate_experience_gain():
-    xp_gain = random.uniform(1, 5)
-
-    if random.random() < 0.05:
-        bonus_xp = random.uniform(5, 25)
-        xp_gain += bonus_xp
-
-    return round(xp_gain)
-
-
 async def is_dev(ctx):
     guild = ctx.bot.get_guild(1157440778000420974)
     member = guild.get_member(ctx.author.id)
@@ -38,6 +24,17 @@ class Leveling(commands.Cog):
         self.opt_collection = self.bot.database["feature-opt"]
         self.text_user_talked = []
         self.check_voice_talking.start()
+
+    def calculate_level(self, level, experience):
+        return round(level ** 2) + (10 * level) + 100 - experience
+
+
+    def calculate_experience_gain(self):
+        xp_gain = random.uniform(1, 5)
+
+        if random.random() < 0.05:
+            xp_gain += random.uniform(5, 25)
+        return round(xp_gain)
 
     async def level_up_message(self, user: discord.User, level: int):
         try:
@@ -93,8 +90,8 @@ class Leveling(commands.Cog):
     async def process_experience_gain(self, user, level, experience, points):
         new_experience = experience + points
         new_level = level
-        while new_experience >= calculate_level(new_level, 0):
-            new_experience -= calculate_level(new_level, 0)
+        while new_experience >= self.calculate_level(new_level, 0):
+            new_experience -= self.calculate_level(new_level, 0)
             new_level += 1
         return new_level, new_experience
 
@@ -204,7 +201,7 @@ class Leveling(commands.Cog):
         if user_data:
             level = user_data["level"]
             experience = user_data["experience"]
-            await ctx.reply(f"{member_to_check.mention} is level {level} with {experience} experience. They need {calculate_level(level, experience)} more experience points to level up.", allowed_mentions=discord.AllowedMentions.none())
+            await ctx.reply(f"{member_to_check.mention} is level {level} with {experience} experience. They need {self.calculate_level(level, experience)} more experience points to level up.", allowed_mentions=discord.AllowedMentions.none())
         else:
             await ctx.reply(f"{member_to_check.mention} does not have any data.", allowed_mentions=discord.AllowedMentions.none())
 
@@ -269,7 +266,7 @@ class Leveling(commands.Cog):
         new_experience = 0
         new_level = level
         while (amount + level) > new_level:
-            new_experience += calculate_level(new_level, 0)
+            new_experience += self.calculate_level(new_level, 0)
             new_level += 1
 
         await self.process_xp_gain(member, new_experience)
