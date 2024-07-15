@@ -73,3 +73,8 @@ case "$1" in
             update_repo
             run_code
         fi
+        ;;
+    *)
+        echo "Usage: $SCRIPT_PATH [--run | --update | --update-and-run]"
+        ;;
+esac
