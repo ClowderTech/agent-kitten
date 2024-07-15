@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the directory where your repository is located
-REPO_DIR="/root/agentkitten"
+REPO_DIR="/root/agent-kitten-v2"
 ENV_FILE="$REPO_DIR/.env"
 
 # Navigate to the directory
