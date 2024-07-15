@@ -11,6 +11,19 @@ ENV_FILE="$REPO_DIR/.env"
 update_repo() {
     echo "Updating repository..."
 
+    # Ensure git and unzip are installed
+    if ! command -v git &> /dev/null; then
+        echo "Git is not installed. Installing..."
+        apt-get update
+        apt-get install -y git
+    fi
+
+    if ! command -v unzip &> /dev/null; then
+        echo "Unzip is not installed. Installing..."
+        apt-get update
+        apt-get install -y unzip
+    fi
+
     # Navigate to the directory
     cd $REPO_DIR || { echo "Repository not found!"; exit 1; }
 
@@ -39,7 +52,7 @@ update_repo() {
         curl -fsSL https://bun.sh/install | bash
         source $HOME/.bashrc
     fi
-    
+
     echo "Repository update completed."
 }
 
