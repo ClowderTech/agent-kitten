@@ -7,6 +7,8 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { ObjectId } from "mongodb";
 import { JSDOM } from 'jsdom';
+import * as ts from 'typescript';
+import * as vm from 'vm';
 
 
 
@@ -68,11 +70,37 @@ function splitText(text: string, maxLength: number = 2000): string[] {
 async function executeEval(args: { code: string }) {
     const { code } = args;
     try {
-        let output = String(Function(transpile(code))());
+        // Transpile TypeScript code to JavaScript
+        const transpiledCode = ts.transpileModule(code, {
+            compilerOptions: { module: ts.ModuleKind.ESNext }
+        });
 
-        return output.length ? output : 'No output.';
-    } catch (error: any) {
-        return error.message;
+        // Create a new context for the evaluation
+        const context = vm.createContext({
+            consoleOutput: null, // To capture console.log output
+            console: {
+                log: (output: any) => {
+                    context.consoleOutput = output;
+                }
+            }
+        });
+
+        // Run the transpiled JavaScript code in the new context
+        const script = new vm.Script(transpiledCode.outputText);
+        script.runInContext(context);
+
+        // Check if any console output is captured
+        if (context.consoleOutput !== null) {
+            return String(context.consoleOutput);
+        } else {
+            return 'No console output captured';
+        }
+    } catch (error) {
+        // Properly type-cast `error` to `Error` for accessing `message` property
+        if (error instanceof Error) {
+            return `Error: ${error.message}`;
+        }
+        return 'Unknown error occurred';
     }
 }
 
@@ -176,7 +204,7 @@ export async function execute(interaction: CommandInteraction) {
                         properties: {
                             code: {
                                 type: "string", 
-                                description: "The typescript code to execute. Make sure to not execute anything harmful like deleting existing files, reading environment variables, or infinite loops. Make sure to use return to get the output."
+                                description: "The typescript code to execute. Make sure to not execute anything harmful like deleting existing files, reading environment variables, or infinite loops. Make sure to do console.log to get the output."
                             }
                         },
                         required: ["code"]

@@ -40,7 +40,8 @@ const client: ClientExtended = new Client(
             GatewayIntentBits.GuildEmojisAndStickers, 
             GatewayIntentBits.GuildIntegrations, 
             GatewayIntentBits.GuildInvites, 
-            GatewayIntentBits.GuildMembers, 
+            GatewayIntentBits.GuildMembers,
+            GatewayIntentBits.GuildMessagePolls,
             GatewayIntentBits.GuildMessageReactions, 
             GatewayIntentBits.GuildMessageTyping, 
             GatewayIntentBits.GuildMessages, 
@@ -236,13 +237,22 @@ client.once(Events.ClientReady, async (readyClient: Client) => {
     }
 });
 
-function stopEvent(code: any) {
-    console.log(`Shutting down with code ${code}.`);
-    client.user?.setStatus("invisible");
-    client.destroy();
+function gracefulShutdown() {
+    console.log("Received shutdown signal, closing Discord client...");
+    client.mongoclient.close();
+    client.openai;
+    client.destroy()
+        .then(() => {
+            console.log("Discord client closed.");
+            process.exit(0);
+        })
+        .catch(err => {
+            console.error("Error closing Discord client:", err);
+            process.exit(1);
+        });
 }
 
-process.addListener("SIGINT", stopEvent);
-process.addListener("SIGTERM", stopEvent);
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
 
 client.login(process.env.TOKEN);
