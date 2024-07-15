@@ -63,6 +63,9 @@ run_code() {
     # Navigate to the directory
     cd $REPO_DIR || { echo "Repository not found!"; exit 1; }
 
+    # Install dependencies
+    bun install
+
     # Run the specified file using Bun
     bun run src/index.ts
 
