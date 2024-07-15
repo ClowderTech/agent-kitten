@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the directory where your repository is located
-REPO_DIR="/path/to/your/repo"
+REPO_DIR="/root/agentkitten"
 ENV_FILE="$REPO_DIR/.env"
 
 # Navigate to the directory
@@ -31,7 +31,7 @@ if ! command -v bun &> /dev/null; then
 fi
 
 # Run the specified file using Bun
-bun run index.ts
+bun run src/index.ts
 # OR if your entry point is src.ts
 # bun run src.ts
 
