@@ -1,13 +1,10 @@
 #!/bin/bash
 
-SCRIPT_PATH="/usr/local/bin/update_repo.sh"
+SCRIPT_PATH="/root/agent-kitten-v2/helper.sh"
 RE_RUN_FLAG="/tmp/agentkittenrun"
 
-# Ensure the script is executable
-chmod +x $SCRIPT_PATH
-
 # Define the directory where your repository is located
-REPO_DIR="/path/to/your/repo"
+REPO_DIR="/root/agent-kitten-v2"
 ENV_FILE="$REPO_DIR/.env"
 
 # Function to update the repository
@@ -32,6 +29,9 @@ update_repo() {
     if [ -f "$ENV_FILE.bak" ]; then
         mv .env.bak .env
     fi
+
+    # Ensure the script is executable
+    chmod +x $SCRIPT_PATH
 
     # Check if bun is installed, install it if not
     if ! command -v bun &> /dev/null; then
