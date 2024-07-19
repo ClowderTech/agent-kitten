@@ -89,6 +89,7 @@ export async function execute(interaction: CommandInteraction) {
             .setTitle("Queued song")
             .setDescription(`Queued song: \`${playable.tracks[0].title}\``)
             .setColor("#2b2d31")
+            .setThumbnail(playable.tracks[0].artworkUrl)
             .setTimestamp()
         await interaction.followUp({embeds: [embed]})
     } else if (playable.loadType === "playlist") {
@@ -102,6 +103,7 @@ export async function execute(interaction: CommandInteraction) {
             .setTitle("Queued playlist")
             .setDescription(`Queued playlist: \`${playable.playlistInfo?.name}\``)
             .setColor("#2b2d31")
+            .setThumbnail(playable.tracks[0].artworkUrl)
             .setTimestamp()
         await interaction.followUp({embeds: [embed]})
     } else if (playable.loadType === "search") {
@@ -110,6 +112,7 @@ export async function execute(interaction: CommandInteraction) {
             .setTitle("Queued song")
             .setDescription(`Queued song: \`${playable.tracks[0].title}\``)
             .setColor("#2b2d31")
+            .setThumbnail(playable.tracks[0].artworkUrl)
             .setTimestamp()
         await interaction.followUp({embeds: [embed]});
     }
