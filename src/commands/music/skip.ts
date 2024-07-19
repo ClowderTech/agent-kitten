@@ -38,7 +38,7 @@ export async function execute(interaction: CommandInteraction) {
     if (!(member.roles.cache.some(role => role.name === "DJ") || member.permissions.has("ModerateMembers", true) || member.voice.channel.members.filter(member => !member.user.bot).size <= 2)) {
         let embed = new EmbedBuilder()
             .setTitle("Vote to skip")
-            .setDescription(`You are not a DJ, so you need to vote to skip the song. React with ✅ to vote to skip. You have 30 seconds to vote. Have ${Math.ceil(member.voice.channel.members.filter(member => !member.user.bot).size / 2)} votes to skip.`)
+            .setDescription(`You are not a DJ, so you need to vote to skip the song. React with ✅ to vote to skip. The vote will end <t:${new Date().valueOf() + 30}:R>. Have ${Math.ceil(member.voice.channel.members.filter(member => !member.user.bot).size / 2)} votes to skip.`)
             .setTimestamp()
             .setColor("#2b2d31")
             
