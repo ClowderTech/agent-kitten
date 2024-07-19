@@ -47,7 +47,7 @@ update_repo() {
     chmod +x $SCRIPT_PATH
 
     # Check if bun is installed, install it if not
-    if ! command -v bun &> /dev/null; then
+    if which bun &> /dev/null; then
         echo "Bun is not installed. Installing..."
         curl -fsSL https://bun.sh/install | bash
         source $HOME/.bashrc
