@@ -36,7 +36,8 @@ export async function execute(interaction: CommandInteraction) {
         throw new UserMadeError("No songs are currently playing.");
     }
 
-    let amount = <number>interaction.options.get("amount", false)!.value || 1;
+    let amount_object = interaction.options.get("amount", false);
+    let amount = amount_object ? <number>amount_object.value : 1;
     if (amount > player.queue.size) {
         throw new UserMadeError(`You cannot skip more songs than the queue has (${player.queue.size} song(s)).`);
     }
