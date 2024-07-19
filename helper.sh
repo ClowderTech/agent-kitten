@@ -25,7 +25,7 @@ update_repo() {
     fi
 
     # Navigate to the directory
-    cd $REPO_DIR || { echo "Repository not found!"; exit 1; }
+    cd "$REPO_DIR" || { echo "Repository not found!"; exit 1; }
 
     # Pull the latest changes from the Git repository
     git pull origin main
@@ -44,14 +44,14 @@ update_repo() {
     fi
 
     # Ensure the script is executable
-    chmod +x $SCRIPT_PATH
+    chmod +x "$SCRIPT_PATH"
 
     # Check if bun is installed, install it if not
-    if [ ! -d "$HOME/.bun" ]; then
+    if ! command -v bun &> /dev/null; then
         echo "Bun is not installed. Installing..."
-        source $HOME/.bashrc
+        source "$HOME/.bashrc"
         curl -fsSL https://bun.sh/install | bash
-        source $HOME/.bashrc
+        source "$HOME/.bashrc"
     fi
 
     echo "Repository update completed."
@@ -62,7 +62,7 @@ run_code() {
     echo "Running src/index.ts..."
 
     # Navigate to the directory
-    cd $REPO_DIR || { echo "Repository not found!"; exit 1; }
+    cd "$REPO_DIR" || { echo "Repository not found!"; exit 1; }
 
     # Install dependencies
     bun install
@@ -82,11 +82,11 @@ case "$1" in
         ;;
     --update-and-run)
         if [ ! -f "$RE_RUN_FLAG" ]; then
-            touch $RE_RUN_FLAG
+            touch "$RE_RUN_FLAG"
             echo "Re-running the script with --update-and-run flag..."
-            exec $SCRIPT_PATH --update-and-run
+            exec "$SCRIPT_PATH" --update-and-run
         else
-            rm -f $RE_RUN_FLAG
+            rm -f "$RE_RUN_FLAG"
             update_repo
             run_code
         fi
