@@ -1,10 +1,10 @@
 #!/bin/bash
 
-SCRIPT_PATH="/root/agent-kitten-v2/helper.sh"
+SCRIPT_PATH="/agent-kitten-v2/helper.sh"
 RE_RUN_FLAG="/tmp/agentkittenrun"
 
 # Define the directory where your repository is located
-REPO_DIR="/root/agent-kitten-v2"
+REPO_DIR="/agent-kitten-v2"
 ENV_FILE="$REPO_DIR/.env"
 
 # Function to update the repository
@@ -14,14 +14,14 @@ update_repo() {
     # Ensure git and unzip are installed
     if ! command -v git &> /dev/null; then
         echo "Git is not installed. Installing..."
-        apt-get update
-        apt-get install -y git
+        sudo apt-get update
+        sudo apt-get install -y git
     fi
 
     if ! command -v unzip &> /dev/null; then
         echo "Unzip is not installed. Installing..."
-        apt-get update
-        apt-get install -y unzip
+        sudo apt-get update
+        sudo apt-get install -y unzip
     fi
 
     # Navigate to the directory
