@@ -4,7 +4,8 @@ import { type ClientExtended, UserMadeError } from "../../classes";
 
 export const data = new SlashCommandBuilder()
         .setName('skip')
-        .setDescription('Skips the current song in the queue.');
+        .setDescription('Skips the current song in the queue.')
+        .addNumberOption((option: any) => option.setName("amount").setDescription("The amount of songs to skip.").setRequired(false).setMin(1).setMax(600));
 
 export async function execute(interaction: CommandInteraction) {
     let client: ClientExtended = interaction.client as ClientExtended;
@@ -35,6 +36,12 @@ export async function execute(interaction: CommandInteraction) {
         throw new UserMadeError("No songs are currently playing.");
     }
 
+    let amount = <number>interaction.options.get("amount", true).value || 1;
+    if (amount > player.queue.size) {
+        throw new UserMadeError(`You cannot skip more songs than the queue has (${player.queue.size} song(s)).`);
+    }
+
+
     if (!(member.roles.cache.some(role => role.name === "DJ") || member.permissions.has("ModerateMembers", true) || member.voice.channel.members.filter(member => !member.user.bot).size <= 2)) {
         let embed = new EmbedBuilder()
             .setTitle("Vote to skip")
@@ -60,7 +67,7 @@ export async function execute(interaction: CommandInteraction) {
 
         collector.on("end", async (collected, reason) => {
             if (votes >= Math.ceil(member.voice.channel!.members.filter(member => !member.user.bot).size / 2)) {
-                player!.skip();
+                player!.skip(amount);
                 await interaction.editReply({content: "Skipped the current song.", embeds: []});
             } else {
                 await interaction.editReply({content: "Not enough votes to skip the song.", embeds: []});
@@ -70,7 +77,7 @@ export async function execute(interaction: CommandInteraction) {
         return;
     }
 
-    player.skip();
+    player.skip(amount);
 
     await interaction.reply({content: "Skipped the current song."});
 };
