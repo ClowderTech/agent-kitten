@@ -1,11 +1,11 @@
-import { EmbedBuilder, CommandInteraction, SlashCommandBuilder, User, Team, TeamMember, Collection, Client, GuildMember} from "discord.js";
+import { EmbedBuilder, CommandInteraction, SlashCommandBuilder, User, Team, TeamMember, Collection, Client, GuildMember, SlashCommandNumberOption} from "discord.js";
 import { MoonlinkManager, MoonlinkTrack } from "moonlink.js";
 import { type ClientExtended, UserMadeError } from "../../classes";
 
 export const data = new SlashCommandBuilder()
         .setName('skip')
         .setDescription('Skips the current song in the queue.')
-        .addNumberOption((option: any) => option.setName("amount").setDescription("The amount of songs to skip.").setRequired(false).setMin(1).setMax(600));
+        .addNumberOption((option: SlashCommandNumberOption) => option.setName("amount").setDescription("The amount of songs to skip.").setRequired(false).setMaxValue(600).setMinValue(1));
 
 export async function execute(interaction: CommandInteraction) {
     let client: ClientExtended = interaction.client as ClientExtended;
