@@ -68,7 +68,9 @@ export async function execute(interaction: CommandInteraction) {
 
         collector.on("end", async (collected, reason) => {
             if (votes >= Math.ceil(member.voice.channel!.members.filter(member => !member.user.bot).size / 2)) {
-                player!.skip(amount);
+                for (let i = 0; i < amount; i++) {
+                    player.skip();
+                }
                 await interaction.editReply({content: "Skipped the current song.", embeds: []});
             } else {
                 await interaction.editReply({content: "Not enough votes to skip the song.", embeds: []});
@@ -78,7 +80,9 @@ export async function execute(interaction: CommandInteraction) {
         return;
     }
 
-    player.skip(amount);
+    for (let i = 0; i < amount; i++) {
+        player.skip();
+    }
 
     await interaction.reply({content: "Skipped the current song."});
 };
