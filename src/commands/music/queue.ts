@@ -40,7 +40,7 @@ export async function execute(interaction: CommandInteraction) {
         .setTitle("Queue".concat(addon_title))
         .setColor("#2b2d31")
         .setTimestamp()
-        .setThumbnail(player.current.thumbnail)
+        .setThumbnail(player.current.thumbnail.artworkUrl)
         .setDescription(`**Now Playing:**\n[${player.current.title}](${player.current.url}) (requested by <@!${player.current.requester}>) (duration: ${Math.floor(calculatedPosition / 1000)}/${Math.floor(player.current.duration / 1000)}s)`);
 
     if (queue.size > 0) {
