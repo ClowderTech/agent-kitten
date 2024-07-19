@@ -1,0 +1,76 @@
+import { EmbedBuilder, CommandInteraction, SlashCommandBuilder, User, Team, TeamMember, Collection, Client, GuildMember} from "discord.js";
+import { MoonlinkManager, MoonlinkTrack } from "moonlink.js";
+import { type ClientExtended, UserMadeError } from "../../classes";
+
+export const data = new SlashCommandBuilder()
+        .setName('stop')
+        .setDescription('Resets the queue and leaves the voice call.');
+
+export async function execute(interaction: CommandInteraction) {
+    let client: ClientExtended = interaction.client as ClientExtended;
+    if (!interaction.guild) {
+        throw new UserMadeError("You must use this in a server.");
+    }
+    if (!interaction.channel) {
+        throw new UserMadeError("You must use this in a server.");
+    }
+    let guildID = interaction.guild.id
+    let member: GuildMember = <GuildMember>interaction.member;
+    if (!member.voice) {
+        throw new UserMadeError("You are not in a voice channel.");
+    }
+    if (!member.voice.channel) {
+        throw new UserMadeError("You are not in a voice channel.");
+    }
+    if (!member.voice.channel.joinable && !member.voice.channel.permissionsFor(client.user!.id)?.has("Speak")) {
+        throw new UserMadeError("I cannot join the voice channel.");
+    }
+    if (!member.voice.channel.members.get(client.user!.id) && interaction.guild.members.cache.get(client.user!.id)!.voice.channel) {
+        throw new UserMadeError("I am in another voice channel.");
+    }
+    
+
+    let player = client.moonlink.players.get(guildID);
+    if (!player) {
+        throw new UserMadeError("No songs are currently playing.");
+    }
+
+    if (!(member.roles.cache.some(role => role.name === "DJ") || member.permissions.has("ModerateMembers", true) || member.voice.channel.members.filter(member => !member.user.bot).size <= 2)) {
+        let embed = new EmbedBuilder()
+            .setTitle("Vote to stop")
+            .setDescription(`You are not a DJ, so you need to vote to stop the player. React with ✅ to vote destroy the player. You have 30 seconds to vote. Have ${Math.ceil(member.voice.channel.members.filter(member => !member.user.bot).size / 2)} votes to end the player.`)
+            .setTimestamp()
+            .setColor("#2b2d31")
+            
+        let interaction_reply = await interaction.reply({embeds: [embed]});
+
+        let message = await interaction_reply.fetch();
+
+        await message.react("✅");
+
+        let filter = (reaction: any, user: User) => reaction.emoji.name === "✅" && user.id !== client.user!.id;
+
+        let collector = message.createReactionCollector({filter, time: 30000});
+
+        let votes = 0;
+
+        collector.on("collect", (reaction, user) => {
+            votes++;
+        });
+
+        collector.on("end", async (collected, reason) => {
+            if (votes >= Math.ceil(member.voice.channel!.members.filter(member => !member.user.bot).size / 2)) {
+                await player!.destroy();
+                await interaction.editReply({content: "Reset the queue and left the voice call.", embeds: []});
+            } else {
+                await interaction.editReply({content: "Not enough votes to stop the player.", embeds: []});
+            }
+        });
+        
+        return;
+    }
+
+    await player.destroy();
+
+    await interaction.reply({content: "Reset the queue and left the voice call."});
+};

@@ -8,7 +8,7 @@ import { dirname, join } from "path";
 
 import { createRequire } from "module";
 import OpenAI from "openai";
-// import { MoonlinkManager } from "moonlink.js";
+import { MoonlinkManager } from "moonlink.js";
 
 import { type ClientExtended, UserMadeError } from "./classes.ts";
 import { MongoClient } from "mongodb";
@@ -55,6 +55,32 @@ const client: ClientExtended = new Client(
         ],
     }
 ) as ClientExtended;
+
+client.moonlink = new MoonlinkManager(
+    [
+        {
+            host: process.env.LAVALINK_HOST!,
+            port: Number(process.env.LAVALINK_PORT),
+            secure: true,
+            password: process.env.LAVALINK_PASSWORD!,
+        }
+    ],
+    {
+        autoResume: true,
+    },
+    (guildID: any, sPayload: any) => {
+        client.guilds.cache.get(guildID)!.shard.send(JSON.parse(sPayload));
+    }
+);
+
+// Event: Node created
+client.moonlink.on("nodeCreate", node => {
+    console.log(`${node.host} was connected, and the magic is in the air`);
+});
+
+client.moonlink.on("nodeError", (node, error) => {
+    console.error(`Node ${node.host} emitted an error: ${error}`);
+});
 
 client.commands = new Collection();
 client.openai = new OpenAI({
@@ -235,6 +261,12 @@ client.once(Events.ClientReady, async (readyClient: Client) => {
             }
         })();
     }
+
+    client.moonlink.init(client.user?.id);
+});
+
+client.on(Events.Raw, (packet: any) => {
+    client.moonlink.packetUpdate(packet);
 });
 
 function gracefulShutdown() {
