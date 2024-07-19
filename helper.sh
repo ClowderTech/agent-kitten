@@ -2,6 +2,7 @@
 
 SCRIPT_PATH="/agent-kitten-v2/helper.sh"
 RE_RUN_FLAG="/tmp/agentkittenrun"
+BUN_BINARY="~/.bun/bin/bun"
 
 # Define the directory where your repository is located
 REPO_DIR="/agent-kitten-v2"
@@ -47,11 +48,9 @@ update_repo() {
     chmod +x "$SCRIPT_PATH"
 
     # Check if bun is installed, install it if not
-    if ! type -P bun > /dev/null; then
-        echo "Bun is not installed. Installing..."
-        source "$HOME/.bashrc"
-        curl -fsSL https://bun.sh/install | bash
-        source "$HOME/.bashrc"
+    if [ ! -x "$BUN_BINARY" ]; then
+        echo "Bun binary not found or is not executable. Installing..."
+        # Add installation logic here
     fi
 
 
