@@ -59,21 +59,11 @@ export async function execute(interaction: CommandInteraction) {
     const spotify_regex = RegExp(/https:\/\/open\.spotify\.com\/(track|album|artist|playlist)\/([a-zA-Z0-9]+)/);
     const youtube_regex = RegExp(/(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|embed\/)|youtu\.be\/)[a-zA-Z0-9_-]+(\?t=\d+s)?/);
 
-    let source;
-
-    if (spotify_regex.test(song)) {
-        source = "spsearch";
-    } else if (youtube_regex.test(song)) {
-        source = "youtube";
-    } else {
-        source = "spsearch";
-    }
-
     await interaction.deferReply();
 
     let playable = await client.moonlink.search({
         query: song,
-        source: source,
+        source: "youtube",
         requester: interaction.user.id,
     });
 

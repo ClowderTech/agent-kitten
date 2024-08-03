@@ -260,7 +260,6 @@ client.on(Events.Raw, (packet: any) => {
 function gracefulShutdown() {
     console.log("Received shutdown signal, closing Discord client...");
     client.mongoclient.close();
-    client.openai;
     client.destroy()
         .then(() => {
             console.log("Discord client closed.");
