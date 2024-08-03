@@ -1,29 +1,26 @@
 import { Events, Client, GatewayIntentBits, Collection, REST, Routes, type Interaction, CommandInteraction, SlashCommandBuilder, EmbedBuilder, ApplicationCommand } from "discord.js";
 
-import { readdirSync } from "fs";
-
 import { config } from "dotenv";
 import { fileURLToPath, pathToFileURL } from "url";
 import { dirname, join } from "path";
 
-import { createRequire } from "module";
 import OpenAI from "openai";
 import { MoonlinkManager } from "moonlink.js";
 
 import { type ClientExtended, UserMadeError } from "./classes.ts";
 import { MongoClient } from "mongodb";
 
+import { promises as fsPromises } from 'fs';
+
 config({override: true});
-// if (!process.env.TOKEN || !process.env.LAVALINK_HOST || !process.env.LAVALINK_PASSWORD || !process.env.LAVALINK_PORT) {
-//     console.error("Please provide a token, lavalink host, and lavalink password in a .env file or as environment variables.");
-//     process.exit(1);
-// }
-if (!process.env.TOKEN) {
-    console.error("Please provide a token in a .env file or as environment variables.");
+if (!process.env.TOKEN || !process.env.LAVALINK_HOST || !process.env.LAVALINK_PASSWORD || !process.env.LAVALINK_PORT || !process.env.MONGODB_URI || !process.env.OPENAI_API_KEY || !process.env.OPENAI_ORG_ID) {
+    console.error("Please provide a token, lavalink host, lavalink password, mongodb uri, openai api key and organization id in a .env file or as environment variables.");
     process.exit(1);
 }
-
-const require = createRequire(import.meta.url);
+// if (!process.env.TOKEN) {
+//     console.error("Please provide a token in a .env file or as environment variables.");
+//     process.exit(1);
+// }
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -84,7 +81,7 @@ client.moonlink.on("nodeError", (node, error) => {
 
 client.commands = new Collection();
 client.openai = new OpenAI({
-    // baseURL: "https://ollama.clowdertech.com/v1"
+    // baseURL: "http://127.0.0.1:11434/v1"
 });
 client.mongoclient = new MongoClient(process.env.MONGODB_URI!);
 client.mongoclient.connect();
@@ -115,50 +112,66 @@ client.mongoclient.connect();
 //     console.error(`Node ${node.host} emitted an error: ${error}`);
 // });
 
-const commandsPath = join(__dirname, "commands");
-const commandFolders = readdirSync(commandsPath);
-
-function checkForValidFile(file: string) {
-    return file.split(".")[file.split(".").length - 1] === "js" || file.split(".")[file.split(".").length - 1] === "ts";
+// Check if file is valid JS or TS file
+function checkForValidFile(file: string): boolean {
+    const fileExtension = file.split(".").pop();
+    return fileExtension === "js" || fileExtension === "ts";
 }
 
-for (const folder of commandFolders) {
-    const commandFiles = readdirSync(join(commandsPath, folder)).filter(file => checkForValidFile(file));
+// Asynchronously read files in a directory recursively
+async function getAllFiles(dirPath: string): Promise<string[]> {
+    const entries = await fsPromises.readdir(dirPath, { withFileTypes: true });
+    const files = await Promise.all(entries.map(async (entry) => {
+        const fullPath = join(dirPath, entry.name);
+        return entry.isDirectory() ? getAllFiles(fullPath) : [fullPath];
+    }));
+    return files.flat();
+}
+
+// Load commands from a directory and return them as an array of JSON
+async function loadCommands(commandsPath: string): Promise<Record<string, any>[]> {
+    const commandFiles = await getAllFiles(commandsPath);
+    const commands = [];
     for (const file of commandFiles) {
-        const command = await import(join(commandsPath, folder, file));
-        if ('data' in command && 'execute' in command) {
-            client.commands.set(command.data.name, command);
+        if (checkForValidFile(file)) {
+            const command = await import(file);
+            if ('data' in command && 'execute' in command) {
+                client.commands.set(command.data.name, command);
+                commands.push(command.data.toJSON());
+            } else {
+                console.warn(`Warn: ${file} does not have the proper structure.`);
+            }
+        }
+    }
+    return commands;
+}
+
+// Load events from a directory
+async function loadEvents(eventsPath: string) {
+    const eventFiles = await getAllFiles(eventsPath);
+    for (const file of eventFiles) {
+        const event = await import(file);
+        if (event.once) {
+            client.once(event.eventType, (...args: any) => event.execute(...args));
         } else {
-            console.warn(`Warn: ${file} does not have the proper structure.`);
+            client.on(event.eventType, (...args: any) => event.execute(...args));
         }
     }
 }
 
+const commandsPath = join(__dirname, "commands");
 const devCommandsPath = join(__dirname, "devCommands");
-const devCommandsFiles = readdirSync(devCommandsPath).filter(file => checkForValidFile(file));
-
-for (const file of devCommandsFiles) {
-    const command = await import(join(devCommandsPath, file));
-    if ('data' in command && 'execute' in command) {
-        client.commands.set(command.data.name, command);
-    } else {
-        console.warn(`Warn: ${file} does not have the proper structure.`);
-    }
-}
-
 const eventsPath = join(__dirname, "events");
-const eventFiles = readdirSync(eventsPath).filter(file => checkForValidFile(file));
 
-for (const file of eventFiles) {
-	const event = await import(join(eventsPath, file));
-	if (event.once) {
-		client.once(event.eventType, (...args: any) => event.execute(...args));
-	} else {
-		client.on(event.eventType, (...args: any) => event.execute(...args));
-	}
+// Load all commands and events
+async function loadAll() {
+    await loadCommands(commandsPath);
+    await loadCommands(devCommandsPath);
+    await loadEvents(eventsPath);
+    console.log('Commands and events successfully loaded!');
 }
 
-
+loadAll().catch(console.error);
 
 client.on(Events.InteractionCreate, async (interaction: Interaction) => {
     if (!interaction.isCommand()) return;
@@ -202,68 +215,43 @@ client.once(Events.ClientReady, async (readyClient: Client) => {
     console.log(`Logged in as ${readyClient.user?.tag}!`);
 
     let commands = await readyClient.application?.commands.fetch();
-    let devCommands = await readyClient.application?.commands.fetch({guildId: "1185316093078802552"});
-    let commandsName = commands?.map((commands: ApplicationCommand) => commands.name);
-    let devCommandsName = devCommands?.map((commands: ApplicationCommand) => commands.name);
+    let devCommands = await readyClient.application?.commands.fetch({ guildId: "1185316093078802552" });
+    let commandsName = commands?.map((command: ApplicationCommand) => command.name);
+    let devCommandsName = devCommands?.map((command: ApplicationCommand) => command.name);
     let allCommands = commandsName?.concat(devCommandsName!);
 
     if ((allCommands?.length === 0) || (allCommands?.length !== client.commands.size) || !(allCommands?.every(item => client.commands.has(item))) || !(allCommands?.find((value) => value === "sync"))) {
-        const commands: Array<JSON> = [];
-        const devCommands: Array<JSON> = [];
-
         const commandsPath = join(__dirname, "commands");
-        const commandFolders = readdirSync(commandsPath);
-
-        for (const folder of commandFolders) {
-            const commandFiles = readdirSync(join(commandsPath, folder)).filter(file => checkForValidFile(file));
-            for (const file of commandFiles) {
-                const command = await import(join(commandsPath, folder, file));
-                if ('data' in command && 'execute' in command) {
-                    commands.push(command.data.toJSON());
-                } else {
-                    console.warn(`Warn: ${file} does not have the proper structure.`);
-                }
-            }
-        }
-
         const devCommandsPath = join(__dirname, "devCommands");
-        const devCommandsFiles = readdirSync(devCommandsPath).filter(file => checkForValidFile(file));
 
-        for (const file of devCommandsFiles) {
-            const command = await import(join(devCommandsPath, file));
-            if ('data' in command && 'execute' in command) {
-                devCommands.push(command.data.toJSON());
-            } else {
-                console.warn(`Warn: ${file} does not have the proper structure.`);
-            }
-        }
+        const commands = await loadCommands(commandsPath);
+        const devCommands = await loadCommands(devCommandsPath);
 
         const rest = new REST().setToken(client.token!);
 
-        (async () => {
-            try {
-                console.log('Started refreshing application (/) commands.');
+        try {
+            console.log('Started refreshing application (/) commands.');
 
-                await rest.put(
-                    Routes.applicationCommands(client.user!.id),
-                    { body: commands },
-                );
+            await rest.put(
+                Routes.applicationCommands(client.user!.id),
+                { body: commands },
+            );
 
-                await rest.put(
-                    Routes.applicationGuildCommands(client.user!.id, '1185316093078802552'),
-                    { body: devCommands },
-                );
+            await rest.put(
+                Routes.applicationGuildCommands(client.user!.id, '1185316093078802552'),
+                { body: devCommands },
+            );
 
-                console.log('Successfully reloaded application (/) commands.');
-            }
-            catch (error) {
-                console.error(error);
-            }
-        })();
+            console.log('Successfully reloaded application (/) commands.');
+        } catch (error) {
+            console.error(error);
+        }
     }
 
     client.moonlink.init(client.user?.id);
 });
+
+client.login(process.env.TOKEN);
 
 client.on(Events.Raw, (packet: any) => {
     client.moonlink.packetUpdate(packet);

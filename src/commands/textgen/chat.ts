@@ -190,8 +190,8 @@ export async function execute(interaction: CommandInteraction) {
 
     const runner = openai.beta.chat.completions.runTools({
         // model: 'mixtral:8x7b',
-        model: 'gpt-4o',
-        // model: "llama3",
+        model: 'gpt-4o-mini',
+        // model: "llama3.1:8b",
         messages: user_data.messages,
         tools: [
             {
