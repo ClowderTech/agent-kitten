@@ -1,4 +1,4 @@
-import { Events, Client, GatewayIntentBits, Collection, REST, Routes, type Interaction, CommandInteraction, SlashCommandBuilder, EmbedBuilder, ApplicationCommand } from "discord.js";
+import { Events, Client, GatewayIntentBits, Collection, REST, Routes, type Interaction, CommandInteraction, SlashCommandBuilder, EmbedBuilder, ApplicationCommand, type RESTGetAPIApplicationCommandsResult } from "discord.js";
 
 import { config } from "dotenv";
 import { fileURLToPath, pathToFileURL } from "url";
@@ -10,7 +10,7 @@ import { MoonlinkManager, MoonlinkPlayer, type TrackData, type TrackDataInfo, ty
 import { type ClientExtended, UserMadeError } from "./classes.ts";
 import { MongoClient } from "mongodb";
 
-import { promises as fsPromises } from 'fs';
+import { promises as fsPromises, read } from 'fs';
 
 config({override: true});
 if (!process.env.TOKEN || !process.env.LAVALINK_HOST || !process.env.LAVALINK_PASSWORD || !process.env.LAVALINK_PORT || !process.env.MONGODB_URI || !process.env.OPENAI_API_KEY || !process.env.OPENAI_ORG_ID) {
@@ -231,20 +231,21 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
 client.once(Events.ClientReady, async (readyClient: Client) => {
     console.log(`Logged in as ${readyClient.user?.tag}!`);
 
+    const rest = new REST().setToken(client.token!);
+
     let commands = await readyClient.application?.commands.fetch();
     let devCommands = await readyClient.application?.commands.fetch({ guildId: "1185316093078802552" });
     let commandsName = commands?.map((command: ApplicationCommand) => command.name);
     let devCommandsName = devCommands?.map((command: ApplicationCommand) => command.name);
-    let allCommands = commandsName?.concat(devCommandsName!);
+    let allCommands = commandsName?.concat(devCommandsName!)!;
+    let registeredCommands = await rest.get(Routes.applicationCommands(readyClient.user!.id)) as RESTGetAPIApplicationCommandsResult;
 
-    if ((allCommands?.length === 0) || (allCommands?.length !== client.commands.size) || !(allCommands?.every(item => client.commands.has(item))) || !(allCommands?.find((value) => value === "sync"))) {
+    if (allCommands.length === registeredCommands.length && allCommands.every((command => registeredCommands.find(registeredCommand => registeredCommand.name === command)))) {
         const commandsPath = join(__dirname, "commands");
         const devCommandsPath = join(__dirname, "devCommands");
 
         const commands = await loadCommands(commandsPath);
         const devCommands = await loadCommands(devCommandsPath);
-
-        const rest = new REST().setToken(client.token!);
 
         try {
             console.log('Started refreshing application (/) commands.');
