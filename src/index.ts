@@ -244,11 +244,11 @@ client.once(Events.ClientReady, async (readyClient: Client) => {
     let registeredCommands = await rest.get(Routes.applicationCommands(readyClient.user!.id)) as RESTGetAPIApplicationCommandsResult;
 
     if (allCommands.length === registeredCommands.length && allCommands.every((command => registeredCommands.find(registeredCommand => registeredCommand.name === command)))) {
-        const commandsPath = join(__dirname, "commands");
-        const devCommandsPath = join(__dirname, "devCommands");
+        let commandsPath = join(__dirname, "commands");
+        let devCommandsPath = join(__dirname, "devCommands");
 
-        const commands = await loadCommands(commandsPath);
-        const devCommands = await loadCommands(devCommandsPath);
+        let commands = await loadCommands(commandsPath);
+        let devCommands = await loadCommands(devCommandsPath);
 
         try {
             console.log('Started refreshing application (/) commands.');

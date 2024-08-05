@@ -15,6 +15,7 @@
     "@discordjs/voice": "^0.16.1",
     "discord.js": "^14.15.3",
     "dotenv": "^16.4.5",
+    "jsdom": "^24.1.1",
     "kazagumo": "^3.1.2",
     "kazagumo-apple": "^2.0.2",
     "kazagumo-spotify": "^2.1.0",
