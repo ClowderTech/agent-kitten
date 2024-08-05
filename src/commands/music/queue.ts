@@ -37,7 +37,7 @@ export async function execute(interaction: CommandInteraction) {
     }
 
     let embed = new EmbedBuilder()
-        .setTitle("Queue".concat(addon_title))
+        .setTitle(`Queue${addon_title} (${(player.queue.size + (player.playing ? 1 : 0))} song(s))`)
         .setColor("#2b2d31")
         .setTimestamp()
         .setThumbnail(player.current.artworkUrl)
