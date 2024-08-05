@@ -63,7 +63,7 @@ let nodes = [
 ];
 
 client.kazagumo = new Kazagumo({
-    defaultSearchEngine: "youtube",
+    defaultSearchEngine: "youtube_music",
     send: (guildId: string, payload: any) => {
         const guild = client.guilds.cache.get(guildId);
         if (guild) guild.shard.send(payload);
