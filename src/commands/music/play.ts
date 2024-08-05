@@ -63,7 +63,7 @@ export async function execute(interaction: CommandInteraction) {
 
     let playable = await client.moonlink.search({
         query: song,
-        source: "youtube",
+        source: "spsearch",
         requester: interaction.user.id,
     });
 
