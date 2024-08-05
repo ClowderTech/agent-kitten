@@ -11,6 +11,8 @@ import { Kazagumo } from "kazagumo";
 import { type ClientExtended, UserMadeError } from "./classes.ts";
 
 import { promises as fsPromises, read } from 'fs';
+import OpenAI from "openai";
+import { MongoClient } from "mongodb";
 
 config({override: true});
 if (!process.env.TOKEN || !process.env.LAVALINK_HOST || !process.env.LAVALINK_PASSWORD || !process.env.MONGODB_URI) {
@@ -97,6 +99,12 @@ client.kazagumo.on("playerEmpty", player => {
 });
 
 client.commands = new Collection();
+
+client.openai = new OpenAI({
+    // baseURL: "http://127.0.0.1:11434/v1"
+});
+client.mongoclient = new MongoClient(process.env.MONGODB_URI!);
+client.mongoclient.connect();
 
 // client.moonlink = new MoonlinkManager(
 //     [
