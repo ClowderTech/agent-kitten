@@ -73,7 +73,6 @@ client.kazagumo = new Kazagumo({
     reconnectInterval: 5000,
     reconnectTries: 12,
     moveOnDisconnect: true,
-    resumeTimeout: 60000,
 });
 
 
