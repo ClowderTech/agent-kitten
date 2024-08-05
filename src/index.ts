@@ -5,7 +5,7 @@ import { fileURLToPath, pathToFileURL } from "url";
 import { dirname, join } from "path";
 
 import OpenAI from "openai";
-import { MoonlinkManager } from "moonlink.js";
+import { MoonlinkManager, MoonlinkPlayer, type TrackData, type TrackDataInfo, type TrackInfo } from "moonlink.js";
 
 import { type ClientExtended, UserMadeError } from "./classes.ts";
 import { MongoClient } from "mongodb";
@@ -78,6 +78,23 @@ client.moonlink.on("nodeCreate", node => {
 client.moonlink.on("nodeError", (node, error) => {
     console.error(`Node ${node.host} emitted an error: ${error}`);
 });
+
+client.moonlink.on("trackError", (player: MoonlinkPlayer, track: TrackDataInfo) => {
+    console.error(`Track ${track.title} emitted an error`);
+    player.restart();
+});
+
+client.moonlink.on("trackEnd", (player: MoonlinkPlayer, track: TrackDataInfo) => {
+    if (player.queue.size === 0 && !player.current) {
+        player.disconnect();
+    }
+});
+
+client.moonlink.on("queueEnd", (player: MoonlinkPlayer) => {
+    player.disconnect();
+});
+
+
 
 client.commands = new Collection();
 client.openai = new OpenAI({
