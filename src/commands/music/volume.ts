@@ -1,5 +1,4 @@
 import { EmbedBuilder, CommandInteraction, SlashCommandBuilder, User, Team, TeamMember, Collection, Client, SlashCommandIntegerOption, GuildMember} from "discord.js";
-import { MoonlinkManager, MoonlinkTrack } from "moonlink.js";
 import { type ClientExtended, UserMadeError } from "../../classes";
 
 export const data = new SlashCommandBuilder()
@@ -31,7 +30,7 @@ export async function execute(interaction: CommandInteraction) {
     }
     
 
-    let player = client.moonlink.players.get(guildID);
+    let player = client.kazagumo.players.get(guildID);
     if (!player) {
         throw new UserMadeError("No songs are currently playing.");
     }

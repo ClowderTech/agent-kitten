@@ -1,6 +1,5 @@
 import { joinVoiceChannel, type DiscordGatewayAdapterImplementerMethods, type DiscordGatewayAdapterLibraryMethods, createAudioResource, createAudioPlayer, NoSubscriberBehavior } from "@discordjs/voice";
 import { SlashCommandStringOption, SlashCommandBuilder, CommandInteraction, GuildMember, MembershipScreeningFieldType, Client, Collection, EmbedBuilder } from "discord.js"
-import { MoonlinkManager } from "moonlink.js";
 import { type ClientExtended, UserMadeError } from "../../classes";
 
 export const data =  new SlashCommandBuilder()
@@ -31,28 +30,19 @@ export async function execute(interaction: CommandInteraction) {
         throw new UserMadeError("I am in another voice channel.");
     }
 
-    let player = client.moonlink.players.get(guildID);
+    let player = client.kazagumo.players.get(guildID);
     if (!player) {
         let channel = member.voice.channel;
-        player = client.moonlink.players.create({
+        player = await client.kazagumo.createPlayer({
             guildId: guildID,
-            voiceChannel: channel.id,
-            textChannel: interaction.channel.id,
+            textId: interaction.channel.id,
+            voiceId: channel.id,
             volume: 100,
-            autoPlay: true,
-            autoLeave: true,
-        });
+        })
     }
 
     // player.setAutoLeave(true);
     // player.setAutoPlay(false);
-
-    if (!player.connected) {
-        player.connect({
-            setDeaf: false,
-            setMute: false,
-        });
-    }
 
     let song = <string>interaction.options.get("song", true).value;
 
@@ -61,53 +51,45 @@ export async function execute(interaction: CommandInteraction) {
 
     await interaction.deferReply();
 
-    let playable = await client.moonlink.search({
-        query: song,
-        source: "spsearch",
-        requester: interaction.user.id,
+    let playable = await client.kazagumo.search(song, {
+        requester: interaction.user,
     });
 
-    if (playable.loadType === "empty") {
-        throw new UserMadeError("No songs were found.");
-    } else if (playable.loadType === "error") {
-        throw new Error("An error occurred while searching for the song.")
-    }
-
-    if (playable.loadType === "track") {
-        player.queue.push(playable.tracks[0]);
+    if (playable.type === "TRACK") {
+        player.queue.add(playable.tracks[0]);
         let embed = new EmbedBuilder()
             .setTitle("Queued song")
             .setDescription(`Queued song: \`${playable.tracks[0].title}\``)
             .setColor("#2b2d31")
-            .setThumbnail(playable.tracks[0].artworkUrl)
+            .setThumbnail(playable.tracks[0].thumbnail!)
             .setTimestamp()
         await interaction.followUp({embeds: [embed]})
-    } else if (playable.loadType === "playlist") {
+    } else if (playable.type === "PLAYLIST") {
         for (let track of playable.tracks) {
             if (!player) {
                 return;
             }
-            player.queue.push(track);
+            player.queue.add(track);
         };
         let embed = new EmbedBuilder()
             .setTitle("Queued playlist")
-            .setDescription(`Queued playlist: \`${playable.playlistInfo?.name}\``)
+            .setDescription(`Queued playlist: \`${playable.playlistName}\``)
             .setColor("#2b2d31")
-            .setThumbnail(playable.tracks[0].artworkUrl)
+            .setThumbnail(playable.tracks[0].thumbnail!)
             .setTimestamp()
         await interaction.followUp({embeds: [embed]})
-    } else if (playable.loadType === "search") {
-        player.queue.push(playable.tracks[0]);
+    } else if (playable.type === "SEARCH") {
+        player.queue.add(playable.tracks[0]);
         let embed = new EmbedBuilder()
             .setTitle("Queued song")
             .setDescription(`Queued song: \`${playable.tracks[0].title}\``)
             .setColor("#2b2d31")
-            .setThumbnail(playable.tracks[0].artworkUrl)
+            .setThumbnail(playable.tracks[0].thumbnail!)
             .setTimestamp()
         await interaction.followUp({embeds: [embed]});
-    }
+    };
 
-    if (!player.playing && !player.current) {
+    if (!player.playing && !player.paused) {
         player.play();
-    }
+    };
 };

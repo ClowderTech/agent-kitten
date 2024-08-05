@@ -1,5 +1,4 @@
 import { EmbedBuilder, CommandInteraction, SlashCommandBuilder, User, Team, TeamMember, Collection, Client, GuildMember, SlashCommandNumberOption} from "discord.js";
-import { MoonlinkManager, MoonlinkTrack } from "moonlink.js";
 import { type ClientExtended, UserMadeError } from "../../classes";
 
 export const data = new SlashCommandBuilder()
@@ -31,14 +30,14 @@ export async function execute(interaction: CommandInteraction) {
     }
     
 
-    let player = client.moonlink.players.get(guildID);
+    let player = client.kazagumo.players.get(guildID);
     if (!player) {
         throw new UserMadeError("No songs are currently playing.");
     }
 
     let amount_object = interaction.options.get("amount", false);
     let amount = amount_object ? <number>amount_object.value : 1;
-    if (amount > player.queue.size + (player.current ? 1 : 0)) {
+    if (amount > player.queue.totalSize) {
         throw new UserMadeError(`You cannot skip more songs than the queue has (${player.queue.size} song(s)).`);
     }
 

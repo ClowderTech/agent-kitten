@@ -1,19 +1,18 @@
-import { EmbedBuilder, CommandInteraction, SlashCommandBuilder, User, Team, TeamMember, Collection, Client, SlashCommandIntegerOption, GuildMember} from "discord.js";
-import { MoonlinkManager, MoonlinkTrack } from "moonlink.js";
+import { EmbedBuilder, CommandInteraction, SlashCommandBuilder, User, Team, TeamMember, Collection, Client, SlashCommandIntegerOption, GuildMember, SlashCommandStringOption} from "discord.js";
 import { type ClientExtended, UserMadeError } from "../../classes";
 
 export const data = new SlashCommandBuilder()
         .setName('loop')
         .setDescription('Sets the queue to loop.')
-        .addIntegerOption((option: SlashCommandIntegerOption) => option.setName("type").setDescription("Type of looping you want for the queue.").setRequired(true).addChoices({
+        .addStringOption((option: SlashCommandStringOption) => option.setName("type").setDescription("Type of looping you want for the queue.").setRequired(true).addChoices({
             name: "No looping.",
-            value: 0
+            value: "none"
         }, {
             name: "Loop the current song.",
-            value: 1
+            value: "track"
         }, {
             name: "Loop the whole queue.",
-            value: 2
+            value: "queue"
         }));
 
 export async function execute(interaction: CommandInteraction) {
@@ -40,12 +39,12 @@ export async function execute(interaction: CommandInteraction) {
     }
     
 
-    let player = client.moonlink.players.get(guildID);
+    let player = client.kazagumo.players.get(guildID);
     if (!player) {
         throw new UserMadeError("No songs are currently playing.");
     }
 
-    let loop_type = <number>interaction.options.get("type", true).value;
+    let loop_type = interaction.options.get("type", true).value as "none" | "track" | "queue" | undefined;
 
     if (!(member.roles.cache.some(role => role.name === "DJ") || member.permissions.has("ModerateMembers", true) || member.voice.channel.members.filter(member => !member.user.bot).size <= 2)) {
         let embed = new EmbedBuilder()
@@ -73,13 +72,13 @@ export async function execute(interaction: CommandInteraction) {
         collector.on("end", async (collected, reason) => {
             if (votes >= Math.floor(member.voice.channel!.members.filter(member => !member.user.bot).size / 2) + 1) {
                 player!.setLoop(loop_type);
-                if (loop_type == 0) {
+                if (loop_type == "none") {
                     await interaction.editReply({content: "Disabled looping.", embeds: []});
                     return;
-                } else if (loop_type == 1) {
+                } else if (loop_type == "track") {
                     await interaction.editReply({content: "Looping the current song.", embeds: []});
                     return;
-                } else if (loop_type == 2) {
+                } else if (loop_type == "queue") {
                     await interaction.editReply({content: "Looping the whole queue.", embeds: []});
                     return;
                 }
@@ -93,13 +92,13 @@ export async function execute(interaction: CommandInteraction) {
 
     player.setLoop(loop_type);
 
-    if (loop_type == 0) {
+    if (loop_type == "none") {
         await interaction.reply({content: "Disabled looping."});
         return;
-    } else if (loop_type == 1) {
+    } else if (loop_type == "track") {
         await interaction.reply({content: "Looping the current song."});
         return;
-    } else if (loop_type == 2) {
+    } else if (loop_type == "queue") {
         await interaction.reply({content: "Looping the whole queue."});
         return;
     }
