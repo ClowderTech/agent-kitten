@@ -1,7 +1,5 @@
 import { Client, Collection, SlashCommandBuilder } from "discord.js";
-import type { MongoClient } from "mongodb";
-import type { MoonlinkManager } from "moonlink.js";
-import type OpenAI from "openai";
+import { Kazagumo } from "kazagumo";
 
 export interface Command {
     data: SlashCommandBuilder;
@@ -10,9 +8,7 @@ export interface Command {
 
 export interface ClientExtended extends Client {
     commands: Collection<string, Command>;
-    openai: OpenAI;
-    mongoclient: MongoClient;
-    moonlink: MoonlinkManager;
+    kazagumo: Kazagumo;
 }
 
 export class UserMadeError extends Error {

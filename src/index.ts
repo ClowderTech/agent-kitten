@@ -4,17 +4,17 @@ import { config } from "dotenv";
 import { fileURLToPath, pathToFileURL } from "url";
 import { dirname, join } from "path";
 
-import OpenAI from "openai";
-import { MoonlinkManager, MoonlinkPlayer, type TrackData, type TrackDataInfo, type TrackInfo } from "moonlink.js";
+import { Connectors, Shoukaku } from "shoukaku";
+
+import { Kazagumo } from "kazagumo";
 
 import { type ClientExtended, UserMadeError } from "./classes.ts";
-import { MongoClient } from "mongodb";
 
 import { promises as fsPromises, read } from 'fs';
 
 config({override: true});
-if (!process.env.TOKEN || !process.env.LAVALINK_HOST || !process.env.LAVALINK_PASSWORD || !process.env.LAVALINK_PORT || !process.env.MONGODB_URI || !process.env.OPENAI_API_KEY || !process.env.OPENAI_ORG_ID) {
-    console.error("Please provide a token, lavalink host, lavalink password, mongodb uri, openai api key and organization id in a .env file or as environment variables.");
+if (!process.env.TOKEN || !process.env.LAVALINK_HOST || !process.env.LAVALINK_PASSWORD || !process.env.MONGODB_URI) {
+    console.error("Please provide a token, lavalink host, lavalink password, and mongodb uri in a .env file or as environment variables.");
     process.exit(1);
 }
 // if (!process.env.TOKEN) {
@@ -53,55 +53,48 @@ const client: ClientExtended = new Client(
     }
 ) as ClientExtended;
 
-client.moonlink = new MoonlinkManager(
-    [
-        {
-            host: process.env.LAVALINK_HOST!,
-            port: Number(process.env.LAVALINK_PORT),
-            secure: true,
-            password: process.env.LAVALINK_PASSWORD!,
-        }
-    ],
+let nodes = [
     {
-        autoResume: true,
+        name: "main",
+        url: process.env.LAVALINK_HOST,
+        auth: process.env.LAVALINK_PASSWORD,
+        secure: true,
+    }
+];
+
+client.kazagumo = new Kazagumo({
+    defaultSearchEngine: "youtube",
+    send: (guildId: string, payload: any) => {
+        const guild = client.guilds.cache.get(guildId);
+        if (guild) guild.shard.send(payload);
     },
-    (guildID: any, sPayload: any) => {
-        client.guilds.cache.get(guildID)!.shard.send(JSON.parse(sPayload));
-    }
-);
-
-// Event: Node created
-client.moonlink.on("nodeCreate", node => {
-    console.log(`${node.host} was connected, and the magic is in the air`);
-});
-
-client.moonlink.on("nodeError", (node, error) => {
-    console.error(`Node ${node.host} emitted an error: ${error}`);
-});
-
-client.moonlink.on("trackError", (player: MoonlinkPlayer, track: TrackDataInfo) => {
-    console.error(`Track ${track.title} emitted an error`);
-    player.restart();
-});
-
-client.moonlink.on("trackEnd", (player: MoonlinkPlayer, track: TrackDataInfo) => {
-    if (player.queue.size === 0 && !player.current) {
-        player.disconnect();
-    }
-});
-
-client.moonlink.on("queueEnd", (player: MoonlinkPlayer) => {
-    player.disconnect();
+}, new Connectors.DiscordJS(client), nodes, {
+    resumeByLibrary: true,
+    reconnectInterval: 5000,
+    reconnectTries: 12,
+    moveOnDisconnect: true,
+    resumeTimeout: 60000,
 });
 
 
+client.kazagumo.shoukaku.on('ready', (name) => console.log(`Lavalink ${name}: Ready!`));
+client.kazagumo.shoukaku.on('error', (name, error) => console.error(`Lavalink ${name}: Error Caught,`, error));
+client.kazagumo.shoukaku.on('close', (name, code, reason) => console.warn(`Lavalink ${name}: Closed, Code ${code}, Reason ${reason || 'No reason'}`));
+client.kazagumo.shoukaku.on('debug', (name, info) => console.debug(`Lavalink ${name}: Debug,`, info));
+client.kazagumo.shoukaku.on('disconnect', (name, count) => {
+    const players = [...client.kazagumo.shoukaku.players.values()].filter(p => p.node.name === name);
+    players.map(player => {
+        client.kazagumo.destroyPlayer(player.guildId);
+        player.destroy();
+    });
+    console.warn(`Lavalink ${name}: Disconnected`);
+});
+
+client.kazagumo.on("playerEmpty", player => {
+    player.destroy();
+});
 
 client.commands = new Collection();
-client.openai = new OpenAI({
-    // baseURL: "http://127.0.0.1:11434/v1"
-});
-client.mongoclient = new MongoClient(process.env.MONGODB_URI!);
-client.mongoclient.connect();
 
 // client.moonlink = new MoonlinkManager(
 //     [
@@ -265,19 +258,10 @@ client.once(Events.ClientReady, async (readyClient: Client) => {
             console.error(error);
         }
     }
-
-    client.moonlink.init(client.user?.id);
-});
-
-client.login(process.env.TOKEN);
-
-client.on(Events.Raw, (packet: any) => {
-    client.moonlink.packetUpdate(packet);
 });
 
 function gracefulShutdown() {
     console.log("Received shutdown signal, closing Discord client...");
-    client.mongoclient.close();
     client.destroy()
         .then(() => {
             console.log("Discord client closed.");
