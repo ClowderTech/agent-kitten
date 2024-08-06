@@ -72,7 +72,7 @@ client.kazagumo = new Kazagumo({
     },
 }, new Connectors.DiscordJS(client), nodes, {
     resumeByLibrary: true,
-    reconnectInterval: 0,
+    reconnectInterval: 1,
     reconnectTries: 1000000000000,
     moveOnDisconnect: true,
     resumeTimeout: 30,
