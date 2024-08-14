@@ -29,7 +29,7 @@ export async function execute(interaction: CommandInteraction) {
     }
     
 
-    let player = client.kazagumo.players.get(guildID);
+    let player = client.moonlink.players.get(guildID);
     if (!player) {
         throw new UserMadeError("No songs are currently playing.");
     }

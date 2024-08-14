@@ -1,4 +1,5 @@
-import { EmbedBuilder, CommandInteraction, SlashCommandBuilder, User, Team, TeamMember, Collection, Client} from "discord.js";
+import { EmbedBuilder, CommandInteraction, SlashCommandBuilder} from "discord.js";
+import { Track } from "moonlink.js";
 import { type ClientExtended, UserMadeError } from "../../classes";
 
 export const data = new SlashCommandBuilder()
@@ -11,18 +12,18 @@ export async function execute(interaction: CommandInteraction) {
         throw new UserMadeError("You must use this in a server.");
     }
     let guildID = interaction.guild.id
-    let player = client.kazagumo.players.get(guildID);
+    let player = client.moonlink.players.get(guildID);
     if (!player) {
         throw new UserMadeError("No songs are currently playing.");
     }
 
     let queue = player.queue;
 
-    const calculatedPosition = player.position;
+    const calculatedPosition = player.current.position
 
     let addon_title = "";
 
-    if (player.queue.current?.isStream) {
+    if (player.current.isStream) {
         addon_title += " (Live)";
     }
 
@@ -35,16 +36,16 @@ export async function execute(interaction: CommandInteraction) {
     }
 
     let embed = new EmbedBuilder()
-        .setTitle(`Queue${addon_title} (${(player.queue.totalSize)} song(s))`)
+        .setTitle(`Queue${addon_title} (${(player.queue.size + (player.playing ? 1 : 0))} song(s))`)
         .setColor("#2b2d31")
         .setTimestamp()
-        .setThumbnail(player.queue.current?.thumbnail ?? "https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/A_black_image.jpg/640px-A_black_image.jpg")
-        .setDescription(`**Now Playing:**\n[${player.queue.current?.title}](${player.queue.current?.realUri}) (requested by ${player.queue.current?.requester}) (duration: ${Math.floor(calculatedPosition / 1000)}/${Math.floor(player.queue.current?.length! / 1000)}s)`);
+        .setThumbnail(player.current.artworkUrl!)
+        .setDescription(`**Now Playing:**\n[${player.current.title}](${player.current.url}) (requested by <@!${player.current.requestedBy}>) (duration: ${Math.floor(calculatedPosition / 1000)}/${Math.floor(player.current.duration / 1000)}s)`);
 
-    if (queue.totalSize - 1 > 0) {
-        let next = player.queue.slice(0, 4);
-        let nextString = next.map((song, index)  => `${index + 1}. [${song.title}](${song.realUri}) (requested by ${song.requester})`).join("\n");
-        embed.addFields({name: "Next up:", value: nextString.concat(queue.totalSize - 1 > 5 ? `\n... and ${queue.totalSize - 6} more` : "")});
+    if (queue.size > 0) {
+        let next = queue.tracks.slice(0, 5);
+        let nextString = next.map((song: Track, index: number) => `${index + 1}. [${song.title}](${song.url}) (requested by <@!${song.requestedBy}>)`).join("\n");
+        embed.addFields({name: "Next up:", value: nextString.concat(queue.size > 5 ? `\n... and ${queue.size - 5} more` : "")});
     }
 
     await interaction.reply({embeds: [embed]});

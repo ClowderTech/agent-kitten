@@ -1,5 +1,21 @@
 import { EmbedBuilder, CommandInteraction, SlashCommandBuilder, User, Team, TeamMember, Collection, Client, GuildMember, SlashCommandNumberOption} from "discord.js";
 import { type ClientExtended, UserMadeError } from "../../classes";
+import type { Queue } from "moonlink.js";
+
+const removeFromQueue = (queue: Queue, amount: number) => {
+    // Check if amount is 2 or greater
+    if (amount >= 2) {
+        // Calculate how many times to remove from the front
+        const numberOfRemovals = amount - 1; // Calculate the number of removals
+
+        // Only remove items if we have valid positions in the queue
+        for (let i = 0; i < numberOfRemovals; i++) {
+            if (queue.size > 0) { // Ensure there's something to remove
+                queue.remove(0); // Remove the item at index 0
+            }
+        }
+    }
+};
 
 export const data = new SlashCommandBuilder()
         .setName('skip')
@@ -30,14 +46,14 @@ export async function execute(interaction: CommandInteraction) {
     }
     
 
-    let player = client.kazagumo.players.get(guildID);
+    let player = client.moonlink.players.get(guildID);
     if (!player) {
         throw new UserMadeError("No songs are currently playing.");
     }
 
     let amount_object = interaction.options.get("amount", false);
-    let amount = amount_object ? <number>amount_object.value : 1;
-    if (amount > player.queue.totalSize) {
+    let amount = amount_object ? amount_object.value as number : 1;
+    if (amount > player.queue.size + (player.current ? 1 : 0)) {
         throw new UserMadeError(`You cannot skip more songs than the queue has (${player.queue.size} song(s)).`);
     }
 
@@ -67,9 +83,13 @@ export async function execute(interaction: CommandInteraction) {
 
         collector.on("end", async (collected, reason) => {
             if (votes >= Math.ceil(member.voice.channel!.members.filter(member => !member.user.bot).size / 2)) {
-                for (let i = 0; i < amount; i++) {
-                    player.skip();
+                removeFromQueue(player.queue, amount);
+                if (player.queue.size == 0) {
+                    player.destroy();
+                    await interaction.editReply({content: "Skipped the current song and left the voice call.", embeds: []});
+                    return;
                 }
+                player.skip(0);
                 await interaction.editReply({content: "Skipped the current song.", embeds: []});
             } else {
                 await interaction.editReply({content: "Not enough votes to skip the song.", embeds: []});
@@ -79,9 +99,13 @@ export async function execute(interaction: CommandInteraction) {
         return;
     }
 
-    for (let i = 0; i < amount; i++) {
-        player.skip();
+    removeFromQueue(player.queue, amount);
+    if (player.queue.size == 0) {
+        player.destroy();
+        await interaction.reply({content: "Skipped the current song and left the voice call.", embeds: []});
+        return;
     }
+    player.skip(0);
 
     await interaction.reply({content: "Skipped the current song."});
 };

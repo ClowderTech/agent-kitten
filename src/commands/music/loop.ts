@@ -1,5 +1,6 @@
-import { EmbedBuilder, CommandInteraction, SlashCommandBuilder, User, Team, TeamMember, Collection, Client, SlashCommandIntegerOption, GuildMember, SlashCommandStringOption} from "discord.js";
+import { EmbedBuilder, CommandInteraction, SlashCommandBuilder, User, Team, TeamMember, Collection, Client, SlashCommandStringOption, GuildMember} from "discord.js";
 import { type ClientExtended, UserMadeError } from "../../classes";
+import type { TPlayerLoop } from "moonlink.js";
 
 export const data = new SlashCommandBuilder()
         .setName('loop')
@@ -39,12 +40,12 @@ export async function execute(interaction: CommandInteraction) {
     }
     
 
-    let player = client.kazagumo.players.get(guildID);
+    let player = client.moonlink.players.get(guildID);
     if (!player) {
         throw new UserMadeError("No songs are currently playing.");
     }
 
-    let loop_type = interaction.options.get("type", true).value as "none" | "track" | "queue" | undefined;
+    let loop_type = interaction.options.get("type", true).value! as string;
 
     if (!(member.roles.cache.some(role => role.name === "DJ") || member.permissions.has("ModerateMembers", true) || member.voice.channel.members.filter(member => !member.user.bot).size <= 2)) {
         let embed = new EmbedBuilder()
@@ -71,7 +72,7 @@ export async function execute(interaction: CommandInteraction) {
 
         collector.on("end", async (collected, reason) => {
             if (votes >= Math.floor(member.voice.channel!.members.filter(member => !member.user.bot).size / 2) + 1) {
-                player!.setLoop(loop_type);
+                player!.setLoop(loop_type as TPlayerLoop);
                 if (loop_type == "none") {
                     await interaction.editReply({content: "Disabled looping.", embeds: []});
                     return;
@@ -90,16 +91,16 @@ export async function execute(interaction: CommandInteraction) {
         return;
     }
 
-    player.setLoop(loop_type);
-
+    player!.setLoop(loop_type as TPlayerLoop);
+    
     if (loop_type == "none") {
-        await interaction.reply({content: "Disabled looping."});
+        await interaction.reply({content: "Disabled looping.", embeds: []});
         return;
     } else if (loop_type == "track") {
-        await interaction.reply({content: "Looping the current song."});
+        await interaction.reply({content: "Looping the current song.", embeds: []});
         return;
     } else if (loop_type == "queue") {
-        await interaction.reply({content: "Looping the whole queue."});
+        await interaction.reply({content: "Looping the whole queue.", embeds: []});
         return;
     }
 };
