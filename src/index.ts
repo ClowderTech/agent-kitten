@@ -60,6 +60,9 @@ client.moonlink = new Manager({
             port: Number(process.env.LAVALINK_PORT),
             secure: true,
             password: process.env.LAVALINK_PASSWORD!,
+            retryDelay: 5000,
+            retryAmount: 1000000000000
+            
         }
     ],
     options: {
