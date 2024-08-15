@@ -199,6 +199,7 @@ export async function execute(interaction: CommandInteraction) {
                 function: {
                     function: executeEval,
                     parse: JSON.parse,
+                    description: "Execute TypeScript code.",
                     parameters: {
                         type: "object",
                         properties: {
@@ -216,6 +217,7 @@ export async function execute(interaction: CommandInteraction) {
                 function: {
                     function: searchGoogle,
                     parse: JSON.parse,
+                    description: "Search on Google.",
                     parameters: {
                         type: "object",
                         properties: {
@@ -233,6 +235,7 @@ export async function execute(interaction: CommandInteraction) {
                 function: {
                     function: scrapeWebsite,
                     parse: JSON.parse,
+                    description: "Scrape a website.",
                     parameters: {
                         type: "object",
                         properties: {

@@ -54,14 +54,12 @@ export async function execute(interaction: CommandInteraction) {
 
     let song = <string>interaction.options.get("song", true).value;
 
-    const spotify_regex = RegExp(/https:\/\/open\.spotify\.com\/(track|album|artist|playlist)\/([a-zA-Z0-9]+)/);
-    const youtube_regex = RegExp(/(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|embed\/)|youtu\.be\/)[a-zA-Z0-9_-]+(\?t=\d+s)?/);
-
     await interaction.deferReply();
 
     let playable = await client.moonlink.search({
         query: song,
         requester: interaction.user.id,
+        source: "youtubemusic"
     });
 
     if (playable.loadType === "empty") {
@@ -104,7 +102,7 @@ export async function execute(interaction: CommandInteraction) {
         await interaction.followUp({embeds: [embed]});
     }
 
-    if (!player.playing && !player.current) {
+    if (!player.playing && !player.paused) {
         player.play();
     }
 };
