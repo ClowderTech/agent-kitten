@@ -188,6 +188,8 @@ export async function execute(interaction: CommandInteraction) {
         content: message
     });
 
+    console.log(user_data.messages);
+
     const runner = openai.beta.chat.completions.runTools({
         // model: 'mixtral:8x7b',
         model: 'gpt-4o-mini',
@@ -197,15 +199,16 @@ export async function execute(interaction: CommandInteraction) {
             {
                 type: "function",
                 function: {
+                    name: "eval",
                     function: executeEval,
                     parse: JSON.parse,
-                    description: "Execute TypeScript code.",
+                    description: "Execute TypeScript code. Use console.log to output data. Make sure to not use infinite loops, do anything illegal, try to retrieve credentials, or access anything about your code.",
                     parameters: {
                         type: "object",
                         properties: {
                             code: {
                                 type: "string", 
-                                description: "The typescript code to execute. Make sure to not execute anything harmful like deleting existing files, reading environment variables, or infinite loops. Make sure to do console.log to get the output."
+                                description: "The code to execute."
                             }
                         },
                         required: ["code"]
@@ -215,6 +218,7 @@ export async function execute(interaction: CommandInteraction) {
             {
                 type: "function",
                 function: {
+                    name: "search",
                     function: searchGoogle,
                     parse: JSON.parse,
                     description: "Search on Google.",
@@ -222,8 +226,8 @@ export async function execute(interaction: CommandInteraction) {
                         type: "object",
                         properties: {
                             query: {
-                                type: "string", 
-                                description: "The query to search on Google."
+                                type: "string",
+                                description: "The search query."
                             }
                         },
                         required: ["query"]
@@ -233,6 +237,7 @@ export async function execute(interaction: CommandInteraction) {
             {
                 type: "function",
                 function: {
+                    name: "scrape",
                     function: scrapeWebsite,
                     parse: JSON.parse,
                     description: "Scrape a website.",
@@ -240,8 +245,8 @@ export async function execute(interaction: CommandInteraction) {
                         type: "object",
                         properties: {
                             url: {
-                                type: "string", 
-                                description: "The url to scrape."
+                                type: "string",
+                                description: "The URL of the website to scrape."
                             }
                         },
                         required: ["url"]
@@ -254,6 +259,8 @@ export async function execute(interaction: CommandInteraction) {
     const response = await runner.finalContent(); // Execute the chat completion and get the response
     
     user_data.messages = runner.messages; // Log the messages for debugging
+
+    delete user_data.messages[user_data.messages.length - 1].tool_calls
 
     await collection.updateOne({ user_id: interaction.user.id }, { $set: user_data }, { upsert: true });
 
