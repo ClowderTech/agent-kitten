@@ -244,7 +244,7 @@ export async function execute(interaction: CommandInteraction) {
                                 description: "The url to scrape."
                             }
                         },
-                        required: ["query"]
+                        required: ["url"]
                     }
                 }
             }

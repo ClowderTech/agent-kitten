@@ -86,7 +86,7 @@ export async function execute(interaction: CommandInteraction) {
         };
         let embed = new EmbedBuilder()
             .setTitle("Queued playlist")
-            .setDescription(`Queued playlist: \`${playable.playlistInfo?.name}\``)
+            .setDescription(`Queued playlist: \`${playable.playlistInfo.name}\``)
             .setColor("#2b2d31")
             .setThumbnail(playable.tracks[0].artworkUrl!)
             .setTimestamp()
