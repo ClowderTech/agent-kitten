@@ -138,31 +138,51 @@ async function searchGoogle(args: { query: string }): Promise<string> {
 
 async function scrapeWebsite(args: { url: string }): Promise<string> {
     const { url } = args;
-    const browser = await chromium.launch({headless: true});
+    
+    // Launch a headless Chromium browser
+    const browser = await chromium.launch({ headless: true });
     const context = await browser.newContext();
     const page = await context.newPage();
+    
+    // Go to the specified URL
     const response = await page.goto(url);
-
+    
+    // Check if the response is OK
     if (!response?.ok()) {
         return `Response not ok. Status ${response?.status()}.`;
     }
 
+    // Get the page text
     const text = await response.text();
-
+    
+    // Parse the HTML with JSDOM
     const dom = new JSDOM(text);
     const document = dom.window.document;
 
-    const anchorTags = document.querySelectorAll('a[href]');
+    // Initialize an array to hold both text and rich text links
+    let output: string[] = [];
+    
+    // Collect all elements in the body for scraping
+    const bodyElements = document.body.childNodes;
 
-    anchorTags.forEach((a: any) => {
-        const linkText = `[${a.textContent}](${a.getAttribute('href')})`;
-        const textNode = document.createTextNode(linkText);
-        a.parentNode.replaceChild(textNode, a);
+    // Iterate through all child nodes in the body
+    bodyElements.forEach((node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+            // If it's a text node, push its text
+            output.push(node.textContent?.trim() || '');
+        } else if (node.nodeType === Node.ELEMENT_NODE && node.nodeName === 'A') {
+            // If it's an anchor element, format it as rich text
+            const a = node as HTMLAnchorElement;
+            const linkText = `[${a.textContent}](${a.getAttribute('href')})`;
+            output.push(linkText);
+        }
     });
-
+    
+    // Close the browser
     await browser.close();
 
-    return document.body.textContent?.substring(0, ) || 'No output.';
+    // Join the output array into a single string, removing any empty elements
+    return output.filter(item => item).join('\n') || 'No output.';
 }
 
 export async function execute(interaction: CommandInteraction) {
