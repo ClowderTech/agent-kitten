@@ -167,10 +167,10 @@ async function scrapeWebsite(args: { url: string }): Promise<string> {
 
     // Iterate through all child nodes in the body
     bodyElements.forEach((node) => {
-        if (node.nodeType === Node.TEXT_NODE) {
+        if (node.nodeType === dom.window.Node.TEXT_NODE) {
             // If it's a text node, push its text
             output.push(node.textContent?.trim() || '');
-        } else if (node.nodeType === Node.ELEMENT_NODE && node.nodeName === 'A') {
+        } else if (node.nodeType === dom.window.Node.ELEMENT_NODE && node.nodeName === 'A') {
             // If it's an anchor element, format it as rich text
             const a = node as HTMLAnchorElement;
             const linkText = `[${a.textContent}](${a.getAttribute('href')})`;
