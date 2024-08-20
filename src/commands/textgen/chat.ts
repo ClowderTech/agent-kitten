@@ -160,6 +160,8 @@ async function scrapeWebsite(args: { url: string }): Promise<string> {
         a.parentNode.replaceChild(textNode, a);
     });
 
+    await browser.close();
+
     return document.body.textContent?.substring(0, ) || 'No output.';
 }
 
