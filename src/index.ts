@@ -1,4 +1,4 @@
-import { Events, Client, GatewayIntentBits, Collection, REST, Routes, type Interaction, EmbedBuilder, ApplicationCommand, type RESTGetAPIApplicationCommandsResult } from "discord.js";
+import { Events, Client, GatewayIntentBits, Collection, REST, Routes, type Interaction, EmbedBuilder, ApplicationCommand, type RESTGetAPIApplicationCommandsResult, SlashCommandBuilder } from "discord.js";
 
 import { config } from "dotenv";
 import { fileURLToPath } from "url";
@@ -219,20 +219,35 @@ client.once(Events.ClientReady, async (readyClient: Client) => {
 
     const rest = new REST().setToken(client.token!);
 
-    let commands = await readyClient.application?.commands.fetch();
-    let devCommands = await readyClient.application?.commands.fetch({ guildId: "1185316093078802552" });
-    let commandsName = commands?.map((command: ApplicationCommand) => command.name);
-    let devCommandsName = devCommands?.map((command: ApplicationCommand) => command.name);
-    let allCommands = commandsName?.concat(devCommandsName!)!;
+    const commandsPath = join(__dirname, "commands");
+    const devCommandsPath = join(__dirname, "devCommands");
+
+    const commands = await loadCommands(commandsPath);
+    const devCommands = await loadCommands(devCommandsPath);
+
+    const allCommands = commands.concat(devCommands);
+
     let registeredCommands = await rest.get(Routes.applicationCommands(readyClient.user!.id)) as RESTGetAPIApplicationCommandsResult;
 
-    if (allCommands.length === registeredCommands.length && allCommands.every((command => registeredCommands.find(registeredCommand => registeredCommand.name === command)))) {
-        const commandsPath = join(__dirname, "commands");
-        const devCommandsPath = join(__dirname, "devCommands");
-
-        const commands = await loadCommands(commandsPath);
-        const devCommands = await loadCommands(devCommandsPath);
-
+    if (
+        allCommands.length === registeredCommands.length &&
+        allCommands.every(command => {
+            const actualCommand = command.data as SlashCommandBuilder;
+            registeredCommands.find(registeredCommand => 
+                registeredCommand.name === actualCommand.name &&
+                registeredCommand.description === actualCommand.description &&
+                registeredCommand.options?.every(registeredOption =>
+                    actualCommand.options?.find(option => {
+                        const actualOption = option.toJSON();
+                        actualOption.name === registeredOption.name &&
+                        actualOption.description === registeredOption.description &&
+                        actualOption.required === registeredOption.required &&
+                        actualOption.type === registeredOption.type
+                    })
+                )
+            )
+        })
+    ) {
         try {
             console.log('Started refreshing application (/) commands.');
 
