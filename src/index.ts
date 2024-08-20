@@ -255,8 +255,6 @@ client.once(Events.ClientReady, async (readyClient: Client) => {
     client.moonlink.init(client.user!.id);
 });
 
-client.login(process.env.TOKEN);
-
 client.on(Events.Raw, (packet: any) => {
     client.moonlink.packetUpdate(packet);
 });
