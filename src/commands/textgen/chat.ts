@@ -9,6 +9,7 @@ import { ObjectId } from "mongodb";
 import { JSDOM } from 'jsdom';
 import * as ts from 'typescript';
 import * as vm from 'vm';
+import { chromium } from 'playwright';
 
 
 
@@ -111,9 +112,12 @@ async function searchGoogle(args: { query: string }): Promise<string> {
     let start = 0;
 
     try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            return `Response not ok. Status ${response.status}.`;
+        const browser = await chromium.launch({headless: true});
+        const context = await browser.newContext();
+        const page = await context.newPage();
+        const response = await page.goto(url);
+        if (!response?.ok()) {
+            return `Response not ok. Status ${response?.status()}.`;
         }
         const data = await response.json();
         const results = data.results;
@@ -124,6 +128,7 @@ async function searchGoogle(args: { query: string }): Promise<string> {
                 break;
             }
         }
+        await browser.close();
     } catch (error) {
         return `An error occurred: ${error}`;
     }
@@ -133,7 +138,15 @@ async function searchGoogle(args: { query: string }): Promise<string> {
 
 async function scrapeWebsite(args: { url: string }): Promise<string> {
     const { url } = args;
-    const response = await fetch(url);
+    const browser = await chromium.launch({headless: true});
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    const response = await page.goto(url);
+
+    if (!response?.ok()) {
+        return `Response not ok. Status ${response?.status()}.`;
+    }
+
     const text = await response.text();
 
     const dom = new JSDOM(text);
