@@ -9,10 +9,9 @@ import { ObjectId } from "mongodb";
 import { JSDOM } from 'jsdom';
 import * as ts from 'typescript';
 import * as vm from 'vm';
-import { chromium } from 'playwright';
-
-
-
+import { launch } from "puppeteer";
+import { parse } from 'node-html-parser';
+import { readFile } from "fs/promises";
 
 export const data = new SlashCommandBuilder()
         .setName('chat')
@@ -67,15 +66,24 @@ function splitText(text: string, maxLength: number = 2000): string[] {
 
 async function executeEval(args: { code: string }) {
     const { code } = args;
+
     try {
-        // Transpile TypeScript code to JavaScript
+        // Step 1: Read and parse tsconfig.json
+        const tsconfigPath = '../tsconfig.json'; // Adjust the path as necessary
+        const tsconfigRaw = await readFile(tsconfigPath, 'utf-8');
+        const tsconfig = JSON.parse(tsconfigRaw);
+
+        // Step 2: Get the compiler options from the tsconfig
+        const compilerOptions = tsconfig.compilerOptions;
+
+        // Step 3: Transpile the TypeScript code using the options from tsconfig
         const transpiledCode = ts.transpileModule(code, {
-            compilerOptions: { module: ts.ModuleKind.ESNext }
+            compilerOptions: compilerOptions  // Apply the compiler options from tsconfig
         });
 
-        // Create a new context for the evaluation
+        // Create a new context for evaluation
         const context = vm.createContext({
-            consoleOutput: null, // To capture console.log output
+            consoleOutput: null,
             console: {
                 log: (output: any) => {
                     context.consoleOutput = output;
@@ -83,7 +91,7 @@ async function executeEval(args: { code: string }) {
             }
         });
 
-        // Run the transpiled JavaScript code in the new context
+        // Run the transpiled code in the new context
         const script = new vm.Script(transpiledCode.outputText);
         script.runInContext(context);
 
@@ -94,11 +102,7 @@ async function executeEval(args: { code: string }) {
             return 'No console output captured';
         }
     } catch (error) {
-        // Properly type-cast `error` to `Error` for accessing `message` property
-        if (error instanceof Error) {
-            return `Error: ${error.message}`;
-        }
-        return 'Unknown error occurred';
+        return `Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`;
     }
 }
 
@@ -111,11 +115,11 @@ async function searchGoogle(args: { query: string }): Promise<string> {
     let searchResults = '';
     let start = 0;
 
+    const browser = await launch({headless: true});
+    const page = await browser.newPage();
+
     try {
-        const browser = await chromium.launch({headless: true});
-        const context = await browser.newContext();
-        const page = await context.newPage();
-        const response = await page.goto(url);
+        const response = await page.goto(url, { timeout: 30000, waitUntil: "load" });
         if (!response?.ok()) {
             return `Response not ok. Status ${response?.status()}.`;
         }
@@ -128,71 +132,50 @@ async function searchGoogle(args: { query: string }): Promise<string> {
                 break;
             }
         }
-        await browser.close();
     } catch (error) {
         return `An error occurred: ${error}`;
+    } finally {
+        await browser.close();
     }
 
     return searchResults;
 }
 
+// Function to scrape a Cloudflare-protected site
 async function scrapeWebsite(args: { url: string }): Promise<string> {
     const { url } = args;
+    
+    // Launch a headless Chromium browser with some parameters
+    const browser = await launch({
+        headless: true,  // Running in headful mode may help bypass some protections
+    });
+
+    const page = await browser.newPage();
 
     try {
-        // Launch a headless Chromium browser
-        const browser = await chromium.launch({ headless: true });
-        const context = await browser.newContext();
-        const page = await context.newPage();
+        const response = await page.goto(url, { timeout: 30000, waitUntil: "load" }); // Navigate to the URL
+        const content = await page.content(); // Get the page content
 
-        // Go to the specified URL
-        const response = await page.goto(url);
-
-        // Print the response status
-        console.log(`Response Status: ${response?.status()}`);
-
-        // Check if the response is OK
         if (!response?.ok()) {
-            console.error(`Response not ok. Status ${response?.status()}.`);
-            await browser.close();
             return `Response not ok. Status ${response?.status()}.`;
         }
 
-        // Get the page text
-        const text = await page.content();  // Get the entire content of the page directly
+        const root = parse(content); // Parse the content
+        const anchors = root.querySelectorAll('a[href]'); // Find <a> tags
 
-        // Parse the HTML with JSDOM
-        const dom = new JSDOM(text);
-        const document = dom.window.document;
-
-        // Initialize an array to hold both text and rich text links
-        let output: string[] = [];
-
-        // Collect all elements in the body for scraping
-        const bodyElements = document.body.childNodes;
-
-        // Iterate through all child nodes in the body
-        bodyElements.forEach((node) => {
-            if (node.nodeType === dom.window.Node.TEXT_NODE) {
-                // If it's a text node, push its text
-                output.push(node.textContent?.trim() || '');
-            } else if (node.nodeType === dom.window.Node.ELEMENT_NODE && node.nodeName === 'A') {
-                // If it's an anchor element, format it as rich text
-                const a = node as HTMLAnchorElement;
-                const linkText = `[${a.textContent}](${a.getAttribute('href')})`;
-                output.push(linkText);
-            }
+        anchors.forEach((a) => {
+            const linkText = `[${a.text}](${a.getAttribute('href')})`; // Create link text
+            a.replaceWith(linkText); // Replace <a> tag with link text
         });
 
-        // Close the browser
-        await browser.close();
+        const textWithLinks = root.text; // Get the modified text
+        return textWithLinks; // Return the modified text
 
-        // Join the output array into a single string, removing any empty elements
-        return output.filter(item => item).join('\n') || 'No output.';
-        
     } catch (error) {
         console.error("Error scraping website:", error);
         return "Error occurred during scraping.";
+    } finally {
+        await browser.close(); // Ensure the browser is closed
     }
 }
 
@@ -307,7 +290,7 @@ export async function execute(interaction: CommandInteraction) {
 
     let embeds = [];
     for (const chunk of splitText(response!, 4095)) {
-        embeds.push(new EmbedBuilder().setAuthor({name: 'Agent Kitten', url: 'https://agentkitten.com', iconURL: 'https://cdn.discordapp.com/avatars/1169801069514194956/7d1ee663b3e0e10191bedb70a9f8d2af.webp?size=4096'}).setTitle("Responce").setDescription(chunk).setColor('#2b2d31').setTimestamp());
+        embeds.push(new EmbedBuilder().setAuthor({name: 'Agent Kitten', url: 'https://agentkitten.com', iconURL: 'https://cdn.discordapp.com/avatars/1169801069514194956/7d1ee663b3e0e10191bedb70a9f8d2af.webp?size=4096'}).setTitle("Response").setDescription(chunk).setColor('#2b2d31').setTimestamp());
     }
 
     await interaction.editReply({ embeds: embeds });

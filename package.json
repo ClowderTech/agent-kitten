@@ -18,7 +18,8 @@
     "jsdom": "^24.1.1",
     "mongodb": "^6.8.0",
     "moonlink.js": "^4.0.2",
+    "node-html-parser": "^6.1.13",
     "openai": "^4.56.0",
-    "playwright": "^1.46.1"
+    "puppeteer": "^23.1.0"
   }
 }
