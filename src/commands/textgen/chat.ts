@@ -19,18 +19,16 @@ export const data = new SlashCommandBuilder()
         .addStringOption((option: SlashCommandStringOption) => option.setName('message').setDescription('The message to send to Agent Kitten.').setRequired(true))
 
 function splitText(text: string, maxLength: number = 2000): string[] {
-    /**
-     * Splits text into chunks, ensuring each chunk is no longer than maxLength
-     * and splits are done only at newline characters while preserving markdown formatting.
-     * @param text - The text to be split
-     * @param maxLength - Maximum length of each split chunk
-     * @return A list of text chunks
-     */
-    
+    // Splits text into chunks, ensuring each chunk is no longer than maxLength
+    // and splits are done only at newline characters while preserving markdown formatting.
+    // @param text - The text to be split
+    // @param maxLength - Maximum length of each split chunk
+    // @return A list of text chunks
+
     let lines = text.split(/\r?\n/); // Split the text by lines
-    let chunks: string[] = [];
-    let currentChunk = "";
-    let codeBlockOpen = false;
+    let chunks: string[] = []; // Array to store the resulting chunks
+    let currentChunk = ""; // String to accumulate the current chunk
+    let codeBlockOpen = false; // Boolean to track if we are inside a code block
 
     for (let line of lines) {
         // Check for code block markers and track their state
@@ -40,11 +38,10 @@ function splitText(text: string, maxLength: number = 2000): string[] {
 
         // Check if adding the line would make the current chunk too long
         if ((currentChunk.length + line.length + 1) > maxLength) { // +1 for the newline character
-            // If a code block is open, close it in the current chunk and reopen in the next
+            // If a code block is open, close it in the current chunk
             if (codeBlockOpen) {
                 currentChunk += "```\n";
                 chunks.push(currentChunk.trim());
-
                 // Reopen in the next chunk
                 currentChunk = "```\n" + line + "\n";
             } else {
@@ -52,7 +49,7 @@ function splitText(text: string, maxLength: number = 2000): string[] {
                 currentChunk = line + "\n";
             }
         } else {
-            currentChunk += line + "\n";
+            currentChunk += line + "\n"; // Add the line to the current chunk
         }
     }
 
@@ -64,7 +61,7 @@ function splitText(text: string, maxLength: number = 2000): string[] {
         chunks.push(currentChunk.trim());
     }
 
-    return chunks;
+    return chunks; // Return the array of text chunks
 }
 
 async function executeEval(args: { code: string }) {
@@ -188,8 +185,6 @@ export async function execute(interaction: CommandInteraction) {
         content: message
     });
 
-    console.log(user_data.messages);
-
     const runner = openai.beta.chat.completions.runTools({
         // model: 'mixtral:8x7b',
         model: 'gpt-4o-mini',
@@ -264,8 +259,10 @@ export async function execute(interaction: CommandInteraction) {
 
     await collection.updateOne({ user_id: interaction.user.id }, { $set: user_data }, { upsert: true });
 
-    for (const chunk of splitText(response!, 1900)) {
-        await interaction.followUp(chunk) // Handle the response as needed
+    let embeds = [];
+    for (const chunk of splitText(response!, 4095)) {
+        embeds.push(new EmbedBuilder().setAuthor({name: 'Agent Kitten', url: 'https://agentkitten.com', iconURL: 'https://cdn.discordapp.com/avatars/1169801069514194956/7d1ee663b3e0e10191bedb70a9f8d2af.webp?size=4096'}).setTitle("Responce").setDescription(chunk).setColor('#2b2d31').setTimestamp());
     }
 
+    await interaction.editReply({ embeds: embeds });
 };
