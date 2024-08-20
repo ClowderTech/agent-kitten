@@ -115,7 +115,7 @@ async function searchGoogle(args: { query: string }): Promise<string> {
     let searchResults = '';
     let start = 0;
 
-    const browser = await launch({headless: true});
+    const browser = await launch({headless: true, args: ["--no-sandbox"]},);
     const page = await browser.newPage();
 
     try {
@@ -148,6 +148,9 @@ async function scrapeWebsite(args: { url: string }): Promise<string> {
     // Launch a headless Chromium browser with some parameters
     const browser = await launch({
         headless: true,  // Running in headful mode may help bypass some protections
+        args: [
+            "--no-sandbox"
+        ]
     });
 
     const page = await browser.newPage();
