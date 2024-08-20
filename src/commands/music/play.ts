@@ -72,9 +72,9 @@ export async function execute(interaction: CommandInteraction) {
         player.queue.add(playable.tracks[0]);
         let embed = new EmbedBuilder()
             .setTitle("Queued song")
-            .setDescription(`Queued song: \`${playable.tracks[0].title}\``)
+            .setDescription(`Queued song: \`${playable.tracks[0].title || "Unknown Track"}\``)
             .setColor("#2b2d31")
-            .setThumbnail(playable.tracks[0].artworkUrl!)
+            .setThumbnail(playable.tracks[0].artworkUrl || "https://www.solidbackgrounds.com/images/3840x2160/3840x2160-black-solid-color-background.jpg")
             .setTimestamp()
         await interaction.followUp({embeds: [embed]})
     } else if (playable.loadType === "playlist") {
@@ -92,16 +92,16 @@ export async function execute(interaction: CommandInteraction) {
                 : `Currently playing: \`${playable.tracks[0]?.title || "Unknown Track"}\``
             )
             .setColor("#2b2d31")
-            .setThumbnail(playable.tracks[0].artworkUrl!)
+            .setThumbnail(playable.tracks[0].artworkUrl || "https://www.solidbackgrounds.com/images/3840x2160/3840x2160-black-solid-color-background.jpg")
             .setTimestamp()
         await interaction.followUp({embeds: [embed]})
     } else if (playable.loadType === "search") {
         player.queue.add(playable.tracks[0]);
         let embed = new EmbedBuilder()
             .setTitle("Queued song")
-            .setDescription(`Queued song: \`${playable.tracks[0].title}\``)
+            .setDescription(`Queued song: \`${playable.tracks[0].title || "Unknown Track"}\``)
             .setColor("#2b2d31")
-            .setThumbnail(playable.tracks[0].title!)
+            .setThumbnail(playable.tracks[0].artworkUrl || "https://www.solidbackgrounds.com/images/3840x2160/3840x2160-black-solid-color-background.jpg")
             .setTimestamp()
         await interaction.followUp({embeds: [embed]});
     }
