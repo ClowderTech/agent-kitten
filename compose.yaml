@@ -1,0 +1,19 @@
+services:
+  app:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    env_file: ./.env
+    develop:
+      watch:
+        - action: rebuild
+          path: ./
+          ignore:
+            - .git
+            - .env
+            - node_modules
+            - compose.yaml
+            - .gitignore
+        - action: sync+restart
+          path: ./src
+          target: /app/src
