@@ -36,7 +36,7 @@ export async function execute(interaction: CommandInteraction) {
             guildId: guildID,
             voiceChannelId: member.voice.channel.id,
             textChannelId: interaction.channel.id,
-            volume: 100,
+            volume: Math.floor(100 / 2),
             autoPlay: false,
             autoLeave: true,
         });

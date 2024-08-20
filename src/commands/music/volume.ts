@@ -4,7 +4,7 @@ import { type ClientExtended, UserMadeError } from "../../classes";
 export const data = new SlashCommandBuilder()
         .setName('volume')
         .setDescription('Sets the volume of the bot.')
-        .addIntegerOption((option: SlashCommandIntegerOption) => option.setName("volume").setDescription("The volume you want to set.").setRequired(true).setMinValue(0).setMaxValue(200));
+        .addIntegerOption((option: SlashCommandIntegerOption) => option.setName("volume").setDescription("The volume you want to set.").setRequired(true).setMinValue(0).setMaxValue(400));
 
 export async function execute(interaction: CommandInteraction) {
     let client: ClientExtended = interaction.client as ClientExtended;
@@ -65,7 +65,7 @@ export async function execute(interaction: CommandInteraction) {
 
         collector.on("end", async (collected, reason) => {
             if (votes >= Math.ceil(member.voice.channel!.members.filter(member => !member.user.bot).size / 2)) {
-                player!.setVolume(volume);
+                player!.setVolume(Math.floor(volume / 2));
                 await interaction.editReply({content: `Set the volume to ${volume}.`, embeds: []});
             } else {
                 await interaction.editReply({content: "Not enough votes to set the volume.", embeds: []});
@@ -75,7 +75,7 @@ export async function execute(interaction: CommandInteraction) {
         return;
     }
 
-    player.setVolume(volume);
+    player.setVolume(Math.floor(volume / 2));
 
     await interaction.reply({content: `Set the volume to ${volume}.`});
 };
