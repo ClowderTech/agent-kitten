@@ -84,9 +84,13 @@ export async function execute(interaction: CommandInteraction) {
             }
             player.queue.add(track);
         };
+        const playlistInfo = playable.playlistInfo;
         let embed = new EmbedBuilder()
             .setTitle("Queued playlist")
-            .setDescription(`Queued playlist: \`${playable.playlistInfo.name || "undefined"}\``)
+            .setDescription(playlistInfo
+                ? `Queued playlist: \`${playlistInfo.name}\``
+                : `Currently playing: \`${playable.tracks[0]?.title || "Unknown Track"}\``
+            )
             .setColor("#2b2d31")
             .setThumbnail(playable.tracks[0].artworkUrl!)
             .setTimestamp()
@@ -97,7 +101,7 @@ export async function execute(interaction: CommandInteraction) {
             .setTitle("Queued song")
             .setDescription(`Queued song: \`${playable.tracks[0].title}\``)
             .setColor("#2b2d31")
-            .setThumbnail(playable.tracks[0].artworkUrl!)
+            .setThumbnail(playable.tracks[0].title!)
             .setTimestamp()
         await interaction.followUp({embeds: [embed]});
     }
