@@ -65,7 +65,7 @@ export async function execute(interaction: CommandInteraction) {
 
         collector.on("end", async (collected, reason) => {
             if (votes >= Math.ceil(member.voice.channel!.members.filter(member => !member.user.bot).size / 2)) {
-                player!.setVolume(Math.floor(volume / 2));
+                player!.setVolume(volume);
                 await interaction.editReply({content: `Set the volume to ${volume}.`, embeds: []});
             } else {
                 await interaction.editReply({content: "Not enough votes to set the volume.", embeds: []});
@@ -75,7 +75,7 @@ export async function execute(interaction: CommandInteraction) {
         return;
     }
 
-    player.setVolume(Math.floor(volume / 2));
+    player.setVolume(volume);
 
     await interaction.reply({content: `Set the volume to ${volume}.`});
 };
