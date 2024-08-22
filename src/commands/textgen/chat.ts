@@ -1,4 +1,4 @@
-import { EmbedBuilder, CommandInteraction, SlashCommandBuilder, User, Team, TeamMember, SlashCommandStringOption} from "discord.js";
+import { EmbedBuilder, CommandInteraction, SlashCommandBuilder, User, Team, TeamMember, SlashCommandStringOption, SlashCommandAttachmentOption, ApplicationCommandOptionType} from "discord.js";
 import OpenAI from "openai";
 import type { ClientExtended } from "../../classes";
 import { transpile } from "typescript";
@@ -17,6 +17,11 @@ export const data = new SlashCommandBuilder()
         .setName('chat')
         .setDescription('Chat with Agent Kitten.')
         .addStringOption((option: SlashCommandStringOption) => option.setName('message').setDescription('The message to send to Agent Kitten.').setRequired(true))
+        .addAttachmentOption((option) => option.setName('attachment1').setDescription('An attachment to send to Agent Kitten.').setRequired(false))
+        .addAttachmentOption((option) => option.setName('attachment2').setDescription('An attachment to send to Agent Kitten.').setRequired(false))
+        .addAttachmentOption((option) => option.setName('attachment3').setDescription('An attachment to send to Agent Kitten.').setRequired(false))
+        .addAttachmentOption((option) => option.setName('attachment4').setDescription('An attachment to send to Agent Kitten.').setRequired(false))
+        .addAttachmentOption((option) => option.setName('attachment5').setDescription('An attachment to send to Agent Kitten.').setRequired(false))
 
 function splitText(text: string, maxLength: number = 2000): string[] {
     // Splits text into chunks, ensuring each chunk is no longer than maxLength
@@ -185,6 +190,47 @@ async function scrapeWebsite(args: { url: string }): Promise<string> {
 export async function execute(interaction: CommandInteraction) {
     const message = interaction.options.get('message', true).value?.toString()!;
 
+    const attachments = interaction.options.data
+        .filter(option => option.type === ApplicationCommandOptionType.Attachment)
+        .map(option => option.attachment!) || []; // Get the attachment objects
+
+    // Loop through each attachment and process it
+    let attachmentContents: string[] = [];
+    let attachmentURLs: string[] = [];
+    for (const attachment of attachments) {
+        try {
+            const response = await fetch(attachment.url); // Fetch the attachment
+            const contentType = response.headers.get('content-type'); // Get the content type
+
+            // Check if the content type is text
+            if (contentType && contentType.includes('text')) {
+                const text = await response.text(); // Read the text content
+                attachmentContents.push(text); // Add the text content to the array
+                console.log(`Received text: ${text}`);
+            } else if (contentType && contentType.includes('image')) {
+                attachmentURLs.push(attachment.url); // Add the image URL to the array
+                console.log(`Received image: ${attachment.url}`);
+            } else {
+                console.log(`Attachment is not a text file: ${contentType}`);
+            }
+        } catch (error) {
+            console.error('Error processing attachment:', error);
+        }
+    }
+
+    // Step 3: Create the prefix string
+    let prefix: string = "\nText Attachments:\n\n";
+
+    // Step 4: Initialize newMessage with the original message
+    let newMessage: string = message;
+
+    // Step 5: Check if there are attachments before appending
+    if (attachments.length > 0) { // If there are attachments
+        let attachmentsString: string = attachmentContents.join('\n\n'); // Join the attachment contents
+        newMessage += prefix + attachmentsString; // Append prefix and attachments to the message
+    }
+
+
     const client = interaction.client as ClientExtended;
 
     const openai = client.openai;
@@ -212,9 +258,26 @@ export async function execute(interaction: CommandInteraction) {
         };
     }
 
+    const structuredContent: { type: string, text?: string, image_url?: { url: string, detail: string } }[] = [];
+
+    // Step 2: Add text content to structuredContent
+    structuredContent.push({ type: 'text', text: newMessage });
+
+    // Step 3: Add image URLs to structuredContent
+    for (const attachmentURL of attachmentURLs) {
+        structuredContent.push({
+            type: "image_url",
+            image_url: {
+                url: attachmentURL,
+                detail: "auto"
+            }
+        });
+    }
+
+    // Step 4: Push structuredContent into user_data.messages
     user_data.messages.push({
         role: 'user',
-        content: message
+        content: structuredContent
     });
 
     const runner = openai.beta.chat.completions.runTools({

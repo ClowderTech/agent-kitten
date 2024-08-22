@@ -1,4 +1,4 @@
-import { Events, Client, GatewayIntentBits, Collection, REST, Routes, type Interaction, EmbedBuilder, ApplicationCommand, type RESTGetAPIApplicationCommandsResult, SlashCommandBuilder } from "discord.js";
+import { Events, Client, GatewayIntentBits, Collection, REST, Routes, type Interaction, EmbedBuilder, ApplicationCommand, type RESTGetAPIApplicationCommandsResult, SlashCommandBuilder, type APIApplicationCommand, type RESTPostAPIChatInputApplicationCommandsJSONBody } from "discord.js";
 
 import { config } from "dotenv";
 import { fileURLToPath } from "url";
@@ -7,7 +7,7 @@ import { dirname, join } from "path";
 import OpenAI from "openai";
 import { Manager, Node, Player, type INode } from "moonlink.js";
 
-import { type ClientExtended, UserMadeError } from "./classes.ts";
+import { type ClientExtended, type Command, UserMadeError } from "./classes.ts";
 import { MongoClient } from "mongodb";
 
 import { promises as fsPromises } from 'fs';
@@ -131,21 +131,28 @@ async function getAllFiles(dirPath: string): Promise<string[]> {
     return files.flat();
 }
 
-// Load commands from a directory and return them as an array of JSON
-async function loadCommands(commandsPath: string): Promise<Record<string, any>[]> {
+async function loadCommands(commandsPath: string): Promise<Record<string, Command>> {
+    // Step 1: Retrieve all command files
     const commandFiles = await getAllFiles(commandsPath);
-    const commands = [];
+    
+    // Step 2: Initialize commands as an empty object instead of an empty array
+    const commands: Record<string, Command> = {};  
+    
+    // Step 3: Loop through each file to check for valid commands
     for (const file of commandFiles) {
+        // Step 4: Check if file has a valid command structure
         if (checkForValidFile(file)) {
-            const command = await import(file);
+            const command: Command = await import(file); // Dynamically import the command
+            // Step 5: Verify that command has the required properties
             if ('data' in command && 'execute' in command) {
-                client.commands.set(command.data.name, command);
-                commands.push(command.data.toJSON());
+                client.commands.set(command.data.name, command); // Set command in client commands
+                commands[command.data.name] = command; // Add command to the commands object
             } else {
                 console.warn(`Warn: ${file} does not have the proper structure.`);
             }
         }
     }
+    // Step 6: Return the populated commands object
     return commands;
 }
 
@@ -214,57 +221,120 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
     }
 });
 
+function areCommandsRegistered(allCommands: SlashCommandBuilder[], registeredCommands: APIApplicationCommand[]): boolean {
+    // Check if the lengths match
+    if (allCommands.length !== registeredCommands.length) {
+        return true; // Mismatch in length
+    }
+
+    // Compare commands
+    for (const command of allCommands) {
+        const actualCommand = command; // Use command properties
+
+        // Find the corresponding registered command by name
+        const registeredCommand = registeredCommands.find(registered => registered.name === actualCommand.name);
+
+        if (!registeredCommand) {
+            return true; // Command doesn't exist in registered
+        }
+
+        // Compare descriptions
+        if (registeredCommand.description !== actualCommand.description) {
+            return true; // Mismatch on description
+        }
+
+        // Compare options
+        const actualOptions = actualCommand.options || [];
+        const registeredOptions = registeredCommand.options || [];
+
+        // Compare number of options
+        if (actualOptions.length !== registeredOptions.length) {
+            return true; // Mismatch on number of options
+        }
+
+        // Compare each option
+        for (const option of actualOptions) {
+            const actualOption = option.toJSON(); // Assuming the structure matches directly
+            const registeredOption = registeredOptions.find(regOpt => regOpt.name === actualOption.name);
+
+            if (!registeredOption) {
+                return true; // Mismatch because option doesn't exist in registered
+            }
+
+            // Check each property of the option, with default for required
+            const actualRequired = actualOption.required; // Get actual required value (true or false)
+            const registeredRequired = registeredOption.required !== undefined ? registeredOption.required : false; // Assume false if undefined
+
+            if (
+                actualOption.name !== registeredOption.name ||
+                actualOption.description !== registeredOption.description ||
+                actualRequired !== registeredRequired || // Use our defined logic
+                actualOption.type !== registeredOption.type
+            ) {
+                return true; // Option properties do not match
+            }
+        }
+    }
+
+    // If all checks pass, there are no mismatches
+    return false; 
+}
+
+// Function to fetch all registered commands including guild commands
+async function fetchRegisteredCommands(userId: string): Promise<APIApplicationCommand[]> {
+    const rest = new REST().setToken(client.token!);
+
+    // fetch global commands
+    const globalCommands = await rest.get(Routes.applicationCommands(userId)) as APIApplicationCommand[];
+
+    // fetch guild commands
+    const guildCommands = await rest.get(Routes.applicationGuildCommands(userId, '1185316093078802552')) as APIApplicationCommand[];
+
+    // Combine both global and guild commands
+    return [...globalCommands, ...guildCommands];
+}
+
+
+// Usage in your client event
 client.once(Events.ClientReady, async (readyClient: Client) => {
     console.log(`Logged in as ${readyClient.user?.tag}!`);
-
-    const rest = new REST().setToken(client.token!);
 
     const commandsPath = join(__dirname, "commands");
     const devCommandsPath = join(__dirname, "devCommands");
 
     const commands = await loadCommands(commandsPath);
     const devCommands = await loadCommands(devCommandsPath);
+    const allCommands = { ...commands, ...devCommands };
 
-    const allCommands = commands.concat(devCommands);
+    // Convert the allCommands object to an array of its values
+    const allCommandsData = Object.values(allCommands).map(command => command.data);
 
-    let registeredCommands = await rest.get(Routes.applicationCommands(readyClient.user!.id)) as RESTGetAPIApplicationCommandsResult;
+    // Fetch all registered commands
+    let registeredCommands = await fetchRegisteredCommands(readyClient.user!.id);
 
-    if (
-        allCommands.length === registeredCommands.length &&
-        allCommands.every(command => {
-            const actualCommand = command.data as SlashCommandBuilder;
-            registeredCommands.find(registeredCommand => 
-                registeredCommand.name === actualCommand.name &&
-                registeredCommand.description === actualCommand.description &&
-                registeredCommand.options?.every(registeredOption =>
-                    actualCommand.options?.find(option => {
-                        const actualOption = option.toJSON();
-                        actualOption.name === registeredOption.name &&
-                        actualOption.description === registeredOption.description &&
-                        actualOption.required === registeredOption.required &&
-                        actualOption.type === registeredOption.type
-                    })
-                )
-            )
-        })
-    ) {
+    // Proceed to use registeredCommands as needed...
+    if (areCommandsRegistered(allCommandsData, registeredCommands)) {
         try {
-            console.log('Started refreshing application (/) commands.');
+            console.log('Detected mismatches in command definitions. Refreshing application (/) commands.');
+
+            const rest = new REST().setToken(client.token!);
 
             await rest.put(
                 Routes.applicationCommands(client.user!.id),
-                { body: commands },
+                { body: Object.values(commands).map(command => command.data.toJSON()) },
             );
 
             await rest.put(
                 Routes.applicationGuildCommands(client.user!.id, '1185316093078802552'),
-                { body: devCommands },
+                { body: Object.values(devCommands).map(command => command.data.toJSON()) },
             );
 
             console.log('Successfully reloaded application (/) commands.');
         } catch (error) {
             console.error(error);
         }
+    } else {
+        console.log('No changes detected in registered commands.');
     }
 
     client.moonlink.init(client.user!.id);
