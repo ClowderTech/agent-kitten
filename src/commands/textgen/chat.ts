@@ -203,7 +203,7 @@ export async function execute(interaction: CommandInteraction) {
             const contentType = response.headers.get('content-type'); // Get the content type
 
             // Check if the content type is text
-            if (contentType && contentType.includes('text')) {
+            if (contentType && (contentType.includes('text') || contentType.includes('; charset=utf-8'))) {
                 const text = await response.text(); // Read the text content
                 attachmentContents.push(text); // Add the text content to the array
                 console.log(`Received text: ${text}`);
