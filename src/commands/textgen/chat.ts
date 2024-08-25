@@ -197,10 +197,17 @@ export async function execute(interaction: CommandInteraction) {
     // Loop through each attachment and process it
     let attachmentContents: string[] = [];
     let attachmentURLs: string[] = [];
+    
     for (const attachment of attachments) {
         try {
             const response = await fetch(attachment.url); // Fetch the attachment
-            const contentType = response.headers.get('content-type'); // Get the content type
+
+            if (!response.ok) {
+                console.error(`Failed to fetch attachment: ${response.status} ${response.statusText}`);
+                continue;
+            }
+
+            const contentType = attachment.contentType; // Get the content type
 
             // Check if the content type is text
             if (contentType && (contentType.includes('text') || contentType.includes('; charset=utf-8'))) {
@@ -208,10 +215,15 @@ export async function execute(interaction: CommandInteraction) {
                 attachmentContents.push(text); // Add the text content to the array
                 console.log(`Received text: ${text}`);
             } else if (contentType && contentType.includes('image')) {
-                attachmentURLs.push(attachment.url); // Add the image URL to the array
-                console.log(`Received image: ${attachment.url}`);
-            } else {
-                console.log(`Attachment is not a text file: ${contentType}`);
+                const arrayBuffer = await response.arrayBuffer();
+        
+                // Convert the ArrayBuffer to a Buffer
+                const buffer = Buffer.from(arrayBuffer);
+
+                // Convert the image buffer to Base64
+                const base64Image = buffer.toString('base64');
+
+                attachmentURLs.push(`data:${contentType};base64,${base64Image}`); // Add the image URL to the array
             }
         } catch (error) {
             console.error('Error processing attachment:', error);
