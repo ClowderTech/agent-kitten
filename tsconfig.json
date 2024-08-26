@@ -3,16 +3,17 @@
         // Enable latest features
         "lib": ["ESNext", "DOM"],
         "target": "ESNext",
-        "module": "ESNext",
+        "module": "NodeNext",
         "moduleDetection": "force",
         "jsx": "react-jsx",
         "allowJs": true,
 
         // Bundler mode
-        "moduleResolution": "bundler",
-        "allowImportingTsExtensions": true,
+        "moduleResolution": "NodeNext",
         "verbatimModuleSyntax": true,
-        "noEmit": true,
+
+        // Emit configuration
+        "noEmit": false, // Allow emitting output files
 
         // Best practices
         "strict": true,
@@ -22,7 +23,11 @@
         // Some stricter flags (disabled by default)
         "noUnusedLocals": false,
         "noUnusedParameters": false,
-        "noPropertyAccessFromIndexSignature": false
+        "noPropertyAccessFromIndexSignature": false,
+
+        // Redirect output structure to the 'dist' folder
+        "outDir": "./dist",
+        "rootDir": "./src"
     },
     "exclude": ["node_modules"],
     "include": ["src"]

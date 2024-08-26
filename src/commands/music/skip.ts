@@ -1,5 +1,5 @@
 import { EmbedBuilder, CommandInteraction, SlashCommandBuilder, User, Team, TeamMember, Collection, Client, GuildMember, SlashCommandNumberOption} from "discord.js";
-import { type ClientExtended, UserMadeError } from "../../classes";
+import { type ClientExtended, UserMadeError } from "../../classes.js";
 import type { Queue } from "moonlink.js";
 
 const removeFromQueue = (queue: Queue, amount: number) => {

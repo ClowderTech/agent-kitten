@@ -1,6 +1,6 @@
 import { EmbedBuilder, CommandInteraction, SlashCommandBuilder} from "discord.js";
 import { Track } from "moonlink.js";
-import { type ClientExtended, UserMadeError } from "../../classes";
+import { type ClientExtended, UserMadeError } from "../../classes.js";
 
 export const data = new SlashCommandBuilder()
         .setName('queue')

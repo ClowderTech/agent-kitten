@@ -1,5 +1,5 @@
 import { SlashCommandStringOption, SlashCommandBuilder, CommandInteraction, GuildMember, EmbedBuilder } from "discord.js"
-import { type ClientExtended, UserMadeError } from "../../classes";
+import { type ClientExtended, UserMadeError } from "../../classes.js";
 
 export const data =  new SlashCommandBuilder()
     .setName('play')

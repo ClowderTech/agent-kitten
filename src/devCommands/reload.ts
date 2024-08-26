@@ -2,7 +2,7 @@ import { promises as fsPromises } from 'fs';
 import { join } from 'path';
 import { SlashCommandBuilder, SlashCommandStringOption } from '@discordjs/builders';
 import { CommandInteraction, Collection, REST, Routes } from 'discord.js';
-import type { ClientExtended } from '../classes';
+import type { ClientExtended } from '../classes.js';
 
 const checkForValidFile = (file: string): boolean => {
     const fileExtension = file.split(".").pop();

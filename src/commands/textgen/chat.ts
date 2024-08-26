@@ -1,6 +1,6 @@
 import { EmbedBuilder, CommandInteraction, SlashCommandBuilder, User, Team, TeamMember, SlashCommandStringOption, SlashCommandAttachmentOption, ApplicationCommandOptionType} from "discord.js";
 import OpenAI from "openai";
-import type { ClientExtended } from "../../classes";
+import type { ClientExtended } from "../../classes.js";
 import { transpile } from "typescript";
 import * as fs from 'fs/promises'; // Importing the 'fs/promises' namespace for promise-based file system operations
 import { exec } from 'child_process';
@@ -22,48 +22,49 @@ export const data = new SlashCommandBuilder()
         .addAttachmentOption((option) => option.setName('attachment3').setDescription('An attachment to send to Agent Kitten.').setRequired(false))
         .addAttachmentOption((option) => option.setName('attachment4').setDescription('An attachment to send to Agent Kitten.').setRequired(false))
         .addAttachmentOption((option) => option.setName('attachment5').setDescription('An attachment to send to Agent Kitten.').setRequired(false))
-
+        
+// Function to split text into chunks for Discord embeds while handling code blocks and other formatting
 function splitText(text: string, maxLength: number = 2000): string[] {
-    // Splits text into chunks, ensuring each chunk is no longer than maxLength
-    // and splits are done only at newline characters while preserving markdown formatting.
-    // @param text - The text to be split
-    // @param maxLength - Maximum length of each split chunk
-    // @return A list of text chunks
+    // Initialize variables
+    let lines = text.split(/\r?\n/);          // Split the text by lines
+    let chunks: string[] = [];                // Array to store the resulting chunks
+    let currentChunk = "";                    // String to accumulate the current chunk
+    let codeBlockOpen = false;                // Boolean to track if we are inside a code block
 
-    let lines = text.split(/\r?\n/); // Split the text by lines
-    let chunks: string[] = []; // Array to store the resulting chunks
-    let currentChunk = ""; // String to accumulate the current chunk
-    let codeBlockOpen = false; // Boolean to track if we are inside a code block
+    // Function to safely push a chunk and handle reopen code block if needed
+    const pushChunk = () => {
+        if (codeBlockOpen) {
+            currentChunk += "```\n";          // Close the code block in the current chunk
+            chunks.push(currentChunk.trim()); // Add trimmed chunk to the array
+            currentChunk = "```\n";           // Reopen code block in the next chunk
+        } else {
+            chunks.push(currentChunk.trim()); // Add trimmed chunk to the array
+            currentChunk = "";                // Reset the current chunk
+        }
+    };
 
+    // Iterate through each line in the text
     for (let line of lines) {
-        // Check for code block markers and track their state
+        // Track code block state
         if (line.trim().startsWith("```")) {
             codeBlockOpen = !codeBlockOpen;
         }
 
-        // Check if adding the line would make the current chunk too long
+        // Check if adding the line would exceed the chunk's max length
         if ((currentChunk.length + line.length + 1) > maxLength) { // +1 for the newline character
-            // If a code block is open, close it in the current chunk
-            if (codeBlockOpen) {
-                currentChunk += "```\n";
-                chunks.push(currentChunk.trim());
-                // Reopen in the next chunk
-                currentChunk = "```\n" + line + "\n";
-            } else {
-                chunks.push(currentChunk.trim());
-                currentChunk = line + "\n";
-            }
+            pushChunk(); // Push the current chunk to the array
+            currentChunk += line + "\n"; // Start a new chunk with the current line
         } else {
             currentChunk += line + "\n"; // Add the line to the current chunk
         }
     }
 
-    // Handle the last chunk and the case where the code block may still be open
+    // Handle the final chunk
     if (currentChunk.trim()) {
         if (codeBlockOpen) {
-            currentChunk += "```";
+            currentChunk += "```"; // Close any open code block
         }
-        chunks.push(currentChunk.trim());
+        chunks.push(currentChunk.trim()); // Add the final chunk to the array
     }
 
     return chunks; // Return the array of text chunks
@@ -367,7 +368,7 @@ export async function execute(interaction: CommandInteraction) {
     await collection.updateOne({ user_id: interaction.user.id }, { $set: user_data }, { upsert: true });
 
     let embeds = [];
-    for (const chunk of splitText(response!, 4095)) {
+    for (const chunk of splitText(response!, 4000)) {
         embeds.push(new EmbedBuilder().setAuthor({name: 'Agent Kitten', url: 'https://agentkitten.com', iconURL: 'https://cdn.discordapp.com/avatars/1169801069514194956/7d1ee663b3e0e10191bedb70a9f8d2af.webp?size=4096'}).setTitle("Response").setDescription(chunk).setColor('#2b2d31').setTimestamp());
     }
 

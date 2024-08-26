@@ -1,9 +1,13 @@
+version: '3.8'  # Specify the version of Docker Compose
+
 services:
-  app:
+  bridge:
     build:
       context: ./
       dockerfile: Dockerfile
-    env_file: ./.env
+    env_file: ./.env.bridge
+    networks:
+      - my_network  # Attach to the dedicated network
     develop:
       watch:
         - action: rebuild
@@ -18,3 +22,72 @@ services:
         - action: sync+restart
           path: ./src
           target: /app/src
+
+  cluster0:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    env_file: ./.env.cluster
+    networks:
+      - my_network  # Attach to the dedicated network
+    develop:
+      watch:
+        - action: rebuild
+          path: ./
+          ignore:
+            - .git
+            - .env
+            - node_modules
+            - compose.yaml
+            - .gitignore
+            - src
+        - action: sync+restart
+          path: ./src
+          target: /app/src
+
+  cluster1:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    env_file: ./.env.cluster
+    networks:
+      - my_network  # Attach to the dedicated network
+    develop:
+      watch:
+        - action: rebuild
+          path: ./
+          ignore:
+            - .git
+            - .env
+            - node_modules
+            - compose.yaml
+            - .gitignore
+            - src
+        - action: sync+restart
+          path: ./src
+          target: /app/src
+
+  cluster2:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    env_file: ./.env.cluster
+    networks:
+      - my_network  # Attach to the dedicated network
+    develop:
+      watch:
+        - action: rebuild
+          path: ./
+          ignore:
+            - .git
+            - .env
+            - node_modules
+            - compose.yaml
+            - .gitignore
+            - src
+        - action: sync+restart
+          path: ./src
+          target: /app/src
+
+networks:
+  my_network:  # Define the dedicated network

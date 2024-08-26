@@ -1,5 +1,5 @@
 import { EmbedBuilder, CommandInteraction, SlashCommandBuilder, User, Team, TeamMember, SlashCommandStringOption} from "discord.js";
-import type { ClientExtended } from "../../classes";
+import type { ClientExtended } from "../../classes.js";
 
 export const data = new SlashCommandBuilder()
         .setName('chatreset')

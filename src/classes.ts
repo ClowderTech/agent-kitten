@@ -2,6 +2,8 @@ import { Client, Collection, SlashCommandBuilder } from "discord.js";
 import type { MongoClient } from "mongodb";
 import type { Manager } from "moonlink.js";
 import type OpenAI from "openai";
+import type { ClusterClient, DjsDiscordClient } from "discord-hybrid-sharding";
+import type { Shard } from "discord-cross-hosting";
 
 export interface Command {
     data: SlashCommandBuilder;
@@ -13,6 +15,8 @@ export interface ClientExtended extends Client {
     openai: OpenAI;
     mongoclient: MongoClient;
     moonlink: Manager;
+    cluster: ClusterClient<DjsDiscordClient>;
+    machine: Shard;
 }
 
 export class UserMadeError extends Error {
@@ -31,4 +35,17 @@ export class UserMadeError extends Error {
 
         this.name = "UserMadeError";
     }
+}
+
+export function generateRandomString(length: number): string {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    const charactersLength = characters.length;
+    
+    for (let i = 0; i < length; i++) {
+        const randomIndex = Math.floor(Math.random() * charactersLength);
+        result += characters.charAt(randomIndex);
+    }
+    
+    return result;
 }
