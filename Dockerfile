@@ -14,7 +14,7 @@ RUN npm install
 COPY . .
 
 # Update package lists and install necessary packages
-RUN apt update && apt install -y \
+RUN apt-get update && apt-get install -y \
     ca-certificates \
     fonts-liberation \
     libasound2 \

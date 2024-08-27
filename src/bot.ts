@@ -360,4 +360,4 @@ function gracefulShutdown() {
 process.on('SIGINT', gracefulShutdown);
 process.on('SIGTERM', gracefulShutdown);
 
-client.login(process.env.TOKEN);
+client.login(process.env.BOT_TOKEN);
