@@ -17,7 +17,7 @@ const client = new Client({
     rollingRestarts: false, // Enable, when bot should respawn when cluster list changes.
 });
 
-const manager = new ClusterManager(`${__dirname}/bot.js`, { totalShards: 2, totalClusters: 1, mode: "process", token: process.env.BOT_TOKEN!}); // Some dummy Data
+const manager = new ClusterManager(`${__dirname}/bot.js`, { totalShards: "auto", totalClusters: "auto", mode: "process", token: process.env.BOT_TOKEN!}); // Some dummy Data
 manager.on('clusterCreate', (cluster: Cluster) => console.log(`Launched Cluster ${cluster.id}`));
 manager.on('debug', console.log);
 
