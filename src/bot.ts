@@ -81,9 +81,9 @@ client.moonlink.on("nodeError", (node: INode, error: Error) => {
 });
 
 client.moonlink.on("trackEnd", async (player: Player) => {
-    const channel = await client.channels.cache.get(player.voiceChannelId);
+    const channel = await client.channels.fetch(player.voiceChannelId);
     if (channel && channel.isVoiceBased() && channel.members.size === 1 && channel.members.has(client.user!.id)) {
-        player.destroy();
+        player.disconnect();
     }
 });
 
