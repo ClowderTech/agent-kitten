@@ -57,7 +57,7 @@ client.moonlink = new Manager({
         {
             host: process.env.LAVALINK_HOST!,
             port: Number(process.env.LAVALINK_PORT),
-            secure: true,
+            secure: Boolean(process.env.LAVALINK_SECURE!),
             password: process.env.LAVALINK_PASSWORD!,
             retryDelay: 5000,
             retryAmount: 1000000000000
@@ -78,6 +78,13 @@ client.moonlink.on("nodeCreate", (node: INode) => {
 
 client.moonlink.on("nodeError", (node: INode, error: Error) => {
     console.error(`Node ${node.host} emitted an error: ${error}`);
+});
+
+client.moonlink.on("trackEnd", async (player: Player) => {
+    const channel = await client.channels.cache.get(player.voiceChannelId);
+    if (channel && channel.isVoiceBased() && channel.members.size === 1 && channel.members.has(client.user!.id)) {
+        player.destroy();
+    }
 });
 
 

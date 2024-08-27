@@ -13,7 +13,7 @@ if (process.env.RUN_TYPE === "bridge") {
     // Step 3: Execute the logic defined in file1
     await bridge.start(); // Assuming there is a start function to call
 } else if (process.env.RUN_TYPE === "cluster") {
-    if (!process.env.BOT_TOKEN || !process.env.LAVALINK_HOST || !process.env.LAVALINK_PASSWORD || !process.env.LAVALINK_PORT || !process.env.MONGODB_URI || !process.env.OPENAI_API_KEY || !process.env.OPENAI_ORG_ID || !process.env.BRIDGE_TOKEN) {
+    if (!process.env.BOT_TOKEN || !process.env.LAVALINK_HOST || !process.env.LAVALINK_PASSWORD || !process.env.LAVALINK_PORT || !process.env.LAVALINK_SECURE || !process.env.MONGODB_URI || !process.env.OPENAI_API_KEY || !process.env.OPENAI_ORG_ID || !process.env.BRIDGE_TOKEN) {
         console.error("Please provide a token, lavalink host, lavalink password, mongodb uri, openai api key and organization id in a .env file or as environment variables.");
         process.exit(1);
     }
