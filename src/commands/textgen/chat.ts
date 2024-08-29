@@ -75,7 +75,7 @@ async function executeEval(args: { code: string }) {
 
     try {
         // Step 1: Read and parse tsconfig.json
-        const tsconfigPath = '../tsconfig.json'; // Adjust the path as necessary
+        const tsconfigPath = '../../../tsconfig.json'; // Adjust the path as necessary
         const tsconfigRaw = await readFile(tsconfigPath, 'utf-8');
         const tsconfig = JSON.parse(tsconfigRaw);
 
