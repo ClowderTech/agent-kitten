@@ -1,93 +1,40 @@
 version: '3.8'  # Specify the version of Docker Compose
 
-services:
-  bridge:
-    build:
-      context: ./
-      dockerfile: Dockerfile
-    env_file: ./.env.bridge
-    networks:
-      - my_network  # Attach to the dedicated network
-    develop:
-      watch:
-        - action: rebuild
-          path: ./
-          ignore:
-            - .git
-            - .env
-            - node_modules
-            - compose.yaml
-            - .gitignore
-            - src
-        - action: sync+restart
-          path: ./src
-          target: /app/src
+services:  
+  bridge:  
+    build:  
+      context: ./  
+      dockerfile: Dockerfile  
+    env_file: ./.env.bridge  
+    networks:  
+      - my_network  
 
-  cluster0:
-    build:
-      context: ./
-      dockerfile: Dockerfile
-    env_file: ./.env.cluster
-    networks:
-      - my_network  # Attach to the dedicated network
-    develop:
-      watch:
-        - action: rebuild
-          path: ./
-          ignore:
-            - .git
-            - .env
-            - node_modules
-            - compose.yaml
-            - .gitignore
-            - src
-        - action: sync+restart
-          path: ./src
-          target: /app/src
+  cluster0:  
+    build:  
+      context: ./  
+      dockerfile: Dockerfile  
+    env_file: ./.env.cluster  
+    networks:  
+      - my_network  
+    command: sh -c "sleep 5; npm run start"  # Sleep for 5 seconds, then start the application
 
-  cluster1:
-    build:
-      context: ./
-      dockerfile: Dockerfile
-    env_file: ./.env.cluster
-    networks:
-      - my_network  # Attach to the dedicated network
-    develop:
-      watch:
-        - action: rebuild
-          path: ./
-          ignore:
-            - .git
-            - .env
-            - node_modules
-            - compose.yaml
-            - .gitignore
-            - src
-        - action: sync+restart
-          path: ./src
-          target: /app/src
+  cluster1:  
+    build:  
+      context: ./  
+      dockerfile: Dockerfile  
+    env_file: ./.env.cluster  
+    networks:  
+      - my_network  
+    command: sh -c "sleep 5; npm run start"  # Delay for 5 seconds
 
-  cluster2:
-    build:
-      context: ./
-      dockerfile: Dockerfile
-    env_file: ./.env.cluster
-    networks:
-      - my_network  # Attach to the dedicated network
-    develop:
-      watch:
-        - action: rebuild
-          path: ./
-          ignore:
-            - .git
-            - .env
-            - node_modules
-            - compose.yaml
-            - .gitignore
-            - src
-        - action: sync+restart
-          path: ./src
-          target: /app/src
+  cluster2:  
+    build:  
+      context: ./  
+      dockerfile: Dockerfile  
+    env_file: ./.env.cluster  
+    networks:  
+      - my_network  
+    command: sh -c "sleep 5; npm run start"  # Delay for 5 seconds
 
-networks:
+networks:  
   my_network:  # Define the dedicated network

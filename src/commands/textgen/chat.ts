@@ -71,44 +71,58 @@ function splitText(text: string, maxLength: number = 2000): string[] {
 }
 
 async function executeEval(args: { code: string }) {
-    const { code } = args;
+    const { code } = args; // Destructuring the code argument from args
+
+    code.replace("\\n", "\n");
+    code.replace("\\t", "\t");
 
     try {
-        // Step 1: Read and parse tsconfig.json
-        const tsconfigPath = '../../../tsconfig.json'; // Adjust the path as necessary
-        const tsconfigRaw = await readFile(tsconfigPath, 'utf-8');
-        const tsconfig = JSON.parse(tsconfigRaw);
+        // Define the tsconfig object directly with the correct types
+        const tsconfig = {
+            "compilerOptions": {
+                "lib": ["ESNext", "DOM"],
+                "target": ts.ScriptTarget.ESNext,
+                "module": ts.ModuleKind.None,  // Ensure no module system
+                "noEmitHelpers": true, // Try to prevent additional helper functions
+                "allowJs": true,
+                "noEmit": true, // Change to true if we don’t want to emit files
+                "strict": true,
+                "skipLibCheck": true,
+            },
+        };
+        
 
         // Step 2: Get the compiler options from the tsconfig
-        const compilerOptions = tsconfig.compilerOptions;
+        const compilerOptions = tsconfig.compilerOptions; // Extract compilerOptions
 
         // Step 3: Transpile the TypeScript code using the options from tsconfig
-        const transpiledCode = ts.transpileModule(code, {
-            compilerOptions: compilerOptions  // Apply the compiler options from tsconfig
+        const transpiledCode = ts.transpileModule(code, { // Transpile the code
+            compilerOptions: compilerOptions // Apply the compiler options from tsconfig
         });
 
-        // Create a new context for evaluation
-        const context = vm.createContext({
-            consoleOutput: null,
-            console: {
+        // Step 4: Create a new context for evaluation
+        const context = vm.createContext({ // Creating a new VM context
+            consoleOutput: null, // We will store console output here
+            console: { // Override the console methods
                 log: (output: any) => {
-                    context.consoleOutput = output;
+                    context.consoleOutput = output; // Capture console logs
                 }
             }
         });
 
         // Run the transpiled code in the new context
-        const script = new vm.Script(transpiledCode.outputText);
-        script.runInContext(context);
+        const script = new vm.Script(transpiledCode.outputText); // Create a new script from the output
+        script.runInContext(context); // Run the script in the VM context
 
-        // Check if any console output is captured
+        // Step 5: Check if any console output is captured
         if (context.consoleOutput !== null) {
-            return String(context.consoleOutput);
+            return String(context.consoleOutput); // Return the console output as a string
         } else {
-            return 'No console output captured';
+            return 'No console output captured'; // If nothing was outputted
         }
     } catch (error) {
-        return `Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`;
+        // Handle errors
+        return `Error: ${error || 'Unknown error occurred'}`; // Return the error message
     }
 }
 
@@ -265,7 +279,7 @@ export async function execute(interaction: CommandInteraction) {
             messages: [
                 {
                     role: 'system',
-                    content: 'You are Agent Kitten, a helpful AI powered discord bot made by the ClowderTech LLC. You are here to help people with their problems. You can access the internet using the search command and scrape websites using the scrape command. You can also execute code using the eval command, which executes typescript code. Your own website is https://agentkitten.com. Also, make sure to walk through the user all the steps you did to get your answer before giving the full answer, especially if you are fixing or creating a users code or doing a math problem. For instance with coding, write out the steps you would take to fix or create the code before giving the code and then adding comments of what youre doing on that line before writing the line of code.'
+                    content: 'You are Agent Kitten, a helpful AI powered discord bot made by the ClowderTech LLC. You are here to help people with their problems. You can access the internet using the search command and scrape websites using the scrape command. You can also execute code using the eval command, which executes typescript code. Make sure to use console.log to output data in the eval command. Your own website is https://agentkitten.com. Also, make sure to walk through the user all the steps you did to get your answer before giving the full answer, especially if you are fixing or creating a users code or doing a math problem. For instance with coding, write out the steps you would take to fix or create the code before giving the code and then adding comments of what youre doing on that line before writing the line of code.'
                 }
             ]
         };
@@ -311,7 +325,7 @@ export async function execute(interaction: CommandInteraction) {
                         properties: {
                             code: {
                                 type: "string", 
-                                description: "The code to execute."
+                                description: "The code to execute. Make sure to use console.log to output data."
                             }
                         },
                         required: ["code"]
