@@ -270,12 +270,12 @@ export async function execute(interaction: CommandInteraction) {
 
     const collection = db.collection('textgen');
 
-    let user_data = await collection.findOne({ user_id: interaction.user.id });
+    let user_data = await collection.findOne({ userId: interaction.user.id });
 
     if (!user_data) {
         user_data = {
             _id: new ObjectId(), // Add the _id property
-            user_id: interaction.user.id,
+            userId: interaction.user.id,
             messages: [
                 {
                     role: 'system',
@@ -379,7 +379,7 @@ export async function execute(interaction: CommandInteraction) {
 
     delete user_data.messages[user_data.messages.length - 1].tool_calls
 
-    await collection.updateOne({ user_id: interaction.user.id }, { $set: user_data }, { upsert: true });
+    await collection.updateOne({ userId: interaction.user.id }, { $set: user_data }, { upsert: true });
 
     let embeds = [];
     for (const chunk of splitText(response!, 4000)) {

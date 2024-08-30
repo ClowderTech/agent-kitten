@@ -8,7 +8,7 @@ export const data = new SlashCommandBuilder()
 export async function execute(interaction: CommandInteraction) {
     const client = interaction.client as ClientExtended;
 
-    await client.mongoclient.db("agentkitten").collection("textgen").deleteOne({ user_id: interaction.user.id });
+    await client.mongoclient.db("agentkitten").collection("textgen").deleteOne({ userId: interaction.user.id });
 
     await interaction.reply({ content: "The chat has been reset." });
 }
