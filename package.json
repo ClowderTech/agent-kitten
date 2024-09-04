@@ -26,7 +26,7 @@
     "moonlink.js": "^4.0.2",
     "net-ipc": "2.2.0",
     "node-html-parser": "^6.1.13",
-    "openai": "^4.56.0",
+    "openai": "^4.57.2",
     "puppeteer": "^23.1.1",
     "redis": "^4.7.0"
   }
