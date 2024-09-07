@@ -215,18 +215,16 @@ export async function chatWithFuncs(
     while (chat_response.message.tool_calls && chat_response.message.tool_calls.length > 0) {
         let toolCallResponse = "";
 
-        // Process each tool call
         for (const element of chat_response.message.tool_calls) {
-            // Get the corresponding function from the functions record
             const func = functions[element.function.name];
             if (func) {
-                // Call the function and get the response
-                const funcResponse = await Promise.resolve(func(...Object.values(element.function.arguments)));
-                toolCallResponse += `Function "${element.function.name}" executed and returned: "${String(funcResponse)}"\n`;
+                // Optimized: Directly await the function call
+                toolCallResponse += `Function "${element.function.name}" executed and returned: "${await func(...Object.values(element.function.arguments))}"\n`;
             } else {
                 toolCallResponse += `Function "${element.function.name}" not found.\n`;
             }
         }
+    
 
         // Push the tool call responses into full_response
         full_response.push({ role: "tool", content: toolCallResponse });
@@ -339,6 +337,7 @@ export async function execute(interaction: CommandInteraction) {
         model: "mistral-nemo",
         messages: user_data.messages,
         stream: false,
+        keep_alive: "15m",
         tools: [
             {
                 type: "function",
