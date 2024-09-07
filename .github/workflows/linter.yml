@@ -26,9 +26,7 @@ jobs:
                   fetch-depth: 0
 
             - name: Install Node.js LTS 20
-              uses: actions/setup-node@v3
-              with:
-                  node-version: "20" # This specifies LTS version 20
+              uses: actions/setup-node@v4
 
             - name: Install npm dependencies
               run: npm install # This reads the package.json and installs dependencies
