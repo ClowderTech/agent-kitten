@@ -1,7 +1,7 @@
 import { Client, Collection, SlashCommandBuilder } from "discord.js";
 import type { MongoClient } from "mongodb";
 import type { Manager } from "moonlink.js";
-import type OpenAI from "openai";
+import type { Ollama } from "ollama";
 import type { ClusterClient, DjsDiscordClient } from "discord-hybrid-sharding";
 import type { Shard } from "discord-cross-hosting";
 
@@ -12,7 +12,7 @@ export interface Command {
 
 export interface ClientExtended extends Client {
     commands: Collection<string, Command>;
-    openai: OpenAI;
+    ollama: Ollama;
     mongoclient: MongoClient;
     moonlink: Manager;
     cluster: ClusterClient<DjsDiscordClient>;

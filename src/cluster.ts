@@ -21,6 +21,14 @@ const manager = new ClusterManager(`${__dirname}/bot.js`, { totalShards: "auto",
 manager.on('clusterCreate', (cluster: Cluster) => console.log(`Launched Cluster ${cluster.id}`));
 manager.on('debug', console.log);
 
+function gracefulShutdown() {
+    console.log("Received shutdown signal, closing cluster...");
+    client.close();
+}
+
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
+
 export async function start(): Promise<void> {
     await client.connect();
 

@@ -1,5 +1,4 @@
 import { EmbedBuilder, CommandInteraction, SlashCommandBuilder, User, Team, TeamMember, SlashCommandStringOption, SlashCommandAttachmentOption, ApplicationCommandOptionType} from "discord.js";
-import OpenAI from "openai";
 import type { ClientExtended } from "../../classes.js";
 import { transpile } from "typescript";
 import * as fs from 'fs/promises'; // Importing the 'fs/promises' namespace for promise-based file system operations
@@ -12,6 +11,7 @@ import * as vm from 'vm';
 import { launch } from "puppeteer";
 import { parse } from 'node-html-parser';
 import { readFile } from "fs/promises";
+import type { ChatRequest, ChatResponse, Message, Ollama } from "ollama";
 
 export const data = new SlashCommandBuilder()
         .setName('chat')
@@ -70,9 +70,7 @@ function splitText(text: string, maxLength: number = 2000): string[] {
     return chunks; // Return the array of text chunks
 }
 
-async function executeEval(args: { code: string }) {
-    const { code } = args; // Destructuring the code argument from args
-
+async function executeEval(code: string) {
     code.replace("\\n", "\n");
     code.replace("\\t", "\t");
 
@@ -126,8 +124,7 @@ async function executeEval(args: { code: string }) {
     }
 }
 
-async function searchGoogle(args: { query: string }): Promise<string> {
-    const { query } = args;
+async function searchGoogle(query: string): Promise<string> {
     const searchResultsAmount = 3;
     const escapedTerm = encodeURIComponent(query);
     const url = `https://searx.clowdertech.com/search?q=${escapedTerm}&language=auto&time_range=&safesearch=0&categories=general&format=json`;
@@ -162,9 +159,7 @@ async function searchGoogle(args: { query: string }): Promise<string> {
 }
 
 // Function to scrape a Cloudflare-protected site
-async function scrapeWebsite(args: { url: string }): Promise<string> {
-    const { url } = args;
-    
+async function scrapeWebsite(url: string): Promise<string> {
     // Launch a headless Chromium browser with some parameters
     const browser = await launch({
         headless: true,  // Running in headful mode may help bypass some protections
@@ -202,6 +197,51 @@ async function scrapeWebsite(args: { url: string }): Promise<string> {
     }
 }
 
+export type SyncOrAsyncFunction = (...args: any[]) => string | Promise<string>;
+
+export async function chatWithFuncs(
+    ollama: Ollama, 
+    request: ChatRequest, 
+    functions: Record<string, SyncOrAsyncFunction>
+): Promise<{ full_response: Message[], chat_response: ChatResponse }> {
+    // Initialize full response with the initial messages
+    let full_response: Message[] = request.messages || [];
+    
+    // Get the initial chat response
+    let chat_response: ChatResponse = await ollama.chat({...request, stream: false});
+    full_response.push(chat_response.message);
+    
+    // While there are tool calls in the chat response
+    while (chat_response.message.tool_calls && chat_response.message.tool_calls.length > 0) {
+        let toolCallResponse = "";
+
+        // Process each tool call
+        for (const element of chat_response.message.tool_calls) {
+            // Get the corresponding function from the functions record
+            const func = functions[element.function.name];
+            if (func) {
+                // Call the function and get the response
+                const funcResponse = await Promise.resolve(func(...Object.values(element.function.arguments)));
+                toolCallResponse += `Function "${element.function.name}" executed and returned: "${String(funcResponse)}"\n`;
+            } else {
+                toolCallResponse += `Function "${element.function.name}" not found.\n`;
+            }
+        }
+
+        // Push the tool call responses into full_response
+        full_response.push({ role: "tool", content: toolCallResponse });
+        // Update the request messages with the updated full_response
+        request.messages = full_response;
+
+        // Get the next chat response after tool calls
+        chat_response = await ollama.chat({...request, stream: false});
+        full_response.push(chat_response.message);
+    }
+
+    return { full_response, chat_response };
+}
+
+
 export async function execute(interaction: CommandInteraction) {
     const message = interaction.options.get('message', true).value?.toString()!;
 
@@ -238,7 +278,7 @@ export async function execute(interaction: CommandInteraction) {
                 // Convert the image buffer to Base64
                 const base64Image = buffer.toString('base64');
 
-                attachmentURLs.push(`data:${contentType};base64,${base64Image}`); // Add the image URL to the array
+                attachmentURLs.push(`${base64Image}`); // Add the image URL to the array
             }
         } catch (error) {
             console.error('Error processing attachment:', error);
@@ -260,7 +300,7 @@ export async function execute(interaction: CommandInteraction) {
 
     const client = interaction.client as ClientExtended;
 
-    const openai = client.openai;
+    const ollama = client.ollama;
     
     const mongoclient = client.mongoclient;
 
@@ -285,40 +325,25 @@ export async function execute(interaction: CommandInteraction) {
         };
     }
 
-    const structuredContent: { type: string, text?: string, image_url?: { url: string, detail: string } }[] = [];
-
-    // Step 2: Add text content to structuredContent
-    structuredContent.push({ type: 'text', text: newMessage });
-
-    // Step 3: Add image URLs to structuredContent
-    for (const attachmentURL of attachmentURLs) {
-        structuredContent.push({
-            type: "image_url",
-            image_url: {
-                url: attachmentURL,
-                detail: "auto"
-            }
-        });
+    // Step 4: Push structuredContent into user_data.messages
+    let newMessageJson = {
+        role: 'user',
+        content: newMessage
     }
 
-    // Step 4: Push structuredContent into user_data.messages
-    user_data.messages.push({
-        role: 'user',
-        content: structuredContent
-    });
+    user_data.messages.push(newMessageJson);
 
-    const runner = openai.beta.chat.completions.runTools({
+    const request: ChatRequest = {
         // model: 'mixtral:8x7b',
         // model: 'gpt-4o-mini',
         model: "llama3.1:8b-instruct-q2_K",
         messages: user_data.messages,
+        stream: false,
         tools: [
             {
                 type: "function",
                 function: {
                     name: "eval",
-                    function: executeEval,
-                    parse: JSON.parse,
                     description: "Execute TypeScript code. Use console.log to output data. Make sure to not use infinite loops, do anything illegal, try to retrieve credentials, or access anything about your code.",
                     parameters: {
                         type: "object",
@@ -336,8 +361,6 @@ export async function execute(interaction: CommandInteraction) {
                 type: "function",
                 function: {
                     name: "search",
-                    function: searchGoogle,
-                    parse: JSON.parse,
                     description: "Search on Google.",
                     parameters: {
                         type: "object",
@@ -355,8 +378,6 @@ export async function execute(interaction: CommandInteraction) {
                 type: "function",
                 function: {
                     name: "scrape",
-                    function: scrapeWebsite,
-                    parse: JSON.parse,
                     description: "Scrape a website.",
                     parameters: {
                         type: "object",
@@ -370,19 +391,62 @@ export async function execute(interaction: CommandInteraction) {
                     }
                 }
             }
-        ] 
-    });
-    
-    const response = await runner.finalContent(); // Execute the chat completion and get the response
-    
-    user_data.messages = runner.messages; // Log the messages for debugging
+        ]
+    };
 
-    delete user_data.messages[user_data.messages.length - 1].tool_calls
+    // const request: ChatRequest = {
+    //     "model": "llama3.1",
+    //     "messages": [
+    //         {
+    //         "role": "user",
+    //         "content": "What is the weather today in Paris?"
+    //         }
+    //     ],
+    //     "stream": false,
+    //     "tools": [
+    //         {
+    //         "type": "function",
+    //         "function": {
+    //             "name": "get_current_weather",
+    //             "description": "Get the current weather for a location",
+    //             "parameters": {
+    //             "type": "object",
+    //             "properties": {
+    //                 "location": {
+    //                 "type": "string",
+    //                 "description": "The location to get the weather for, e.g. San Francisco, CA"
+    //                 },
+    //                 "format": {
+    //                 "type": "string",
+    //                 "description": "The format to return the weather in, e.g. 'celsius' or 'fahrenheit'",
+    //                 "enum": ["celsius", "fahrenheit"]
+    //                 }
+    //             },
+    //             "required": ["location", "format"]
+    //             }
+    //         }
+    //         }
+    //     ]
+    // }
+
+    // const functions = {
+    //     get_current_weather: async () => "please kys"
+    // };
+
+    const functions = {
+        "scrape": scrapeWebsite,
+        "eval": executeEval,
+        "search": searchGoogle
+    }
+
+    const {full_response, chat_response} = await chatWithFuncs(ollama, request, functions);
+
+    user_data.messages = full_response;
 
     await collection.updateOne({ userId: interaction.user.id }, { $set: user_data }, { upsert: true });
 
     let embeds = [];
-    for (const chunk of splitText(response!, 4000)) {
+    for (const chunk of splitText(chat_response.message.content!, 4000)) {
         embeds.push(new EmbedBuilder().setAuthor({name: 'Agent Kitten', url: 'https://agentkitten.com', iconURL: 'https://cdn.discordapp.com/avatars/1169801069514194956/7d1ee663b3e0e10191bedb70a9f8d2af.webp?size=4096'}).setTitle("Response").setDescription(chunk).setColor('#2b2d31').setTimestamp());
     }
 

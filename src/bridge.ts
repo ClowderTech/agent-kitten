@@ -22,6 +22,14 @@ server.on('ready', (url: string) => {
 
 server.on('debug', console.log);
 
+function gracefulShutdown() {
+    console.log("Received shutdown signal, closing bridge...");
+    server.close();
+}
+
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
+
 export async function start(): Promise<void> {
     await server.start();
 }

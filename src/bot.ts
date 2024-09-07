@@ -4,7 +4,6 @@ import { config } from "dotenv";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
-import OpenAI from "openai";
 import { Manager, Node, Player, type INode } from "moonlink.js";
 
 import { type ClientExtended, type Command, UserMadeError } from "./classes.js";
@@ -14,6 +13,7 @@ import { promises as fsPromises } from 'fs';
 
 import { ClusterClient, getInfo, type DjsDiscordClient } from "discord-hybrid-sharding";
 import { Shard } from "discord-cross-hosting";
+import { Ollama } from "ollama";
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -89,9 +89,9 @@ client.moonlink.on("trackEnd", async (player: Player) => {
 
 
 client.commands = new Collection();
-client.openai = new OpenAI({
-    baseURL: "http://10.0.1.3:11434/v1"
-});
+client.ollama = new Ollama({
+    host: "http://10.0.1.3:11434"
+})
 client.mongoclient = new MongoClient(process.env.MONGODB_URI!);
 client.mongoclient.connect();
 
