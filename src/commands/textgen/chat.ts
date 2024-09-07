@@ -336,7 +336,7 @@ export async function execute(interaction: CommandInteraction) {
     const request: ChatRequest = {
         // model: 'mixtral:8x7b',
         // model: 'gpt-4o-mini',
-        model: "llama3.1:8b-instruct-q2_K",
+        model: "mistral-nemo",
         messages: user_data.messages,
         stream: false,
         tools: [
@@ -393,46 +393,7 @@ export async function execute(interaction: CommandInteraction) {
             }
         ]
     };
-
-    // const request: ChatRequest = {
-    //     "model": "llama3.1",
-    //     "messages": [
-    //         {
-    //         "role": "user",
-    //         "content": "What is the weather today in Paris?"
-    //         }
-    //     ],
-    //     "stream": false,
-    //     "tools": [
-    //         {
-    //         "type": "function",
-    //         "function": {
-    //             "name": "get_current_weather",
-    //             "description": "Get the current weather for a location",
-    //             "parameters": {
-    //             "type": "object",
-    //             "properties": {
-    //                 "location": {
-    //                 "type": "string",
-    //                 "description": "The location to get the weather for, e.g. San Francisco, CA"
-    //                 },
-    //                 "format": {
-    //                 "type": "string",
-    //                 "description": "The format to return the weather in, e.g. 'celsius' or 'fahrenheit'",
-    //                 "enum": ["celsius", "fahrenheit"]
-    //                 }
-    //             },
-    //             "required": ["location", "format"]
-    //             }
-    //         }
-    //         }
-    //     ]
-    // }
-
-    // const functions = {
-    //     get_current_weather: async () => "please kys"
-    // };
-
+    
     const functions = {
         "scrape": scrapeWebsite,
         "eval": executeEval,
