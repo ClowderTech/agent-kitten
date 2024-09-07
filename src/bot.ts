@@ -183,15 +183,34 @@ async function loadCommands(
 	return commands;
 }
 
-// Load events from a directory
-async function loadEvents(eventsPath: string) {
+async function loadEvents(eventsPath: string): Promise<void> {
 	const eventFiles = await getAllFiles(eventsPath);
+
 	for (const file of eventFiles) {
 		const event = await import(file);
+
 		if (event.once) {
-			client.once(event.eventType, (args) => event.execute(...args));
+			client.once(event.eventType, (...args) => {
+				if (args && Array.isArray(args)) {
+					event.execute(...args);
+				} else {
+					console.error(
+						"Expected args to be an array, but received:",
+						args,
+					);
+				}
+			});
 		} else {
-			client.on(event.eventType, (args) => event.execute(...args));
+			client.on(event.eventType, (...args) => {
+				if (args && Array.isArray(args)) {
+					event.execute(...args);
+				} else {
+					console.error(
+						"Expected args to be an array, but received:",
+						args,
+					);
+				}
+			});
 		}
 	}
 }
