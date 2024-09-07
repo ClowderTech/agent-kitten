@@ -35,10 +35,3 @@ jobs:
 
             - name: Run ESLint to fix lint issues
               run: npx eslint . --fix
-
-            - name: Run Super Linter
-              uses: github/super-linter@v7.0.0 # x-release-please-version
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                  # Specify relevant languages here (optional)
-                  DEFAULT_BRANCH: main # Adjust to your default branch name
