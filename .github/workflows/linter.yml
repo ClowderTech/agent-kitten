@@ -1,33 +1,44 @@
----
 name: Lint
 
-on: # yamllint disable-line rule:truthy
-  push: null
-  pull_request: null
+on:
+    push: null
+    pull_request: null
 
 permissions: {}
 
 jobs:
-  build:
-    name: Lint
-    runs-on: ubuntu-latest
+    build:
+        name: Lint
+        runs-on: ubuntu-latest
 
-    permissions:
-      contents: read
-      packages: read
-      # To report GitHub Actions status checks
-      statuses: write
+        permissions:
+            contents: read
+            packages: read
+            statuses: write
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          # super-linter needs the full git history to get the
-          # list of files that changed across commits
-          fetch-depth: 0
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
 
-      - name: Super-linter
-        uses: super-linter/super-linter@v7.0.0 # x-release-please-version
-        env:
-          # To report GitHub Actions status checks
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            - name: Install Node.js LTS
+              uses: actions/setup-node@v3
+              with:
+                  node-version: "lts" # Automatically selects the latest LTS version of Node.js
+
+            - name: Install npm dependencies
+              run: npm install # Ensure you have a package.json with required dependencies
+
+            - name: Run Prettier to fix lint issues
+              run: npx prettier --check . && npx prettier --write .
+
+            - name: Run ESLint to fix lint issues
+              run: npx eslint . --fix
+
+            - name: Run Super Linter
+              uses: github/super-linter@v7.0.0 # x-release-please-version
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  # Specify relevant languages here (optional)
+                  DEFAULT_BRANCH: main # Adjust to your default branch name
