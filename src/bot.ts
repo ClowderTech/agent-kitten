@@ -90,7 +90,7 @@ client.moonlink.on("trackEnd", async (player: Player) => {
 
 client.commands = new Collection();
 client.openai = new OpenAI({
-    // baseURL: "http://127.0.0.1:11434/v1"
+    baseURL: "http://10.0.1.3:11434/v1"
 });
 client.mongoclient = new MongoClient(process.env.MONGODB_URI!);
 client.mongoclient.connect();
