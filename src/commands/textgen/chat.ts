@@ -393,7 +393,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	const request: ChatRequest = {
 		// model: 'mixtral:8x7b',
 		// model: 'gpt-4o-mini',
-		model: "mistral-nemo",
+		model: "llama3.1",
 		messages: user_data.messages,
 		stream: false,
 		keep_alive: "15m",
