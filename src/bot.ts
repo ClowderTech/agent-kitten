@@ -105,7 +105,7 @@ client.moonlink.on("trackEnd", async (player: Player) => {
 
 client.commands = new Collection();
 client.ollama = new Ollama({
-	host: "http://ddns.clowdertech.com:11434",
+	host: "https://ollama.clowdertech.com",
 });
 client.mongoclient = new MongoClient(process.env.MONGODB_URI!);
 client.mongoclient.connect();
