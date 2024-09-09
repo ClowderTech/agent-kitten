@@ -207,26 +207,40 @@ async function scrapeWebsite(url: string): Promise<string> {
 	const page = await browser.newPage();
 
 	try {
-		const response = await page.goto(url, {
+		await page.goto(url, {
 			timeout: 30000,
 			waitUntil: "load",
 		}); // Navigate to the URL
-		const content = await page.content(); // Get the page content
 
-		if (!response?.ok()) {
-			return `Response not ok. Status ${response?.status()}.`;
+		let modifiedText = "";
+
+		// Get all visible HTML text code like <p> and <h1>
+		for (const element of await page.$$('[data-testid="visible-html"]')) {
+			const html = await element.toString();
+			const parsedHtml = new DOMParser().parseFromString(
+				html,
+				"text/html",
+			);
+			modifiedText +=
+				Array.from(parsedHtml.body.children)
+					.map((child) => child.outerHTML)
+					.join(" ") + " ";
 		}
 
-		const root = parse(content); // Parse the content
-		const anchors = root.querySelectorAll("a[href]"); // Find <a> tags
+		// Find <a> tags
+		for (const a of await page.$$("a[href]")) {
+			const text = await page.evaluate(
+				(element: HTMLAnchorElement) => element.textContent,
+				a,
+			);
+			const link = await page.evaluate(
+				(element: HTMLAnchorElement) => element.getAttribute("href"),
+				a,
+			);
+			modifiedText += `[${text}](${link}) `;
+		}
 
-		anchors.forEach((a) => {
-			const linkText = `[${a.text}](${a.getAttribute("href")})`; // Create link text
-			a.replaceWith(linkText); // Replace <a> tag with link text
-		});
-
-		const textWithLinks = root.text; // Get the modified text
-		return textWithLinks; // Return the modified text
+		return modifiedText.trim(); // Return the modified text
 	} catch (error) {
 		console.error("Error scraping website:", error);
 		return "Error occurred during scraping.";
