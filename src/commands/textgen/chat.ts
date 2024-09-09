@@ -491,22 +491,21 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		{ upsert: true },
 	);
 
-	const embeds = [];
 	for (const chunk of splitText(chat_response.message.content!, 4000)) {
-		embeds.push(
-			new EmbedBuilder()
-				.setAuthor({
-					name: "Agent Kitten",
-					url: "https://agentkitten.com",
-					iconURL:
-						"https://cdn.discordapp.com/avatars/1169801069514194956/7d1ee663b3e0e10191bedb70a9f8d2af.webp?size=4096",
-				})
-				.setTitle("Response")
-				.setDescription(chunk)
-				.setColor("#2b2d31")
-				.setTimestamp(),
-		);
+		interaction.followUp({
+			embeds: [
+				new EmbedBuilder()
+					.setAuthor({
+						name: "Agent Kitten",
+						url: "https://agentkitten.com",
+						iconURL:
+							"https://cdn.discordapp.com/avatars/1169801069514194956/7d1ee663b3e0e10191bedb70a9f8d2af.webp?size=4096",
+					})
+					.setTitle("Response")
+					.setDescription(chunk)
+					.setColor("#2b2d31")
+					.setTimestamp(),
+			],
+		});
 	}
-
-	await interaction.editReply({ embeds: embeds });
 }
