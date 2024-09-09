@@ -10,7 +10,6 @@ import { ObjectId } from "mongodb";
 import * as ts from "typescript";
 import * as vm from "vm";
 import { launch } from "puppeteer";
-import { parse } from "node-html-parser";
 import type { ChatRequest, ChatResponse, Message, Ollama } from "ollama";
 
 export const data = new SlashCommandBuilder()
