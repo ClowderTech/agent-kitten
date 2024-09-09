@@ -411,7 +411,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		stream: false,
 		keep_alive: "15m",
 		options: {
-			num_ctx: 65536,
+			num_ctx: 8192,
 		},
 		tools: [
 			{
