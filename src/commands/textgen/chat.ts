@@ -410,6 +410,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		messages: user_data.messages,
 		stream: false,
 		keep_alive: "15m",
+		options: {
+			num_ctx: 65536,
+		},
 		tools: [
 			{
 				type: "function",
