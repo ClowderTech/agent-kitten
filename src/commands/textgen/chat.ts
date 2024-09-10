@@ -4,6 +4,7 @@ import {
 	SlashCommandStringOption,
 	ApplicationCommandOptionType,
 	ChatInputCommandInteraction,
+	Message as DiscordMessage,
 } from "discord.js";
 import type { ClientExtended } from "../../classes.js";
 import { ObjectId } from "mongodb";
@@ -479,21 +480,43 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		{ upsert: true },
 	);
 
+	let lastMessage: DiscordMessage | null = null;
+
 	for (const chunk of splitText(chat_response.message.content!, 4000)) {
-		interaction.followUp({
-			embeds: [
-				new EmbedBuilder()
-					.setAuthor({
-						name: "Agent Kitten",
-						url: "https://agentkitten.com",
-						iconURL:
-							"https://cdn.discordapp.com/avatars/1169801069514194956/7d1ee663b3e0e10191bedb70a9f8d2af.webp?size=4096",
-					})
-					.setTitle("Response")
-					.setDescription(chunk)
-					.setColor("#2b2d31")
-					.setTimestamp(),
-			],
-		});
+		if (!lastMessage) {
+			lastMessage = await interaction.followUp({
+				embeds: [
+					new EmbedBuilder()
+						.setAuthor({
+							name: "Agent Kitten",
+							iconURL:
+								client.application?.iconURL() ??
+								"https://via.placeholder.com/150x150?color=black",
+							url: "https://agentkitten.com/",
+						})
+						.setTitle("Response")
+						.setDescription(chunk)
+						.setColor("#2b2d31")
+						.setTimestamp(),
+				],
+			});
+		} else {
+			lastMessage = await lastMessage.reply({
+				embeds: [
+					new EmbedBuilder()
+						.setAuthor({
+							name: "Agent Kitten",
+							iconURL:
+								client.application?.iconURL() ??
+								"https://via.placeholder.com/150x150?color=black",
+							url: "https://agentkitten.com/",
+						})
+						.setTitle("Response")
+						.setDescription(chunk)
+						.setColor("#2b2d31")
+						.setTimestamp(),
+				],
+			});
+		}
 	}
 }
