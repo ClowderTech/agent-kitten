@@ -490,7 +490,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 						.setAuthor({
 							name: "Agent Kitten",
 							iconURL:
-								client.application?.iconURL() ??
+								client.user?.avatarURL() ??
 								"https://via.placeholder.com/150x150?color=black",
 							url: "https://agentkitten.com/",
 						})
@@ -507,7 +507,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 						.setAuthor({
 							name: "Agent Kitten",
 							iconURL:
-								client.application?.iconURL() ??
+							client.user?.avatarURL() ??
 								"https://via.placeholder.com/150x150?color=black",
 							url: "https://agentkitten.com/",
 						})
