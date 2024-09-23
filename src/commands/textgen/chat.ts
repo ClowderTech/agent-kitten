@@ -395,7 +395,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		// model: 'mixtral:8x7b',
 		// model: 'gpt-4o-mini',
 		// model: "mistral-nemo",
-		model: "qwen2.5:1.5b",
+		model: "qwen2.5:3b",
 		messages: user_data.messages,
 		stream: false,
 		keep_alive: "15m",
