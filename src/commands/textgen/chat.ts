@@ -243,7 +243,7 @@ export type SyncOrAsyncFunction = (
 export async function chatWithFuncs(
 	ollama: Ollama,
 	request: ChatRequest,
-	functions: Record<string, SyncOrAsyncFunction>,
+	functions: Record<string, SyncOrAsyncFunction> = {},
 ): Promise<{ full_response: Message[]; chat_response: ChatResponse }> {
 	// Initialize full response with the initial messages
 	const full_response: Message[] = request.messages || [];
@@ -290,6 +290,14 @@ export async function chatWithFuncs(
 }
 
 export async function execute(interaction: ChatInputCommandInteraction) {
+	const client = interaction.client as ClientExtended;
+
+	const ollama = client.ollama;
+
+	const mongoclient = client.mongoclient;
+
+	await interaction.deferReply();
+
 	const message = interaction.options.get("message", true).value as string; // Get the message content
 
 	const attachments =
@@ -325,8 +333,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			) {
 				const text = await response.text(); // Read the text content
 				attachmentContents.push(text); // Add the text content to the array
-				console.log(`Received text: ${text}`);
-			} else if (contentType && contentType.includes("image")) {
+			} else if (
+				contentType &&
+				(contentType.includes("image") || contentType.includes("video"))
+			) {
 				const arrayBuffer = await response.arrayBuffer();
 
 				// Convert the ArrayBuffer to a Buffer
@@ -335,7 +345,22 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 				// Convert the image buffer to Base64
 				const base64Image = buffer.toString("base64");
 
-				attachmentURLs.push(`${base64Image}`); // Add the image URL to the array
+				const { full_response, chat_response } = await chatWithFuncs(
+					ollama,
+					{
+						model: "minicpm-v:8b",
+						messages: [
+							{
+								role: "user",
+								content:
+									"Describe this image or video in detail.",
+								images: [base64Image],
+							},
+						],
+					},
+				);
+
+				attachmentURLs.push(chat_response.message.content);
 			}
 		} catch (error) {
 			console.error("Error processing attachment:", error);
@@ -343,25 +368,22 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	}
 
 	// Step 3: Create the prefix string
-	const prefix: string = "\nText Attachments:\n\n";
+	const textPrefix: string = "\n\nText Attachments:\n\n";
+	const imagePrefix: string = "\n\nImage Attachments:\n\n";
 
 	// Step 4: Initialize newMessage with the original message
 	let newMessage: string = message;
 
 	// Step 5: Check if there are attachments before appending
-	if (attachments.length > 0) {
+	if (attachmentContents.length > 0) {
 		// If there are attachments
-		const attachmentsString: string = attachmentContents.join("\n\n"); // Join the attachment contents
-		newMessage += prefix + attachmentsString; // Append prefix and attachments to the message
+		let attachmentsString: string = attachmentContents.join("\n\n"); // Join the attachment contents
+		newMessage += textPrefix + attachmentsString; // Append prefix and attachments to the message
 	}
-
-	const client = interaction.client as ClientExtended;
-
-	const ollama = client.ollama;
-
-	const mongoclient = client.mongoclient;
-
-	await interaction.deferReply();
+	if (attachmentURLs.length > 0) {
+		let attachmentsString: string = attachmentURLs.join("\n\n");
+		newMessage += imagePrefix + attachmentsString;
+	}
 
 	const db = mongoclient.db("agentkitten");
 
