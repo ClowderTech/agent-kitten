@@ -289,6 +289,16 @@ export async function chatWithFuncs(
 	return { full_response, chat_response };
 }
 
+async function convertToBase64(response: Response): Promise<string> {
+	const blob = await response.blob();
+	return new Promise((resolve, reject) => {
+		const reader = new FileReader();
+		reader.onloadend = () => resolve(reader.result as string);
+		reader.onerror = reject;
+		reader.readAsDataURL(blob);
+	});
+}
+
 export async function execute(interaction: ChatInputCommandInteraction) {
 	const client = interaction.client as ClientExtended;
 
@@ -337,13 +347,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 				contentType &&
 				(contentType.includes("image") || contentType.includes("video"))
 			) {
-				const arrayBuffer = await response.arrayBuffer();
-
-				// Convert the ArrayBuffer to a Buffer
-				const buffer = Buffer.from(arrayBuffer);
-
-				// Convert the image buffer to Base64
-				const base64Image = buffer.toString("base64");
+				const base64Image = await convertToBase64(response);
 
 				const { full_response, chat_response } = await chatWithFuncs(
 					ollama,
