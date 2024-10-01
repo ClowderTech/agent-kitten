@@ -1,8 +1,8 @@
-import { promises as fsPromises } from "fs";
-import { join } from "path";
+import { promises as fsPromises } from "node:fs";
+import { join } from "node:path";
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { CommandInteraction, REST, Routes } from "discord.js";
-import type { Command } from "../classes.js";
+import type { Command } from "../utils/classes.ts";
 
 const checkForValidFile = (file: string): boolean => {
 	const fileExtension = file.split(".").pop();
@@ -12,7 +12,7 @@ const checkForValidFile = (file: string): boolean => {
 const getAllFiles = async (dirPath: string): Promise<string[]> => {
 	const entries = await fsPromises.readdir(dirPath, { withFileTypes: true });
 	const files = await Promise.all(
-		entries.map(async (entry) => {
+		entries.map((entry) => {
 			const fullPath = join(dirPath, entry.name);
 			return entry.isDirectory() ? getAllFiles(fullPath) : [fullPath];
 		}),
@@ -46,8 +46,8 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction: CommandInteraction) {
 	try {
-		const commandsPath = join(__dirname, "..", "commands");
-		const devCommandsPath = join(__dirname, "..", "devCommands");
+		const commandsPath = join(import.meta.dirname!, "..", "commands");
+		const devCommandsPath = join(import.meta.dirname!, "..", "devCommands");
 
 		const commands = await loadCommands(commandsPath);
 		const devCommands = await loadCommands(devCommandsPath);

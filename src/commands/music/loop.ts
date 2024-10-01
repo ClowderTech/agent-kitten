@@ -7,7 +7,7 @@ import {
 	MessageReaction,
 	ChatInputCommandInteraction,
 } from "discord.js";
-import { type ClientExtended, UserMadeError } from "../../classes.js";
+import { type ClientExtended, UserMadeError } from "../../utils/classes.ts";
 import type { TPlayerLoop } from "moonlink.js";
 
 export const data = new SlashCommandBuilder()

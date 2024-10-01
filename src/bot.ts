@@ -10,17 +10,22 @@ import {
 	SlashCommandBuilder,
 	type APIApplicationCommand,
 	type GatewayDispatchPayload,
+	Guild,
+	ChannelType,
+	VoiceChannel,
+	StageChannel,
 } from "discord.js";
-
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
 
 import { Manager, Player, type INode } from "moonlink.js";
 
-import { type ClientExtended, type Command, UserMadeError } from "./classes.js";
+import {
+	type ClientExtended,
+	type Command,
+	UserMadeError,
+} from "./utils/classes.ts";
 import { MongoClient } from "mongodb";
 
-import { promises as fsPromises } from "fs";
+import { promises as fsPromises } from "node:fs";
 
 import {
 	ClusterClient,
@@ -30,9 +35,9 @@ import {
 import { Shard } from "discord-cross-hosting";
 import { Ollama } from "ollama";
 
-const __filename = fileURLToPath(import.meta.url);
-
-const __dirname = dirname(__filename);
+import * as mod from "node:process";
+import { join } from "node:path";
+import { prettyExpGain } from "./utils/leveling.ts";
 
 const client: ClientExtended = new Client({
 	intents: [
@@ -61,6 +66,8 @@ const client: ClientExtended = new Client({
 	shardCount: getInfo().TOTAL_SHARDS,
 }) as ClientExtended;
 
+client.usersMessaged = [];
+
 client.cluster = new ClusterClient(client as unknown as DjsDiscordClient);
 
 client.machine = new Shard(client.cluster);
@@ -68,10 +75,10 @@ client.machine = new Shard(client.cluster);
 client.moonlink = new Manager({
 	nodes: [
 		{
-			host: process.env.LAVALINK_HOST!,
-			port: Number(process.env.LAVALINK_PORT),
-			secure: Boolean(process.env.LAVALINK_SECURE!),
-			password: process.env.LAVALINK_PASSWORD!,
+			host: Deno.env.get("LAVALINK_HOST")!,
+			port: Number(Deno.env.get("LAVALINK_PORT")),
+			secure: Boolean(Deno.env.get("LAVALINK_SECURE")!),
+			password: Deno.env.get("LAVALINK_PASSWORD")!,
 			retryDelay: 5000,
 			retryAmount: 1000000000000,
 		},
@@ -107,7 +114,7 @@ client.commands = new Collection();
 client.ollama = new Ollama({
 	host: "https://ollama.clowdertech.com",
 });
-client.mongoclient = new MongoClient(process.env.MONGODB_URI!);
+client.mongoclient = new MongoClient(Deno.env.get("MONGODB_URI")!);
 client.mongoclient.connect();
 
 // client.moonlink = new MoonlinkManager(
@@ -146,7 +153,7 @@ function checkForValidFile(file: string): boolean {
 async function getAllFiles(dirPath: string): Promise<string[]> {
 	const entries = await fsPromises.readdir(dirPath, { withFileTypes: true });
 	const files = await Promise.all(
-		entries.map(async (entry) => {
+		entries.map((entry) => {
 			const fullPath = join(dirPath, entry.name);
 			return entry.isDirectory() ? getAllFiles(fullPath) : [fullPath];
 		}),
@@ -215,9 +222,9 @@ async function loadEvents(eventsPath: string): Promise<void> {
 	}
 }
 
-const commandsPath = join(__dirname, "commands");
-const devCommandsPath = join(__dirname, "devCommands");
-const eventsPath = join(__dirname, "events");
+const commandsPath = join(import.meta.dirname!, "commands");
+const devCommandsPath = join(import.meta.dirname!, "devCommands");
+const eventsPath = join(import.meta.dirname!, "events");
 
 // Load all commands and events
 async function loadAll() {
@@ -363,8 +370,8 @@ async function fetchRegisteredCommands(
 client.once(Events.ClientReady, async (readyClient: Client) => {
 	console.log(`Logged in as ${readyClient.user?.tag}!`);
 
-	const commandsPath = join(__dirname, "commands");
-	const devCommandsPath = join(__dirname, "devCommands");
+	const commandsPath = join(import.meta.dirname!, "commands");
+	const devCommandsPath = join(import.meta.dirname!, "devCommands");
 
 	const commands = await loadCommands(commandsPath);
 	const devCommands = await loadCommands(devCommandsPath);
@@ -422,6 +429,44 @@ client.on(Events.Raw, (packet: GatewayDispatchPayload) => {
 	client.moonlink.packetUpdate(packet);
 });
 
+async function getVoiceChannelMembers(guild: Guild) {
+	// Get all voice and stage channels in the guild
+	const voiceChannels = guild.channels.cache.filter(
+		(channel) =>
+			channel.type === ChannelType.GuildVoice ||
+			channel.type === ChannelType.GuildStageVoice,
+	);
+
+	for (const [_channelId, channel] of voiceChannels) {
+		if (
+			channel instanceof VoiceChannel ||
+			channel instanceof StageChannel
+		) {
+			for (const member of channel.members.values()) {
+				if (
+					!member.voice.deaf ||
+					!member.voice.mute ||
+					!(member.voice.channelId === member.guild.afkChannelId)
+				) {
+					await prettyExpGain(client, member.user);
+				}
+			}
+		}
+	}
+}
+
+// Set the interval to run the function for each guild
+setInterval(() => {
+	client.guilds.cache.forEach((guild) => {
+		// Iterate through each guild the bot is in
+		getVoiceChannelMembers(guild); // Call function for each guild
+	});
+}, 60000); // 60000 milliseconds = 1 minute
+
+setInterval(() => {
+	client.usersMessaged = [];
+}, 60000);
+
 function gracefulShutdown() {
 	console.log("Received shutdown signal, closing Discord client...");
 	client.mongoclient.close();
@@ -429,15 +474,15 @@ function gracefulShutdown() {
 		.destroy()
 		.then(() => {
 			console.log("Discord client closed.");
-			process.exit(0);
+			mod.exit(0);
 		})
 		.catch((err) => {
 			console.error("Error closing Discord client:", err);
-			process.exit(1);
+			mod.exit(1);
 		});
 }
 
-process.on("SIGINT", gracefulShutdown);
-process.on("SIGTERM", gracefulShutdown);
+Deno.addSignalListener("SIGINT", gracefulShutdown);
+Deno.addSignalListener("SIGTERM", gracefulShutdown);
 
-client.login(process.env.BOT_TOKEN);
+client.login(Deno.env.get("BOT_TOKEN"));

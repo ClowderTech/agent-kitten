@@ -22,6 +22,7 @@ export interface ClientExtended extends Client {
 	moonlink: Manager;
 	cluster: ClusterClient<DjsDiscordClient>;
 	machine: Shard;
+	usersMessaged: string[];
 }
 
 export class UserMadeError extends Error {

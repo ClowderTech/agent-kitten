@@ -6,13 +6,14 @@ import {
 	ChatInputCommandInteraction,
 	Message as DiscordMessage,
 } from "discord.js";
-import type { ClientExtended } from "../../classes.js";
-import { ObjectId } from "mongodb";
+import type { ClientExtended } from "../../utils/classes.ts";
+import { WithId, Document } from "mongodb";
 import * as ts from "typescript";
-import * as vm from "vm";
+import * as vm from "node:vm";
 import { launch } from "puppeteer";
 import type { ChatRequest, ChatResponse, Message, Ollama } from "ollama";
 import { parse } from "node-html-parser";
+import { getData, setData } from "../../utils/mongohelper.ts";
 
 export const data = new SlashCommandBuilder()
 	.setName("chat")
@@ -102,7 +103,7 @@ function splitText(text: string, maxLength: number = 2000): string[] {
 	return chunks; // Return the array of text chunks
 }
 
-async function executeEval(code: string) {
+function executeEval(code: string) {
 	code.replace("\\n", "\n");
 	code.replace("\\t", "\t");
 
@@ -304,8 +305,6 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	const ollama = client.ollama;
 
-	const mongoclient = client.mongoclient;
-
 	await interaction.deferReply();
 
 	const message = interaction.options.get("message", true).value as string; // Get the message content
@@ -349,20 +348,18 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			) {
 				const base64Image = await convertToBase64(response);
 
-				const { full_response, chat_response } = await chatWithFuncs(
-					ollama,
-					{
-						model: "minicpm-v:8b",
-						messages: [
-							{
-								role: "user",
-								content:
-									"Describe this image or video in detail.",
-								images: [base64Image],
-							},
-						],
-					},
-				);
+				const { chat_response } = await chatWithFuncs(ollama, {
+					model: "minicpm-v:8b",
+					messages: [
+						{
+							role: "user",
+							content: "Describe this image or video in detail.",
+							images: [base64Image],
+						},
+					],
+				});
+
+				console.log(chat_response.message.content);
 
 				attachmentURLs.push(chat_response.message.content);
 			}
@@ -381,23 +378,22 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	// Step 5: Check if there are attachments before appending
 	if (attachmentContents.length > 0) {
 		// If there are attachments
-		let attachmentsString: string = attachmentContents.join("\n\n"); // Join the attachment contents
+		const attachmentsString: string = attachmentContents.join("\n\n"); // Join the attachment contents
 		newMessage += textPrefix + attachmentsString; // Append prefix and attachments to the message
 	}
 	if (attachmentURLs.length > 0) {
-		let attachmentsString: string = attachmentURLs.join("\n\n");
+		const attachmentsString: string = attachmentURLs.join("\n\n");
 		newMessage += imagePrefix + attachmentsString;
 	}
 
-	const db = mongoclient.db("agentkitten");
+	const chatData = await getData(client, "textgen", {
+		userId: interaction.user.id,
+	});
 
-	const collection = db.collection("textgen");
+	let user_data: WithId<Document> | Record<string | number | symbol, unknown>;
 
-	let user_data = await collection.findOne({ userId: interaction.user.id });
-
-	if (!user_data) {
+	if (!chatData[0]) {
 		user_data = {
-			_id: new ObjectId(), // Add the _id property
 			userId: interaction.user.id,
 			messages: [
 				{
@@ -407,6 +403,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 				},
 			],
 		};
+	} else {
+		user_data = chatData[0];
 	}
 
 	// Step 4: Push structuredContent into user_data.messages
@@ -501,11 +499,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	user_data.messages = full_response;
 
-	await collection.updateOne(
-		{ userId: interaction.user.id },
-		{ $set: user_data },
-		{ upsert: true },
-	);
+	await setData(client, "textgen", user_data);
 
 	let lastMessage: DiscordMessage | null = null;
 

@@ -5,7 +5,7 @@ import {
 	EmbedBuilder,
 	ChatInputCommandInteraction,
 } from "discord.js";
-import { type ClientExtended, UserMadeError } from "../../classes.js";
+import { type ClientExtended, UserMadeError } from "../../utils/classes.ts";
 
 export const data = new SlashCommandBuilder()
 	.setName("play")
@@ -115,7 +115,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 					? `Queued playlist: \`${playlistInfo.name}\``
 					: `Currently playing: \`${
 							playable.tracks[0]?.title || "Unknown Track"
-						}\``,
+					  }\``,
 			)
 			.setColor("#2b2d31")
 			.setThumbnail(
