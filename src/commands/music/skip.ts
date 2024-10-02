@@ -80,24 +80,27 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		);
 	}
 
+
+    const channel = member.voice.channel;
+
 	if (
 		!(
 			member.roles.cache.some((role) => role.name === "DJ") ||
 			member.permissions.has("ModerateMembers", true) ||
-			member.voice.channel.members.filter((member) => !member.user.bot)
+			channel.members.filter((member) => member.id !== client.user!.id && !member.user.bot)
 				.size <= 2
 		)
 	) {
+		const votesNeeded = Math.ceil(channel.members.filter((member) => member.id !== client.user!.id && !member.user.bot).size / 2);
+
 		const embed = new EmbedBuilder()
-			.setTitle("Vote to skip")
+			.setTitle("Vote to stop")
 			.setDescription(
-				`You are not a DJ, so you need to vote to skip the song. React with ✅ to vote to skip. The vote will end <t:${
+				`You are not a DJ, so you need to vote. React with ✅ to vote to skip the song(s). Have ${
+					votesNeeded
+				} votes in 30 seconds. The vote will end <t:${
 					Math.floor(Date.now() / 1000) + 30
-				}:R>. Have ${Math.ceil(
-					member.voice.channel.members.filter(
-						(member) => !member.user.bot,
-					).size / 2,
-				)} votes to skip.`,
+				}:R>`,
 			)
 			.setTimestamp()
 			.setColor("#2b2d31");
@@ -109,7 +112,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		await message.react("✅");
 
 		const filter = (reaction: MessageReaction, user: User) =>
-			reaction.emoji.name === "✅" && user.id !== client.user!.id;
+			reaction.emoji.name === "✅" && user.id !== client.user!.id && !user.bot;
 
 		const collector = message.createReactionCollector({
 			filter,
@@ -123,14 +126,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		});
 
 		collector.on("end", async () => {
-			if (
-				votes >=
-				Math.ceil(
-					member.voice.channel!.members.filter(
-						(member) => !member.user.bot,
-					).size / 2,
-				)
-			) {
+			if (votes >= votesNeeded) {
 				removeFromQueue(player.queue, amount);
 				if (player.queue.size == 0) {
 					player.destroy();

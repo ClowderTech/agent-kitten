@@ -1,7 +1,7 @@
 import type { ObjectId } from "mongodb";
 import type { ClientExtended } from "./classes.ts";
 import { getData, setData, listData } from "./mongohelper.ts"; // Import mongoHelpers functions
-import { User, EmbedBuilder } from "discord.js";
+import { User, EmbedBuilder, MessageFlags } from "discord.js";
 
 interface UserExperience {
 	userId: string;
@@ -191,7 +191,10 @@ export async function prettyExpGain(
 
 		// Send the embed message as a DM to the user
 		try {
-			await user.send({ embeds: [embed] });
+			await user.send({
+				embeds: [embed],
+				flags: [MessageFlags.SuppressNotifications],
+			});
 		} catch (error) {
 			console.error(`Could not send DM to ${user.username}:`, error);
 		}
