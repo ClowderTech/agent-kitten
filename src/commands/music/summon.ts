@@ -5,14 +5,19 @@ import {
 	GuildMember,
 	MessageReaction,
 	ChatInputCommandInteraction,
-    SlashCommandChannelOption
+	SlashCommandChannelOption,
 } from "discord.js";
 import { type ClientExtended, UserMadeError } from "../../utils/classes.ts";
 
 export const data = new SlashCommandBuilder()
 	.setName("summon")
 	.setDescription("Tell the bot to come to your voice channel.")
-    .addChannelOption((option: SlashCommandChannelOption) => option.setName('channel').setDescription('The channel to join.').setRequired(true));
+	.addChannelOption((option: SlashCommandChannelOption) =>
+		option
+			.setName("channel")
+			.setDescription("The channel to join.")
+			.setRequired(true),
+	);
 
 export async function execute(interaction: ChatInputCommandInteraction) {
 	const client: ClientExtended = interaction.client as ClientExtended;
@@ -54,18 +59,21 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		!(
 			member.roles.cache.some((role) => role.name === "DJ") ||
 			member.permissions.has("ModerateMembers", true) ||
-			channel.members.filter((member) => member.id !== client.user!.id && !member.user.bot)
-				.size <= 2
+			channel.members.filter(
+				(member) => member.id !== client.user!.id && !member.user.bot,
+			).size <= 2
 		)
 	) {
-		const votesNeeded = Math.ceil(channel.members.filter((member) => member.id !== client.user!.id && !member.user.bot).size / 2);
+		const votesNeeded = Math.ceil(
+			channel.members.filter(
+				(member) => member.id !== client.user!.id && !member.user.bot,
+			).size / 2,
+		);
 
 		const embed = new EmbedBuilder()
 			.setTitle("Vote to stop")
 			.setDescription(
-				`You are not a DJ, so you need to vote. React with ✅ to vote to connect to your voice call. Have ${
-					votesNeeded
-				} votes in 30 seconds. The vote will end <t:${
+				`You are not a DJ, so you need to vote. React with ✅ to vote to connect to your voice call. Have ${votesNeeded} votes in 30 seconds. The vote will end <t:${
 					Math.floor(Date.now() / 1000) + 30
 				}:R>`,
 			)
@@ -79,7 +87,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		await message.react("✅");
 
 		const filter = (reaction: MessageReaction, user: User) =>
-			reaction.emoji.name === "✅" && user.id !== client.user!.id && !user.bot;
+			reaction.emoji.name === "✅" &&
+			user.id !== client.user!.id &&
+			!user.bot;
 
 		const collector = message.createReactionCollector({
 			filter,
@@ -94,12 +104,14 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 		collector.on("end", async () => {
 			if (votes >= votesNeeded) {
-				await player.setVoiceChannelId(interaction.options.getChannel("channel")?.id!);
+				await player.setVoiceChannelId(
+					interaction.options.getChannel("channel", true).id,
+				);
 
-                await player.connect({
-                    setDeaf: true,
-                    setMute: false
-                });
+				await player.connect({
+					setDeaf: true,
+					setMute: false,
+				});
 
 				await interaction.editReply({
 					content: "Connected to your voice call.",
@@ -116,12 +128,14 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		return;
 	}
 
-    await player.setVoiceChannelId(interaction.options.getChannel("channel")?.id!);
+	await player.setVoiceChannelId(
+		interaction.options.getChannel("channel", true).id,
+	);
 
-    await player.connect({
-        setDeaf: true,
-        setMute: false
-    });
+	await player.connect({
+		setDeaf: true,
+		setMute: false,
+	});
 
 	await interaction.reply({
 		content: "Connected to your voice call.",

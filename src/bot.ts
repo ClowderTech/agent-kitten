@@ -436,7 +436,9 @@ async function getVoiceChannelMembers(guild: Guild) {
 			channel.type === ChannelType.GuildStageVoice,
 	);
 
-	for (const [_channelId, channel] of voiceChannels) {
+	for (const channelArray of voiceChannels) {
+		const channel = channelArray[1];
+
 		if (
 			channel instanceof VoiceChannel ||
 			channel instanceof StageChannel

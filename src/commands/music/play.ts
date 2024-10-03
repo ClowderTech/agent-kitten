@@ -115,7 +115,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 					? `Queued playlist: \`${playlistInfo.name}\``
 					: `Currently playing: \`${
 							playable.tracks[0]?.title || "Unknown Track"
-					  }\``,
+						}\``,
 			)
 			.setColor("#2b2d31")
 			.setThumbnail(
