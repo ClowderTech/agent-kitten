@@ -11,7 +11,8 @@ import { WithId, Document } from "mongodb";
 import * as ts from "typescript";
 import * as vm from "node:vm";
 import { launch } from "puppeteer";
-import type { ChatRequest, ChatResponse, Message, Ollama } from "ollama";
+import { chatWithFuncs, convertBlobToUint8Array } from "../../utils/textgen.ts";
+import { ChatRequest } from "ollama";
 import { parse } from "node-html-parser";
 import { getData, setData } from "../../utils/mongohelper.ts";
 
@@ -237,69 +238,6 @@ async function scrapeWebsite(url: string): Promise<string> {
 	}
 }
 
-export type SyncOrAsyncFunction = (
-	...args: string[]
-) => string | Promise<string>;
-
-export async function chatWithFuncs(
-	ollama: Ollama,
-	request: ChatRequest,
-	functions: Record<string, SyncOrAsyncFunction> = {},
-): Promise<{ full_response: Message[]; chat_response: ChatResponse }> {
-	// Initialize full response with the initial messages
-	const full_response: Message[] = request.messages || [];
-
-	// Get the initial chat response
-	let chat_response: ChatResponse = await ollama.chat({
-		...request,
-		stream: false,
-	});
-	full_response.push(chat_response.message);
-
-	// While there are tool calls in the chat response
-	while (
-		chat_response.message.tool_calls &&
-		chat_response.message.tool_calls.length > 0
-	) {
-		let toolCallResponse = "";
-
-		for (const element of chat_response.message.tool_calls) {
-			const func = functions[element.function.name];
-			if (func) {
-				// Optimized: Directly await the function call
-				toolCallResponse += `Function "${
-					element.function.name
-				}" executed and returned: "${await func(
-					...Object.values(element.function.arguments),
-				)}"\n`;
-			} else {
-				toolCallResponse += `Function "${element.function.name}" not found.\n`;
-			}
-		}
-
-		// Push the tool call responses into full_response
-		full_response.push({ role: "tool", content: toolCallResponse });
-		// Update the request messages with the updated full_response
-		request.messages = full_response;
-
-		// Get the next chat response after tool calls
-		chat_response = await ollama.chat({ ...request, stream: false });
-		full_response.push(chat_response.message);
-	}
-
-	return { full_response, chat_response };
-}
-
-async function convertToBase64(response: Response): Promise<string> {
-	const blob = await response.blob();
-	return new Promise((resolve, reject) => {
-		const reader = new FileReader();
-		reader.onloadend = () => resolve(reader.result as string);
-		reader.onerror = reject;
-		reader.readAsDataURL(blob);
-	});
-}
-
 export async function execute(interaction: ChatInputCommandInteraction) {
 	const client = interaction.client as ClientExtended;
 
@@ -307,7 +245,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	await interaction.deferReply();
 
-	const message = interaction.options.get("message", true).value as string; // Get the message content
+	const message = interaction.options.getString("message", true); // Get the message content
 
 	const attachments =
 		interaction.options.data
@@ -346,15 +284,17 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 				contentType &&
 				(contentType.includes("image") || contentType.includes("video"))
 			) {
-				const base64Image = await convertToBase64(response);
+				const image = await convertBlobToUint8Array(
+					await response.blob(),
+				);
 
 				const { chat_response } = await chatWithFuncs(ollama, {
-					model: "minicpm-v:8b",
+					model: "moondream:1.8b",
 					messages: [
 						{
 							role: "user",
 							content: "Describe this image or video in detail.",
-							images: [base64Image],
+							images: [image],
 						},
 					],
 				});
