@@ -4,39 +4,38 @@
     "npm:@discordjs/builders@^1.9.0": "1.9.0",
     "npm:@discordjs/voice@0.17": "0.17.0",
     "npm:@eslint/js@^9.11.1": "9.11.1",
-    "npm:@types/dotenv@^8.2.0": "8.2.0",
     "npm:@types/jsdom@^21.1.7": "21.1.7",
     "npm:discord-cross-hosting@^2.3.8": "2.3.8",
     "npm:discord-hybrid-sharding@^2.2.0": "2.2.0",
     "npm:discord.js@^14.16.3": "14.16.3",
     "npm:dotenv@^16.4.5": "16.4.5",
     "npm:eslint@^9.11.1": "9.11.1",
-    "npm:globals@^15.9.0": "15.9.0",
+    "npm:globals@^15.10.0": "15.10.0",
     "npm:jsdom@^25.0.1": "25.0.1",
     "npm:mongodb@^6.9.0": "6.9.0",
     "npm:moonlink.js@^4.0.2": "4.0.2",
     "npm:net-ipc@2.2.0": "2.2.0",
     "npm:node-html-parser@^6.1.13": "6.1.13",
     "npm:ollama@~0.5.9": "0.5.9",
-    "npm:puppeteer@^23.4.1": "23.4.1_devtools-protocol@0.0.1342118_typescript@5.6.2",
+    "npm:puppeteer@^23.5.0": "23.5.0_devtools-protocol@0.0.1342118_typescript@5.6.2",
     "npm:redis@^4.7.0": "4.7.0_@redis+client@1.6.0",
     "npm:ts-node@^10.9.2": "10.9.2_@types+node@22.5.4_typescript@5.6.2",
     "npm:typescript-eslint@^8.8.0": "8.8.0_@typescript-eslint+parser@8.8.0__eslint@9.11.1__typescript@5.6.2_eslint@9.11.1_typescript@5.6.2",
     "npm:typescript@^5.6.2": "5.6.2"
   },
   "npm": {
-    "@babel/code-frame@7.24.7": {
-      "integrity": "sha512-BcYH1CVJBO9tvyIZ2jVeXgSIMvGZ2FDRvDdOIVQyuklNKSsx+eppDEBq/g47Ayw+RqNFE+URvOShmf+f/qwAlA==",
+    "@babel/code-frame@7.25.7": {
+      "integrity": "sha512-0xZJFNE5XMpENsgfHYTw8FbX4kv53mFLn2i3XPoq69LyhYSCBJtitaHx9QnsVTrsogI4Z3+HtEfZ2/GFPOtf5g==",
       "dependencies": [
         "@babel/highlight",
         "picocolors"
       ]
     },
-    "@babel/helper-validator-identifier@7.24.7": {
-      "integrity": "sha512-rR+PBcQ1SMQDDyF6X0wxtG8QyLCgUB0eRAGguqRLfkCA87l7yAP7ehq8SNj96OOGTO8OBV70KhuFYcIkHXOg0w=="
+    "@babel/helper-validator-identifier@7.25.7": {
+      "integrity": "sha512-AM6TzwYqGChO45oiuPqwL2t20/HdMC1rTPAesnBCgPCSF1x3oN9MVUwQV2iyz4xqWrctwK5RNC8LV22kaQCNYg=="
     },
-    "@babel/highlight@7.24.7": {
-      "integrity": "sha512-EStJpq4OuY8xYfhGVXngigBJRWxftKX9ksiGDnmlY3o7B/V7KIAc9X4oiK87uPJSc/vs5L869bem5fhZa8caZw==",
+    "@babel/highlight@7.25.7": {
+      "integrity": "sha512-iYyACpW3iW8Fw+ZybQK+drQre+ns/tKpXbNESfrhNnPLIklLbXr7MYJ6gPEd0iETGLOK+SxMjVvKb/ffmk+FEw==",
       "dependencies": [
         "@babel/helper-validator-identifier",
         "chalk@2.4.2",
@@ -316,12 +315,6 @@
     },
     "@tsconfig/node16@1.0.4": {
       "integrity": "sha512-vxhUy4J8lyeyinH7Azl1pdd43GJhZH/tP2weN8TntQblOY+A0XbT8DJk1/oCPuOOyg/Ja757rG0CgHcWC8OfMA=="
-    },
-    "@types/dotenv@8.2.0": {
-      "integrity": "sha512-ylSC9GhfRH7m1EUXBXofhgx4lUWmFeQDINW5oLuS+gxWdfUeW4zJdeVTYVkexEW+e2VUvlZR2kGnGGipAWR7kw==",
-      "dependencies": [
-        "dotenv"
-      ]
     },
     "@types/estree@1.0.6": {
       "integrity": "sha512-AYnb1nQyY49te+VRAVgmzfcgjYS91mY5P0TKUDCLEM+gNnA+3T6rWITXRLYCpahpqSQbN5cE+gHpnPyXjHWxcw=="
@@ -604,8 +597,8 @@
         "supports-color@7.2.0"
       ]
     },
-    "chromium-bidi@0.6.5_devtools-protocol@0.0.1342118": {
-      "integrity": "sha512-RuLrmzYrxSb0s9SgpB+QN5jJucPduZQ/9SIe76MDxYJuecPW5mxMdacJ1f4EtgiV+R0p3sCkznTMvH0MPGFqjA==",
+    "chromium-bidi@0.8.0_devtools-protocol@0.0.1342118": {
+      "integrity": "sha512-uJydbGdTw0DEUjhoogGveneJVWX/9YuqkWePzMmkBYwtdAqo5d3J/ovNKFr+/2hWXYmYCr6it8mSSTIj6SS6Ug==",
       "dependencies": [
         "devtools-protocol",
         "mitt",
@@ -1057,8 +1050,8 @@
     "globals@14.0.0": {
       "integrity": "sha512-oahGvuMGQlPw/ivIYBjVSrWAfWLBeku5tpPE2fOPLi+WHffIWbuh2tCjhyQhTBPMf5E9jDEH4FOmTYgYwbKwtQ=="
     },
-    "globals@15.9.0": {
-      "integrity": "sha512-SmSKyLLKFbSr6rptvP8izbyxJL4ILwqO9Jg23UA0sDlGlu58V59D1//I3vlc0KJphVdUR7vMjHIplYnzBxorQA=="
+    "globals@15.10.0": {
+      "integrity": "sha512-tqFIbz83w4Y5TCbtgjZjApohbuh7K9BxGYFm7ifwDR240tvdb7P9x+/9VvUKlmkPoiknoJtanI8UOrqxS3a7lQ=="
     },
     "graceful-fs@4.2.11": {
       "integrity": "sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ=="
@@ -1489,8 +1482,8 @@
     "punycode@2.3.1": {
       "integrity": "sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg=="
     },
-    "puppeteer-core@23.4.1_devtools-protocol@0.0.1342118": {
-      "integrity": "sha512-uCxGtn8VE9PlKhdFJX/zZySi9K3Ufr3qUZe28jxJoZUqiMJOi+SFh2zhiFDSjWqZIDkc0FtnaCC+rewW3MYXmg==",
+    "puppeteer-core@23.5.0_devtools-protocol@0.0.1342118": {
+      "integrity": "sha512-+5ed+625GuQ2emRHqYec8khT9LP14FWzv8hYl0HiM6hnnlNzdVU9uDJIPHeCPLIWxq15ost9MeF8kBk4R3eiFw==",
       "dependencies": [
         "@puppeteer/browsers",
         "chromium-bidi",
@@ -1500,8 +1493,8 @@
         "ws"
       ]
     },
-    "puppeteer@23.4.1_devtools-protocol@0.0.1342118_typescript@5.6.2": {
-      "integrity": "sha512-+wWfWTkQ8L9IB/3OVGSUp37c0eQ5za/85KdX+LAq2wTZkMdocgYGMCs+/91e2f/RXIYzve4x/uGxN8zG2sj8+w==",
+    "puppeteer@23.5.0_devtools-protocol@0.0.1342118_typescript@5.6.2": {
+      "integrity": "sha512-jnUx5M0YtFva7vXr39qqsxgB46JiwXJavuM1Hgsqbd9WWiGTEUt9klGpTxyHi+ZQf3NUgleDhNsnI10IK8Ebsg==",
       "dependencies": [
         "@puppeteer/browsers",
         "chromium-bidi",
@@ -1894,21 +1887,20 @@
         "npm:@discordjs/builders@^1.9.0",
         "npm:@discordjs/voice@0.17",
         "npm:@eslint/js@^9.11.1",
-        "npm:@types/dotenv@^8.2.0",
         "npm:@types/jsdom@^21.1.7",
         "npm:discord-cross-hosting@^2.3.8",
         "npm:discord-hybrid-sharding@^2.2.0",
         "npm:discord.js@^14.16.3",
         "npm:dotenv@^16.4.5",
         "npm:eslint@^9.11.1",
-        "npm:globals@^15.9.0",
+        "npm:globals@^15.10.0",
         "npm:jsdom@^25.0.1",
         "npm:mongodb@^6.9.0",
         "npm:moonlink.js@^4.0.2",
         "npm:net-ipc@2.2.0",
         "npm:node-html-parser@^6.1.13",
         "npm:ollama@~0.5.9",
-        "npm:puppeteer@^23.4.1",
+        "npm:puppeteer@^23.5.0",
         "npm:redis@^4.7.0",
         "npm:ts-node@^10.9.2",
         "npm:typescript-eslint@^8.8.0",
