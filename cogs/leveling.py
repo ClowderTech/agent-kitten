@@ -28,7 +28,6 @@ class Leveling(commands.Cog):
     def calculate_level(self, level, experience):
         return round(level ** 2) + (10 * level) + 100 - experience
 
-
     def calculate_experience_gain(self):
         xp_gain = random.uniform(1, 5)
 
@@ -115,8 +114,8 @@ class Leveling(commands.Cog):
             points = self.calculate_experience_gain()
 
         key = {"user_id": str(user.id)}
-        user_data = await self.get_user_data(self, key)
-        opted_message = await self.get_opted_message(self, key)
+        user_data = await self.get_user_data(key)
+        opted_message = await self.get_opted_message(key)
 
         if user_data:
             level = user_data["level"]
@@ -125,34 +124,34 @@ class Leveling(commands.Cog):
             level = 0
             experience = 0
 
-        new_level, new_experience = await self.process_experience_gain(self, user, level, experience, points)
+        new_level, new_experience = await self.process_experience_gain(user, level, experience, points)
 
         if new_level > level:
-            await self.handle_level_up_message(self, user, new_level, opted_message)
+            await self.handle_level_up_message(user, new_level, opted_message)
 
         if user_data:
-            await self.update_user_data(self, key, new_level, new_experience)
+            await self.update_user_data(key, new_level, new_experience)
         else:
-            await self.insert_user_data(self, key, new_level, new_experience)
+            await self.insert_user_data(key, new_level, new_experience)
 
     async def process_xp_set(self, user: discord.User, level: int = None, experience: int = None):
         key = {"user_id": str(user.id)}
-        user_data = await self.get_user_data(self, key)
-        opted_message = await self.get_opted_message(self, key)
+        user_data = await self.get_user_data(key)
+        opted_message = await self.get_opted_message(key)
 
         if not user_data:
             data_level = level if level is not None else 0
             data_experience = experience if experience is not None else 0
-            await self.insert_user_data(self, key, data_level, data_experience)
+            await self.insert_user_data(key, data_level, data_experience)
         else:
             if level is None:
                 level = user_data["level"]
             if experience is None:
                 experience = user_data["experience"]
 
-            await self.update_user_data(self, key, level, experience)
+            await self.update_user_data(key, level, experience)
 
-            await self.handle_level_set_message(self, user, level, experience, opted_message)
+            await self.handle_level_set_message(user, level, experience, opted_message)
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):

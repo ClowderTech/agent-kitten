@@ -1,14 +1,12 @@
 import discord
 from discord.ext import commands
 import aiohttp
-import googlesearch
 import aiofiles
 import typing
 import os
 import datetime
 import json
 import openai
-import cloudscraper
 from bs4 import BeautifulSoup
 from contextlib import redirect_stdout
 import urllib
@@ -154,7 +152,7 @@ class TextGen(commands.Cog):
         #             return result["response"]
         #         else:
         #             return None
-        response = await self.bot.openai.chat.completions.create(model="gpt-4o", messages=message, tools=tools, tool_choice="auto")
+        response = await self.bot.openai.chat.completions.create(model="gpt-4o-mini", messages=message, tools=tools, tool_choice="auto")
         return response.model_dump(exclude_unset=True)["choices"][0]["message"]
 
     async def get_response(self, message: str, user_id: str,

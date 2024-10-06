@@ -1,7 +1,9 @@
 import datetime as datetime
+from typing import List, Any
 import discord
 from discord.ext import commands
 from discord.ext.commands import AutoShardedBot, errors
+from discord.app_commands import Command, AppCommand
 import asyncio
 import os
 import logging
@@ -13,7 +15,100 @@ from dotenv import load_dotenv
 from openai import AsyncOpenAI
 import signal
 from quart import Quart
+from pathlib import Path
 
+def get_all_files(path: Path | str) -> List[Path]:
+    if isinstance(path, str):
+        path = Path(path)
+
+    if not path.exists():
+        raise ValueError(f'Path {path} does not exist')
+    
+    if not path.is_dir():
+        raise ValueError(f'Path {path} is not a directory')
+        
+    output = []
+    for npath in path.iterdir():
+        if npath.is_file():
+            output.append(npath)
+        elif npath.is_dir():
+            output.append(get_all_files(npath))
+    output = remove_nestings(output)
+    return output
+
+def remove_nestings(l: List[Any]) -> List[Any]:
+    output = []
+    for i in l:
+        if type(i) == list:
+            output += remove_nestings(i)
+        else:
+            output.append(i)
+    return output
+
+def get_all_files_moduled(path: Path | str) -> List[str]: 
+    if isinstance(path, str):
+        path = Path(path)
+
+    if not path.exists():
+        raise ValueError(f'Path {path} does not exist')
+    
+    if not path.is_dir():
+        raise ValueError(f'Path {path} is not a directory')
+
+    new_files = []
+
+    for file in get_all_files(path):
+        if file.suffix == '.py':
+            final = ""
+            for parent in file.parents:
+                if parent.absolute() != file.cwd():
+                    final += f"{parent.name}."
+            final += file.stem
+            new_files.append(final)
+        
+    return new_files
+
+def if_all_commands_synced(local_commands: List[str], server_commands: List[AppCommand]) -> bool:
+    commands_synced = True
+    for local_command in local_commands:
+        command_synced = False
+        for server_command in server_commands:
+            if not isinstance(local_command, Command):
+                continue
+            elif server_command.name != local_command.name:
+                continue
+            elif server_command.description != local_command.description:
+                continue
+            elif server_command.default_member_permissions != local_command.default_permissions:
+                continue
+            elif server_command.nsfw != local_command.nsfw:
+                continue
+            options_synced = True
+            for local_option in local_command.parameters:
+                option_synced = False
+                for server_option in server_command.options:
+                    if server_option.name != local_option.name:
+                        continue
+                    if server_option.description != local_option.description:
+                        continue
+                    if server_option.required != local_option.required:
+                        continue
+                    option_synced = True
+
+                if not option_synced:
+                    options_synced = False
+                    break
+
+            if not options_synced:
+                continue
+
+            command_synced = True
+        
+        if not command_synced:
+            commands_synced = False
+            break
+
+    return commands_synced
 
 class MyBot(AutoShardedBot):
     def __init__(self, *args, **kwargs):
@@ -25,7 +120,7 @@ class MyBot(AutoShardedBot):
         self.logger.info(f"Received signal {signal}. Exiting...")
         self.mongodb_client.close()
         self.loop.create_task(self.openai.close())
-        self.loop.create_task(self.app.shutdown())
+        # self.loop.create_task(self.app.shutdown())
         self.loop.create_task(self.close())
 
     async def setup_hook(self) -> None:
@@ -37,21 +132,31 @@ class MyBot(AutoShardedBot):
             organization=str(os.getenv("OPENAI_ORG_ID"))
         )
         await self.load_cogs()
-        self.app = Quart("Agent Kitten Web UI")
-        self.app.secret_key = os.getenv("SECRET_KEY")
-        self.app.config["DISCORD_CLIENT_ID"] = os.getenv("CLIENT_ID")
-        self.app.config["DISCORD_CLIENT_SECRET"] = os.getenv("CLIENT_SECRET")
-        self.app.config["DISCORD_REDIRECT_URI"] = os.getenv("REDIRECT_URI")
-        self.app.config["DISCORD_BOT_TOKEN"] = os.getenv("TOKEN")
-        await self.load_blueprints()
-        self.loop.create_task(self.app.run_task(host="0.0.0.0", port=5000))
+        # self.app = Quart("Agent Kitten Web UI")
+        # self.app.secret_key = os.getenv("SECRET_KEY")
+        # self.app.config["DISCORD_CLIENT_ID"] = os.getenv("CLIENT_ID")
+        # self.app.config["DISCORD_CLIENT_SECRET"] = os.getenv("CLIENT_SECRET")
+        # self.app.config["DISCORD_REDIRECT_URI"] = os.getenv("REDIRECT_URI")
+        # self.app.config["DISCORD_BOT_TOKEN"] = os.getenv("TOKEN")
+        # await self.load_blueprints()
+        # self.loop.create_task(self.app.run_task(host="0.0.0.0", port=5000))
+
+        server_commands = await self.tree.fetch_commands()
+        local_commands = self.tree.get_commands()
+
+        commands_synced = if_all_commands_synced(local_commands, server_commands)
+
+        if not commands_synced:
+            self.logger.warning("Commands not synced with server, re-syncing...")
+            await self.tree.sync()
+            self.logger.warning("Commands synced with server.")
+
         self.logger.info('Bot setup complete.')
 
     async def load_cogs(self):
-        for filename in os.listdir('./cogs'):
-            if filename.endswith('.py'):
-                await self.load_extension(f'cogs.{filename[:-3]}')
-                self.logger.info(f'Loaded {filename[:-3]}')
+        for file in get_all_files_moduled("./cogs"):
+            await self.load_extension(file)
+            self.logger.info(f'Loaded {file}')
 
     async def load_blueprints(self):
         for foldername in os.listdir('./blueprints'):

@@ -66,9 +66,9 @@ class Utility(commands.Cog):
                              description="Get all commands from the bot and update them. (Bot dev only)",
                              with_app_command=True,
                              guild_id=1185316093078802552)
-    async def sync(self, ctx: commands.Context, guild_id: int = None):
+    async def sync(self, ctx: commands.Context, guild: discord.Guild = None):
         message = await ctx.reply("Syncing commands...", allowed_mentions=discord.AllowedMentions.none())
-        await self.bot.tree.sync(guild=guild_id)
+        await self.bot.tree.sync(guild=guild)
         await message.edit(content="Synced commands!", allowed_mentions=discord.AllowedMentions.none())
 
     @commands.check(is_dev)
