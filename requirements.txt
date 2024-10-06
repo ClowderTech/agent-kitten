@@ -6,7 +6,7 @@ aiohttp==3.10.5
 pymongo==4.9.1
 motor==3.6.0
 python-dotenv==1.0.1
-openai==1.46.0
+openai==1.51.0
 beautifulsoup4==4.12.3
 quart==0.19.6
 quartcord==1.0.1
