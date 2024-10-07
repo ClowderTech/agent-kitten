@@ -4,4 +4,4 @@ I decided to open source the original version of Agent Kitten. I want people who
 
 I plan on releasing a slim version of Agent Kitten V2 as open source for anyone to use, which is in typescript. However this will come in the future
 
-Feel free to contribue, add issues, or do whatever you like with this framework.
+Feel free to contribue, add issues, or do whatever you like with this framework. If you plan to use this framework, I don't mind if you use it comercially. All I want is a bit of credit.
