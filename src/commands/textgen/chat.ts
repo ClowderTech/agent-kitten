@@ -290,7 +290,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 				const { chat_response } = await chatWithFuncs(ollama, {
 					model: "moondream:1.8b",
-					keep_alive: "-1",
+					keep_alive: -1,
 					messages: [
 						{
 							role: "user",
@@ -363,7 +363,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		model: "qwen2.5:7b",
 		messages: user_data.messages,
 		stream: false,
-		keep_alive: "-1",
+		keep_alive: -1,
 		options: {
 			num_ctx: 16383,
 			num_predict: 4095,
