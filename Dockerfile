@@ -1,4 +1,4 @@
-# Use the latest Node.js LTS image
+# Use the latest Deno image
 FROM denoland/deno:debian
 
 # Set the working directory inside the Docker container
@@ -52,6 +52,7 @@ RUN deno install --allow-scripts=npm:puppeteer
 # Copy all other files from the current directory to /app in the container
 COPY . .
 
+# Expose port for 
 EXPOSE 5000
 
 # Command to run the application

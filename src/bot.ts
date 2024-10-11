@@ -35,7 +35,6 @@ import {
 import { Shard } from "discord-cross-hosting";
 import { Ollama } from "ollama";
 
-import * as mod from "node:process";
 import { join } from "node:path";
 import { prettyExpGain } from "./utils/leveling.ts";
 
@@ -475,11 +474,11 @@ function gracefulShutdown() {
 		.destroy()
 		.then(() => {
 			console.log("Discord client closed.");
-			mod.exit(0);
+			Deno.exit(0);
 		})
 		.catch((err) => {
 			console.error("Error closing Discord client:", err);
-			mod.exit(1);
+			Deno.exit(1);
 		});
 }
 
