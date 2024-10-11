@@ -1,7 +1,3 @@
-import { config } from "dotenv";
-
-config({ override: true });
-
 // Step 1: Check the value of process.env.RUN_TYPE
 if (Deno.env.get("RUN_TYPE") === "bridge") {
 	if (!Deno.env.get("BRIDGE_TOKEN") || !Deno.env.get("BOT_TOKEN")) {
