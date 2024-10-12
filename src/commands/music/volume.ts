@@ -18,7 +18,7 @@ export const data = new SlashCommandBuilder()
 			.setDescription("The volume you want to set.")
 			.setRequired(true)
 			.setMinValue(0)
-			.setMaxValue(400),
+			.setMaxValue(200),
 	);
 
 export async function execute(interaction: ChatInputCommandInteraction) {
@@ -82,9 +82,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		const embed = new EmbedBuilder()
 			.setTitle("Vote to stop")
 			.setDescription(
-				`You are not a DJ, so you need to vote. React with ✅ to vote to change the volume of the player. Have ${
-					votesNeeded
-				} votes in 30 seconds. The vote will end <t:${
+				`You are not a DJ, so you need to vote. React with ✅ to vote to change the volume of the player. Have ${votesNeeded} votes in 30 seconds. The vote will end <t:${
 					Math.floor(Date.now() / 1000) + 30
 				}:R>`,
 			)
