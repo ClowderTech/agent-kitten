@@ -8,6 +8,8 @@ import {
 	ChatInputCommandInteraction,
 } from "discord.js";
 import { type ClientExtended, UserMadeError } from "../../utils/classes.ts";
+import { getNestedKey, type Config } from "../../utils/config.ts";
+import { getData } from "../../utils/mongohelper.ts";
 
 export const data = new SlashCommandBuilder()
 	.setName("volume")
@@ -17,8 +19,7 @@ export const data = new SlashCommandBuilder()
 			.setName("volume")
 			.setDescription("The volume you want to set.")
 			.setRequired(true)
-			.setMinValue(0)
-			.setMaxValue(200),
+			.setMinValue(0),
 	);
 
 export async function execute(interaction: ChatInputCommandInteraction) {
@@ -62,7 +63,25 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	const channel = member.voice.channel;
 
-	const volume = <number>interaction.options.get("volume", true).value;
+	const volume = interaction.options.getInteger("volume", true);
+
+	if (!interaction.guild) {
+		throw new UserMadeError("You must use this in a server.");
+	}
+
+	const serverId = interaction.guild.id; // Get the ID of the server executing the command
+
+	const serverData = await getData(client, "config", { serverId: serverId });
+	const configData: Config = serverData[0]?.config || {};
+
+	const maxVolume =
+		(getNestedKey(configData, "music.maxvolume") as number) || 100;
+
+	if (volume < 0 || volume > maxVolume) {
+		throw new UserMadeError(
+			`The volume must be between 0 and ${maxVolume}. This can be set using \`/serverconf set key:music.maxvolume value:ENTER_YOUR_NUMBER_HERE\``,
+		);
+	}
 
 	if (
 		!(
