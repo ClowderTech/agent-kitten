@@ -6,15 +6,15 @@ import {
 	ChatInputCommandInteraction,
 	Message as DiscordMessage,
 } from "discord.js";
-import type { ClientExtended } from "../../utils/classes.ts";
+import type { ClientExtended } from "../../../utils/classes.ts";
 import { WithId, Document } from "mongodb";
 import * as ts from "typescript";
 import * as vm from "node:vm";
 import { launch } from "puppeteer";
-import { chatWithFuncs, convertBlobToUint8Array } from "../../utils/textgen.ts";
+import { chatWithFuncs, convertBlobToUint8Array } from "../../../utils/textgen.ts";
 import { ChatRequest } from "ollama";
 import { parse } from "node-html-parser";
-import { getData, setData } from "../../utils/mongohelper.ts";
+import { getData, setData } from "../../../utils/mongohelper.ts";
 
 export const data = new SlashCommandBuilder()
 	.setName("chat")

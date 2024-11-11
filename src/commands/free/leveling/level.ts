@@ -4,12 +4,12 @@ import {
 	User,
 	ChatInputCommandInteraction,
 } from "discord.js";
-import { type ClientExtended } from "../../utils/classes.ts";
+import { type ClientExtended } from "../../../utils/classes.ts";
 import {
 	getMemberExperience,
 	calculateLevelFromExperience,
 	calculateExperienceFromLevel,
-} from "../../utils/leveling.ts"; // Import necessary functions
+} from "../../../utils/leveling.ts"; // Import necessary functions
 
 // Define the new command with an optional user option
 export const data = new SlashCommandBuilder()

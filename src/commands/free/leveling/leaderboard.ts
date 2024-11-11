@@ -3,11 +3,11 @@ import {
 	SlashCommandBuilder,
 	ChatInputCommandInteraction,
 } from "discord.js";
-import type { ClientExtended } from "../../utils/classes.ts"; // Import your client extended type
+import type { ClientExtended } from "../../../utils/classes.ts"; // Import your client extended type
 import {
 	getUsersByExperienceRange,
 	calculateLevelFromExperience,
-} from "../../utils/leveling.ts"; // Adjust the import path
+} from "../../../utils/leveling.ts"; // Adjust the import path
 
 // Define the command using SlashCommandBuilder
 export const data = new SlashCommandBuilder()

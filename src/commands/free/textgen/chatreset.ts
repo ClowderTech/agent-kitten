@@ -1,6 +1,6 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
-import type { ClientExtended } from "../../utils/classes.ts";
-import { deleteData, getData } from "../../utils/mongohelper.ts";
+import type { ClientExtended } from "../../../utils/classes.ts";
+import { deleteData, getData } from "../../../utils/mongohelper.ts";
 
 export const data = new SlashCommandBuilder()
 	.setName("chatreset")
