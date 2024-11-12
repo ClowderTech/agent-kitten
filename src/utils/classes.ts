@@ -7,8 +7,6 @@ import {
 import type { MongoClient } from "mongodb";
 import type { Manager } from "moonlink.js";
 import type { Ollama } from "ollama";
-import type { ClusterClient, DjsDiscordClient } from "discord-hybrid-sharding";
-import type { Shard } from "discord-cross-hosting";
 
 export interface Command {
 	data: SlashCommandBuilder;
@@ -20,8 +18,6 @@ export interface ClientExtended extends Client {
 	ollama: Ollama;
 	mongoclient: MongoClient;
 	moonlink: Manager;
-	cluster: ClusterClient<DjsDiscordClient>;
-	machine: Shard;
 	usersMessaged: string[];
 }
 

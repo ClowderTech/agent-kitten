@@ -75,7 +75,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	const playable = await client.moonlink.search({
 		query: song,
 		requester: interaction.user.id,
-		source: "youtubemusic",
+		source: "soundcloud",
 	});
 
 	if (playable.loadType === "empty") {
