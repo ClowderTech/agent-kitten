@@ -8,7 +8,6 @@ import {
 	ChatInputCommandInteraction,
 } from "discord.js";
 import { type ClientExtended, UserMadeError } from "../../../utils/classes.ts";
-import type { TPlayerLoop } from "moonlink.js";
 
 export const data = new SlashCommandBuilder()
 	.setName("loop")
@@ -123,7 +122,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 		collector.on("end", async () => {
 			if (votes >= votesNeeded) {
-				player!.setLoop(loop_type as TPlayerLoop);
+				player!.setLoop(loop_type);
 				if (loop_type == "none") {
 					await interaction.editReply({
 						content: "Disabled looping.",
@@ -154,7 +153,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		return;
 	}
 
-	player!.setLoop(loop_type as TPlayerLoop);
+	player!.setLoop(loop_type);
 
 	if (loop_type == "none") {
 		await interaction.reply({ content: "Disabled looping.", embeds: [] });

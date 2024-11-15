@@ -1,50 +1,9 @@
 version: "3.8" # Specify the version for compatibility
 
 services:
-    bridge:
+    agentkitten:
         build:
             context: ./ # Use the current directory as the build context
             dockerfile: ./Dockerfile # Correct path to your Dockerfile
         env_file:
-            - ./.env.bridge
-        ports:
-            - 5000
-        networks:
-            - my_network
-
-    cluster0:
-        build:
-            context: ./ # Use the current directory as the build context
-            dockerfile: ./Dockerfile # Correct path to your Dockerfile
-        env_file:
-            - ./.env.cluster
-        depends_on:
-            - bridge
-        networks:
-            - my_network
-
-    cluster1:
-        build:
-            context: ./ # Use the current directory as the build context
-            dockerfile: ./Dockerfile # Correct path to your Dockerfile
-        env_file:
-            - ./.env.cluster
-        depends_on:
-            - bridge
-        networks:
-            - my_network
-
-    cluster2:
-        build:
-            context: ./ # Use the current directory as the build context
-            dockerfile: ./Dockerfile # Correct path to your Dockerfile
-        env_file:
-            - ./.env.cluster
-        depends_on:
-            - bridge
-        networks:
-            - my_network
-
-networks:
-    my_network:
-        driver: host # Define the dedicated network (using 'bridge' as an example)
+            - ./.env

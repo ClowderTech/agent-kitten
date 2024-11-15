@@ -14,7 +14,7 @@
     "npm:globals@^15.12.0": "15.12.0",
     "npm:jsdom@^25.0.1": "25.0.1",
     "npm:mongodb@^6.10.0": "6.10.0",
-    "npm:moonlink.js@^4.0.1": "4.0.2",
+    "npm:moonlink.js@^3.6.64": "3.6.64",
     "npm:net-ipc@2.2.0": "2.2.0",
     "npm:node-html-parser@^6.1.13": "6.1.13",
     "npm:ollama@~0.5.9": "0.5.9",
@@ -1267,8 +1267,8 @@
         "mongodb-connection-string-url"
       ]
     },
-    "moonlink.js@4.0.2": {
-      "integrity": "sha512-q8P8q2oSxa8ETytY/pSbGilWRSKY8HyhXYCXMNj3ML/Ls6jkgumNneKwidGscpTc/SZoDYWI8uzPpIC2BbEalA==",
+    "moonlink.js@3.6.64": {
+      "integrity": "sha512-5KpLtJnomCzpOjwKVOxjKBsZBt4RxBecTR1rqRrNSEUG4spjthNhaN3zDFyM18EzCLO4bMw1A+08Exrxhpt+1g==",
       "dependencies": [
         "ws"
       ]
@@ -1861,7 +1861,7 @@
         "npm:globals@^15.12.0",
         "npm:jsdom@^25.0.1",
         "npm:mongodb@^6.10.0",
-        "npm:moonlink.js@^4.0.1",
+        "npm:moonlink.js@^3.6.64",
         "npm:net-ipc@2.2.0",
         "npm:node-html-parser@^6.1.13",
         "npm:ollama@~0.5.9",

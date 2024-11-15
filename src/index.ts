@@ -15,7 +15,7 @@ import {
 	StageChannel,
 } from "discord.js";
 
-import { Manager, Player, type INode } from "moonlink.js";
+import { MoonlinkManager, MoonlinkNode, MoonlinkPlayer } from "moonlink.js";
 
 import {
 	type ClientExtended,
@@ -57,8 +57,8 @@ const client: ClientExtended = new Client({
 
 client.usersMessaged = [];
 
-client.moonlink = new Manager({
-	nodes: [
+client.moonlink = new MoonlinkManager(
+	[
 		{
 			host: Deno.env.get("LAVALINK_HOST")!,
 			port: Number(Deno.env.get("LAVALINK_PORT")),
@@ -68,24 +68,24 @@ client.moonlink = new Manager({
 			retryAmount: 1000000000000,
 		},
 	],
-	options: {},
-	sendPayload: (guildId: string, payload: unknown) => {
-        const guild = client.guilds.cache.get(guildId);
-        if (guild) guild.shard.send(payload); // Sending data to the shard if the guild is available
-    }
-});
+	{},
+	(guild: string, sPayload: string) => {
+		// Sending payload information to the server
+		client.guilds.cache.get(guild)?.shard.send(JSON.parse(sPayload));
+	},
+);
 
 // Event: Node created
-client.moonlink.on("nodeCreate", (node: INode) => {
+client.moonlink.on("nodeCreate", (node: MoonlinkNode) => {
 	console.log(`${node.host} was connected, and the magic is in the air`);
 });
 
-client.moonlink.on("nodeError", (node: INode, error: Error) => {
+client.moonlink.on("nodeError", (node: MoonlinkNode, error: Error) => {
 	console.error(`Node ${node.host} emitted an error: ${error}`);
 });
 
-client.moonlink.on("trackEnd", async (player: Player) => {
-	const channel = await client.channels.cache.get(player.voiceChannelId);
+client.moonlink.on("trackEnd", async (player: MoonlinkPlayer) => {
+	const channel = await client.channels.cache.get(player.voiceChannel);
 	if (
 		channel &&
 		channel.isVoiceBased() &&
@@ -411,8 +411,8 @@ client.once(Events.ClientReady, async (readyClient: Client) => {
 	client.moonlink.init(client.user!.id);
 });
 
-client.on("raw", data => {
-    client.moonlink.packetUpdate(data); // Passing raw data to Moonlink.js for handling
+client.on("raw", (data) => {
+	client.moonlink.packetUpdate(data); // Passing raw data to Moonlink.js for handling
 });
 
 async function getVoiceChannelMembers(guild: Guild) {
@@ -473,4 +473,4 @@ function gracefulShutdown() {
 Deno.addSignalListener("SIGINT", gracefulShutdown);
 Deno.addSignalListener("SIGTERM", gracefulShutdown);
 
-client.login(Deno.env.get("BOT_TOKEN"));
+client.login(Deno.env.get("DISCORD_TOKEN"));

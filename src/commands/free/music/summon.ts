@@ -104,7 +104,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 		collector.on("end", async () => {
 			if (votes >= votesNeeded) {
-				await player.setVoiceChannelId(
+				await player.setVoiceChannel(
 					interaction.options.getChannel("channel", true).id,
 				);
 
@@ -128,7 +128,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		return;
 	}
 
-	await player.setVoiceChannelId(
+	await player.setVoiceChannel(
 		interaction.options.getChannel("channel", true).id,
 	);
 

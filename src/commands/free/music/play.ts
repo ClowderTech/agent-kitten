@@ -50,8 +50,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	if (!player) {
 		player = client.moonlink.players.create({
 			guildId: guildID,
-			voiceChannelId: member.voice.channel.id,
-			textChannelId: interaction.channel.id,
+			voiceChannel: member.voice.channel.id,
+			textChannel: interaction.channel.id,
 			volume: 100,
 			autoPlay: false,
 			autoLeave: true,
@@ -68,7 +68,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		});
 	}
 
-	const song = <string>interaction.options.get("song", true).value;
+	const song = interaction.options.getString("song", true);
 
 	await interaction.deferReply();
 

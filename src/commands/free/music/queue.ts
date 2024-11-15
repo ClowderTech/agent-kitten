@@ -3,7 +3,7 @@ import {
 	SlashCommandBuilder,
 	ChatInputCommandInteraction,
 } from "discord.js";
-import { Track } from "moonlink.js";
+import { MoonlinkTrack } from "moonlink.js";
 import { type ClientExtended, UserMadeError } from "../../../utils/classes.ts";
 
 export const data = new SlashCommandBuilder()
@@ -27,15 +27,17 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	let addon_title = "";
 
+	const loop_type = player.loop == 1 ? "track": player.loop == 2 ? "queue" : "none"
+
 	if (player.current.isStream) {
 		addon_title += " (Live)";
 	}
 
-	if (player.loop == "track") {
+	if (loop_type == "track") {
 		addon_title += " (Looping)";
 	}
 
-	if (player.loop == "queue") {
+	if (loop_type == "queue") {
 		addon_title += " (Looping Queue)";
 	}
 
@@ -62,13 +64,13 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		);
 
 	if (queue.size > 0) {
-		const next = queue.tracks.slice(0, 5);
+		const next = queue.getQueue().slice(0, 5);
 		const nextString = next
 			.map(
-				(song: Track, index: number) =>
+				(song: MoonlinkTrack, index: number) =>
 					`${index + 1}. [${song.title || "Unknown Track"}](${
 						song.url || "https://www.google.com/"
-					}) (requested by <@!${song.requestedBy}>)`,
+					}) (requested by <@!${song.requester}>)`,
 			)
 			.join("\n");
 		embed.addFields({

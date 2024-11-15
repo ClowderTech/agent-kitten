@@ -5,7 +5,7 @@ import {
 	SlashCommandBuilder,
 } from "discord.js";
 import type { MongoClient } from "mongodb";
-import type { Manager } from "moonlink.js";
+import type { MoonlinkManager } from "moonlink.js";
 import type { Ollama } from "ollama";
 
 export interface Command {
@@ -17,7 +17,7 @@ export interface ClientExtended extends Client {
 	commands: Collection<string, Command>;
 	ollama: Ollama;
 	mongoclient: MongoClient;
-	moonlink: Manager;
+	moonlink: MoonlinkManager;
 	usersMessaged: string[];
 }
 

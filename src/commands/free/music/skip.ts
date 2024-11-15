@@ -8,9 +8,9 @@ import {
 	ChatInputCommandInteraction,
 } from "discord.js";
 import { type ClientExtended, UserMadeError } from "../../../utils/classes.ts";
-import type { Queue } from "moonlink.js";
+import type { MoonlinkQueue } from "moonlink.js";
 
-const removeFromQueue = (queue: Queue, amount: number) => {
+const removeFromQueue = (queue: MoonlinkQueue, amount: number) => {
 	// Check if amount is 2 or greater
 	if (amount >= 2) {
 		// Calculate how many times to remove from the front
