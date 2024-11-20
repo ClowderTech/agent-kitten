@@ -65,7 +65,7 @@ client.moonlink = new MoonlinkManager(
 			secure: Boolean(Deno.env.get("LAVALINK_SECURE")!),
 			password: Deno.env.get("LAVALINK_PASSWORD")!,
 			retryDelay: 5000,
-			retryAmount: 1000000000000,
+			retryAmount: 65535,
 		},
 	],
 	{},
