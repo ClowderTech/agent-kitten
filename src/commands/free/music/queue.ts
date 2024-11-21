@@ -27,7 +27,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	let addon_title = "";
 
-	const loop_type = player.loop == 1 ? "track": player.loop == 2 ? "queue" : "none"
+	const loop_type =
+		player.loop == 1 ? "track" : player.loop == 2 ? "queue" : "none";
 
 	if (player.current.isStream) {
 		addon_title += " (Live)";

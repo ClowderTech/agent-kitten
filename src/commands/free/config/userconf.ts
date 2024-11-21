@@ -5,7 +5,11 @@ import {
 } from "discord.js";
 import type { ClientExtended } from "../../../utils/classes.ts";
 import { getData, setData } from "../../../utils/mongohelper.ts"; // Adjust the import path as necessary
-import { getNestedKey, setNestedKey, type Config } from "../../../utils/config.ts";
+import {
+	getNestedKey,
+	setNestedKey,
+	type Config,
+} from "../../../utils/config.ts";
 
 export const data = new SlashCommandBuilder()
 	.setName("userconf")

@@ -48,14 +48,26 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	let player = client.moonlink.players.get(guildID);
 	if (!player) {
-		player = client.moonlink.players.create({
-			guildId: guildID,
-			voiceChannel: member.voice.channel.id,
-			textChannel: interaction.channel.id,
-			volume: 100,
-			autoPlay: false,
-			autoLeave: true,
-		});
+		try {
+			player = client.moonlink.players.create({
+				guildId: guildID,
+				voiceChannel: member.voice.channel.id,
+				textChannel: interaction.channel.id,
+				volume: 100,
+				autoPlay: false,
+				autoLeave: true,
+			});
+		} catch {
+			client.moonlink.nodes.check();
+			player = client.moonlink.players.create({
+				guildId: guildID,
+				voiceChannel: member.voice.channel.id,
+				textChannel: interaction.channel.id,
+				volume: 100,
+				autoPlay: false,
+				autoLeave: true,
+			});
+		}
 	}
 
 	// player.setAutoLeave(true);
@@ -115,7 +127,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 					? `Queued playlist: \`${playlistInfo.name}\``
 					: `Currently playing: \`${
 							playable.tracks[0]?.title || "Unknown Track"
-					  }\``,
+						}\``,
 			)
 			.setColor("#2b2d31")
 			.setThumbnail(
