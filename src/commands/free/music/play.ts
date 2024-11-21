@@ -48,15 +48,25 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	let player = client.moonlink.players.get(guildID);
 	if (!player) {
-		client.moonlink.nodes.check();
-		player = client.moonlink.players.create({
-			guildId: guildID,
-			voiceChannel: member.voice.channel.id,
-			textChannel: interaction.channel.id,
-			volume: 100,
-			autoPlay: false,
-			autoLeave: true,
-		});
+		try {
+			player = client.moonlink.players.create({
+				guildId: guildID,
+				voiceChannel: member.voice.channel.id,
+				textChannel: interaction.channel.id,
+				volume: 100,
+				autoPlay: false,
+				autoLeave: true,
+			});
+		} catch (error) {
+			if (error instanceof TypeError) {
+				client.moonlink.nodes.check();
+				throw new Error(
+					"Please try this command again. We had to refresh the music player.",
+				);
+			} else {
+				throw error;
+			}
+		}
 	}
 
 	// player.setAutoLeave(true);
