@@ -312,7 +312,10 @@ function areCommandsRegistered(
 			}
 
 			// Check each property of the option, with default for required
-			const actualRequired = actualOption.required; // Get actual required value (true or false)
+			const actualRequired =
+				actualOption.required !== undefined
+					? registeredOption.required
+					: false; // Get actual required value (true or false)
 			const registeredRequired =
 				registeredOption.required !== undefined
 					? registeredOption.required
