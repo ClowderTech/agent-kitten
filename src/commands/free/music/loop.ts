@@ -69,6 +69,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	const loop_type = interaction.options.get("type", true).value! as string;
 
+	const loop_type_number =
+		loop_type == "track" ? 1 : loop_type == "queue" ? 2 : "none";
+
 	const channel = member.voice.channel;
 
 	if (
@@ -89,9 +92,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		const embed = new EmbedBuilder()
 			.setTitle("Vote to stop")
 			.setDescription(
-				`You are not a DJ, so you need to vote. React with ✅ to vote to loop the player. Have ${
-					votesNeeded
-				} votes in 30 seconds. The vote will end <t:${
+				`You are not a DJ, so you need to vote. React with ✅ to vote to loop the player. Have ${votesNeeded} votes in 30 seconds. The vote will end <t:${
 					Math.floor(Date.now() / 1000) + 30
 				}:R>`,
 			)
@@ -153,7 +154,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		return;
 	}
 
-	player!.setLoop(loop_type);
+	player!.setLoop(loop_type_number);
 
 	if (loop_type == "none") {
 		await interaction.reply({ content: "Disabled looping.", embeds: [] });
