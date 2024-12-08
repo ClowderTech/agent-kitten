@@ -184,9 +184,9 @@ async function loadEvents(eventsPath: string): Promise<void> {
 		const event = await import(file);
 
 		if (event.once) {
-			client.once(event.eventType, (...args) => {
+			client.once(event.eventType, async (...args) => {
 				if (args && Array.isArray(args)) {
-					event.execute(...args);
+					await event.execute(...args);
 				} else {
 					console.error(
 						"Expected args to be an array, but received:",
@@ -195,9 +195,9 @@ async function loadEvents(eventsPath: string): Promise<void> {
 				}
 			});
 		} else {
-			client.on(event.eventType, (...args) => {
+			client.on(event.eventType, async (...args) => {
 				if (args && Array.isArray(args)) {
-					event.execute(...args);
+					await event.execute(...args);
 				} else {
 					console.error(
 						"Expected args to be an array, but received:",

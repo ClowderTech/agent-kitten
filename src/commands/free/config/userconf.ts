@@ -22,7 +22,13 @@ export const data = new SlashCommandBuilder()
 				option
 					.setName("key")
 					.setDescription("The configuration key you want to set")
-					.setRequired(true),
+					.setRequired(true)
+					.setChoices([
+						{
+							name: "leveling.levelupmessaging",
+							value: "leveling.levelupmessaging",
+						},
+					]),
 			)
 			.addStringOption((option) =>
 				option
@@ -39,7 +45,13 @@ export const data = new SlashCommandBuilder()
 				option
 					.setName("key")
 					.setDescription("The configuration key you want to get")
-					.setRequired(true),
+					.setRequired(true)
+					.setChoices([
+						{
+							name: "leveling.levelupmessaging",
+							value: "leveling.levelupmessaging",
+						},
+					]),
 			),
 	)
 	.addSubcommand((subcommand) =>

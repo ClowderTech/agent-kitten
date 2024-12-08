@@ -24,7 +24,21 @@ export const data = new SlashCommandBuilder()
 				option
 					.setName("key")
 					.setDescription("The configuration key you want to set")
-					.setRequired(true),
+					.setRequired(true)
+					.addChoices([
+						{
+							name: "moderation.automod.enabled",
+							value: "moderation.automod.enabled",
+						},
+						{
+							name: "moderation.automod.rules",
+							value: "moderation.automod.rules",
+						},
+						{
+							name: "music.maxvolume",
+							value: "music.maxvolume",
+						},
+					]),
 			)
 			.addStringOption((option) =>
 				option
@@ -41,7 +55,21 @@ export const data = new SlashCommandBuilder()
 				option
 					.setName("key")
 					.setDescription("The configuration key you want to get")
-					.setRequired(true),
+					.setRequired(true)
+					.addChoices([
+						{
+							name: "moderation.automod.enabled",
+							value: "moderation.automod.enabled",
+						},
+						{
+							name: "moderation.automod.rules",
+							value: "moderation.automod.rules",
+						},
+						{
+							name: "music.maxvolume",
+							value: "music.maxvolume",
+						},
+					]),
 			),
 	)
 	.addSubcommand((subcommand) =>
