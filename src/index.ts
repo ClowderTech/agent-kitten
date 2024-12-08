@@ -186,7 +186,11 @@ async function loadEvents(eventsPath: string): Promise<void> {
 		if (event.once) {
 			client.once(event.eventType, async (...args) => {
 				if (args && Array.isArray(args)) {
-					await event.execute(...args);
+					try {
+						await event.execute(...args);
+					} catch (error: unknown) {
+						console.error(error);
+					}
 				} else {
 					console.error(
 						"Expected args to be an array, but received:",
@@ -197,7 +201,11 @@ async function loadEvents(eventsPath: string): Promise<void> {
 		} else {
 			client.on(event.eventType, async (...args) => {
 				if (args && Array.isArray(args)) {
-					await event.execute(...args);
+					try {
+						await event.execute(...args);
+					} catch (error: unknown) {
+						console.error(error);
+					}
 				} else {
 					console.error(
 						"Expected args to be an array, but received:",

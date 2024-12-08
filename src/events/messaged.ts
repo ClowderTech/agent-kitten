@@ -4,10 +4,50 @@ import type { ClientExtended } from "../utils/classes.ts";
 import { getData } from "../utils/mongohelper.ts";
 import { getNestedKey, type Config } from "../utils/config.ts";
 import { chatWithFuncs } from "../utils/textgen.ts";
+import { launch } from "puppeteer";
 
 export const eventType: Events = Events.MessageCreate;
 
 export const once = false;
+
+async function searchGoogle(query: string): Promise<string> {
+	const searchResultsAmount = 3;
+	const escapedTerm = encodeURIComponent(query);
+	const url = `https://searx.clowdertech.com/search?q=${escapedTerm}&language=auto&time_range=&safesearch=0&categories=general&format=json`;
+
+	let searchResults = "";
+	let start = 0;
+
+	const browser = await launch({ headless: true, args: ["--no-sandbox"] });
+	const page = await browser.newPage();
+
+	try {
+		const response = await page.goto(url, {
+			timeout: 30000,
+			waitUntil: "load",
+		});
+		if (!response?.ok()) {
+			return `Response not ok. Status ${response?.status()}.`;
+		}
+		const data = await response.json();
+		const results = data.results;
+		for (const result of results) {
+			searchResults += `[${start + 1}] ${result.url} || ${
+				result.content
+			}\n`;
+			start += 1;
+			if (start === searchResultsAmount) {
+				break;
+			}
+		}
+	} catch (error) {
+		return `An error occurred: ${error}`;
+	} finally {
+		await browser.close();
+	}
+
+	return searchResults;
+}
 
 export async function execute(message: Message) {
 	if (message.author.bot) return;
@@ -54,29 +94,63 @@ export async function execute(message: Message) {
 #### 7. No Bot Misuse
 - Do not misuse bots (e.g., spamming commands, using them for harassment).`;
 
+		const channel = message.channel;
+
+		const messages = channel.messages.cache.last(5)
+
+		let messages_string = `Channel Name: ${channel.name}\nChannel ID: ${channel.id}\n\n`
+
+		for (const message of messages) {
+			messages_string += `Message ID: ${message.id}\nAuthor ID: ${message.author.id}\nAuthor Name: ${message.author.displayName}\nContent: ${message.content}\n\n`
+		}
+
+		messages_string = messages_string.normalize().trim()
+
+		console.log(messages_string)
+
 		const { chat_response } = await chatWithFuncs(client.ollama, {
-			model: "qwen2.5:1.5b",
+			model: "qwen2.5:7b",
 			messages: [
 				{
 					role: "system",
-					content: `You are an AI Moderation bot. Your job is to moderate a discord server based on the set rules. If there is an offending message, state its Message ID. If there are multiple offending messages, seperate them with a comma. Otherwise, say anything else. The rules are as follows:\n\n${rules}`,
+					content: `You are an AI Moderation bot. Your job is to moderate a discord server based on the set rules. If there is an offending message, state its Message ID and nothing else. If there are multiple offending messages, seperate them with a comma. Otherwise, say anything else. The rules are as follows:\n\n${rules}`,
 				},
 				{
 					role: "user",
-					content: `Message ID: ${message.id}\nContent: ${message.content}`,
+					content: messages_string,
 				},
 			],
+			tools: [
+				{
+					type: "function",
+					function: {
+						name: "search",
+						description: "Search on Google.",
+						parameters: {
+							type: "object",
+							properties: {
+								query: {
+									type: "string",
+									description: "The search query.",
+								},
+							},
+							required: ["query"],
+						},
+					},
+				},
+			]
+		}, {
+			search: searchGoogle,
 		});
 
-		const discordMessageIdPattern = /^\d{17}$/;
-
-		const channel = message.channel;
+		const discordMessageIdPattern = /^\d{17,19}$/;
 
 		const response = chat_response.message.content
 			.normalize()
 			.trim()
 			.replaceAll(" ", "")
 			.split(",");
+
 		for (const possible of response) {
 			if (discordMessageIdPattern.test(possible)) {
 				await channel.messages.cache.get(possible)!.delete();
