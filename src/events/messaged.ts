@@ -106,8 +106,6 @@ export async function execute(message: Message) {
 
 		messages_string = messages_string.normalize().trim()
 
-		console.log(messages_string)
-
 		const { chat_response } = await chatWithFuncs(client.ollama, {
 			model: "qwen2.5:7b",
 			messages: [
