@@ -29,7 +29,7 @@
 		"moonlink.js": "^3.6.64",
 		"net-ipc": "2.2.0",
 		"node-html-parser": "^6.1.13",
-		"ollama": "^0.5.10",
+		"ollama": "^0.5.11",
 		"puppeteer": "^23.10.0",
 		"redis": "^4.7.0"
 	}
