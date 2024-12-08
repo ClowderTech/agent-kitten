@@ -38,6 +38,10 @@ export const data = new SlashCommandBuilder()
 							name: "music.maxvolume",
 							value: "music.maxvolume",
 						},
+						{
+							name: "moderation.automod.lookback",
+							value: "moderation.automod.lookback"
+						}
 					]),
 			)
 			.addStringOption((option) =>
@@ -69,6 +73,10 @@ export const data = new SlashCommandBuilder()
 							name: "music.maxvolume",
 							value: "music.maxvolume",
 						},
+						{
+							name: "moderation.automod.lookback",
+							value: "moderation.automod.lookback"
+						}
 					]),
 			),
 	)

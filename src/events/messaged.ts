@@ -96,7 +96,7 @@ export async function execute(message: Message) {
 
 		const channel = message.channel;
 
-		const messages = channel.messages.cache.last(5)
+		const messages = channel.messages.cache.last(Number(getNestedKey(configData, "moderation.automod.lookback")) || 1)
 
 		let messages_string = `Channel Name: ${channel.name}\nChannel ID: ${channel.id}\n\n`
 
