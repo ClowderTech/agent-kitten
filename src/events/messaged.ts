@@ -165,26 +165,34 @@ export async function execute(message: Message) {
 			.trim()
 			.split(",");
 
-		console.log(response);
-
 		for (const possible of response) {
 			if (possible.length >= 1) {
 				const possible_split = possible.trim().split(";");
+				if (possible_split.length >= 3 || possible_split.length <= 0) {
+					continue;
+				}
 				possible_split[0] = possible_split[0].trim();
 				if (!discordMessageIdPattern.test(possible_split[0])) {
 					continue;
 				}
-				possible_split[1] = possible_split[1].trim();
+				possible_split[1] =
+					possible_split[1].trim() || "No specified reason.";
 
 				const message =
 					channel.messages.cache.get(possible_split[0]) ||
 					(await channel.messages.fetch(possible_split[0]));
 
-				const log_channel_id =
-					getNestedKey(configData, "moderation.automod.lookback") ||
+				let log_channel_id =
+					getNestedKey(configData, "moderation.automod.logchannel") ||
 					null;
 
-				if (typeof log_channel_id === "string") {
+				if (
+					typeof log_channel_id === "string" ||
+					typeof log_channel_id === "number"
+				) {
+					if (typeof log_channel_id === "number") {
+						log_channel_id = String(log_channel_id);
+					}
 					const log_channel =
 						guild.channels.cache.get(log_channel_id) ||
 						(await guild.channels.fetch(log_channel_id));
