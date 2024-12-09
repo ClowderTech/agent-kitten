@@ -133,29 +133,29 @@ export async function execute(message: Message) {
 						content: messages_string,
 					},
 				],
-				tools: [
-					{
-						type: "function",
-						function: {
-							name: "search",
-							description: "Search on Google.",
-							parameters: {
-								type: "object",
-								properties: {
-									query: {
-										type: "string",
-										description: "The search query.",
-									},
-								},
-								required: ["query"],
-							},
-						},
-					},
-				],
+			// 	tools: [
+			// 		{
+			// 			type: "function",
+			// 			function: {
+			// 				name: "search",
+			// 				description: "Search on Google.",
+			// 				parameters: {
+			// 					type: "object",
+			// 					properties: {
+			// 						query: {
+			// 							type: "string",
+			// 							description: "The search query.",
+			// 						},
+			// 					},
+			// 					required: ["query"],
+			// 				},
+			// 			},
+			// 		},
+			// 	],
 			},
-			{
-				search: searchGoogle,
-			},
+			// {
+			// 	search: searchGoogle,
+			// },
 		);
 
 		const discordMessageIdPattern = /^\d{17,19}$/;
