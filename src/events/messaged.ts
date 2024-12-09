@@ -163,7 +163,9 @@ export async function execute(message: Message) {
 		const response = chat_response.message.content
 			.normalize()
 			.trim()
-			.split(",");
+			.replace(/^.*?<Output>/, "")
+			.replace("</Output>", "")
+			.split(",")
 
 		for (const possible of response) {
 			if (possible.length >= 1) {
