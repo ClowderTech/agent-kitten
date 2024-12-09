@@ -165,10 +165,15 @@ export async function execute(message: Message) {
 			.trim()
 			.split(",");
 
+		console.log(response);
+
 		for (const possible of response) {
-			if (discordMessageIdPattern.test(possible)) {
+			if (possible.length >= 1) {
 				const possible_split = possible.trim().split(";");
 				possible_split[0] = possible_split[0].trim();
+				if (!discordMessageIdPattern.test(possible_split[0])) {
+					continue;
+				}
 				possible_split[1] = possible_split[1].trim();
 
 				const message =
