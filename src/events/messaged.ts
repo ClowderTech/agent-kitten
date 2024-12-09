@@ -126,7 +126,7 @@ export async function execute(message: Message) {
 				messages: [
 					{
 						role: "system",
-						content: `You are an AI Moderation bot. Your job is to moderate a discord server based on the set rules. If there is an offending message, state its Message ID and the reason for offending seperated by a semicolon and nothing else. If there are multiple offending messages, seperate them with a comma. Otherwise, say anything else. The rules are as follows:\n\n${rules}`,
+						content: `You are an AI Moderation bot. Your job is to moderate a discord server based on the set rules. If there is an offending message, state its Message ID and the reason for offending seperated by a semicolon and nothing else. If there are multiple offending messages, seperate them with a comma. If the message does not offend any rules, do not state its Message ID, Reason, any semicolon, or any comma. The rules are as follows:\n\n${rules}`,
 					},
 					{
 						role: "user",
