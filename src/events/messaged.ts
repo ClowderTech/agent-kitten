@@ -1,4 +1,4 @@
-import { Events, Message } from "discord.js";
+import { EmbedBuilder, Events, Message } from "discord.js";
 import { prettyExpGain } from "../utils/leveling.ts";
 import type { ClientExtended } from "../utils/classes.ts";
 import { getData } from "../utils/mongohelper.ts";
@@ -96,62 +96,150 @@ export async function execute(message: Message) {
 
 		const channel = message.channel;
 
-		const messages = channel.messages.cache.last(Number(getNestedKey(configData, "moderation.automod.lookback")) || 1)
-
-		let messages_string = `Channel Name: ${channel.name}\nChannel ID: ${channel.id}\n\n`
-
-		for (const message of messages) {
-			messages_string += `Message ID: ${message.id}\nAuthor ID: ${message.author.id}\nAuthor Name: ${message.author.displayName}\nContent: ${message.content}\n\n`
+		if (!channel) {
+			return;
 		}
 
-		messages_string = messages_string.normalize().trim()
+		const guild = message.guild;
 
-		const { chat_response } = await chatWithFuncs(client.ollama, {
-			model: "qwen2.5:7b",
-			messages: [
-				{
-					role: "system",
-					content: `You are an AI Moderation bot. Your job is to moderate a discord server based on the set rules. If there is an offending message, state its Message ID and nothing else. If there are multiple offending messages, seperate them with a comma. Otherwise, say anything else. The rules are as follows:\n\n${rules}`,
-				},
-				{
-					role: "user",
-					content: messages_string,
-				},
-			],
-			tools: [
-				{
-					type: "function",
-					function: {
-						name: "search",
-						description: "Search on Google.",
-						parameters: {
-							type: "object",
-							properties: {
-								query: {
-									type: "string",
-									description: "The search query.",
+		if (!guild) {
+			return;
+		}
+
+		const messages = channel.messages.cache.last(
+			Number(getNestedKey(configData, "moderation.automod.lookback")) ||
+				1,
+		);
+
+		let messages_string = `Channel Name: ${channel.name}\nChannel ID: ${channel.id}\n\n`;
+
+		for (const message of messages) {
+			messages_string += `Message ID: ${message.id}\nAuthor ID: ${message.author.id}\nAuthor Name: ${message.author.displayName}\nContent: ${message.content}\n\n`;
+		}
+
+		messages_string = messages_string.normalize().trim();
+
+		const { chat_response } = await chatWithFuncs(
+			client.ollama,
+			{
+				model: "qwen2.5:7b",
+				messages: [
+					{
+						role: "system",
+						content: `You are an AI Moderation bot. Your job is to moderate a discord server based on the set rules. If there is an offending message, state its Message ID and the reason for offending seperated by a semicolon and nothing else. If there are multiple offending messages, seperate them with a comma. Otherwise, say anything else. The rules are as follows:\n\n${rules}`,
+					},
+					{
+						role: "user",
+						content: messages_string,
+					},
+				],
+				tools: [
+					{
+						type: "function",
+						function: {
+							name: "search",
+							description: "Search on Google.",
+							parameters: {
+								type: "object",
+								properties: {
+									query: {
+										type: "string",
+										description: "The search query.",
+									},
 								},
+								required: ["query"],
 							},
-							required: ["query"],
 						},
 					},
-				},
-			]
-		}, {
-			search: searchGoogle,
-		});
+				],
+			},
+			{
+				search: searchGoogle,
+			},
+		);
 
 		const discordMessageIdPattern = /^\d{17,19}$/;
 
 		const response = chat_response.message.content
 			.normalize()
 			.trim()
-			.replaceAll(" ", "")
 			.split(",");
 
 		for (const possible of response) {
 			if (discordMessageIdPattern.test(possible)) {
-				await channel.messages.cache.get(possible)!.delete();
+				const possible_split = possible.trim().split(";");
+				possible_split[0] = possible_split[0].trim();
+				possible_split[1] = possible_split[1].trim();
+
+				const message =
+					channel.messages.cache.get(possible_split[0]) ||
+					(await channel.messages.fetch(possible_split[0]));
+
+				const log_channel_id =
+					getNestedKey(configData, "moderation.automod.lookback") ||
+					null;
+
+				if (typeof log_channel_id === "string") {
+					const log_channel =
+						guild.channels.cache.get(log_channel_id) ||
+						(await guild.channels.fetch(log_channel_id));
+					if (log_channel && log_channel.isSendable()) {
+						const embed = new EmbedBuilder()
+							.setTimestamp(message.createdTimestamp)
+							.setTitle("AutoMod Violation Alert")
+							.setColor("Red")
+							.addFields(
+								{
+									name: "Message Author",
+									value: `<@!${message.author.id}> \`${message.author.id}\``,
+								},
+								{
+									name: "Message Channel",
+									value: `<#${message.channelId}> \`${message.channelId}\``,
+								},
+								{
+									name: "Message Content",
+									value: `\`\`\`${message.content}\`\`\``,
+								},
+								{
+									name: "Violation Reason",
+									value: `\`\`\`${possible_split[1]}\`\`\``,
+								},
+							);
+
+						await log_channel.send({ embeds: [embed] });
+					}
+				}
+
+				try {
+					const embed = new EmbedBuilder()
+						.setTimestamp(message.createdTimestamp)
+						.setTitle("AutoMod Violation")
+						.setColor("Red")
+						.addFields(
+							{
+								name: "Message Channel",
+								value: `<#${message.channelId}> \`${message.channelId}\``,
+							},
+							{
+								name: "Message Content",
+								value: `\`\`\`${message.content}\`\`\``,
+							},
+							{
+								name: "Violation Reason",
+								value: `\`\`\`${possible_split[1]}\`\`\``,
+							},
+						)
+						.setFooter({
+							text: "This message was detected using our AI AutoMod system. If you believe this was a mistake, please contact a staff member of the server.",
+						});
+
+					await message.author.send({ embeds: [embed] });
+				} catch {
+					// pass
+				}
+
+				await message.delete();
 			}
 		}
 	}

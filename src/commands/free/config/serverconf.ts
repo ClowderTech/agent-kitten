@@ -40,8 +40,12 @@ export const data = new SlashCommandBuilder()
 						},
 						{
 							name: "moderation.automod.lookback",
-							value: "moderation.automod.lookback"
-						}
+							value: "moderation.automod.lookback",
+						},
+						{
+							name: "moderation.automod.logchannel",
+							value: "moderation.automod.logchannel",
+						},
 					]),
 			)
 			.addStringOption((option) =>
@@ -75,8 +79,12 @@ export const data = new SlashCommandBuilder()
 						},
 						{
 							name: "moderation.automod.lookback",
-							value: "moderation.automod.lookback"
-						}
+							value: "moderation.automod.lookback",
+						},
+						{
+							name: "moderation.automod.logchannel",
+							value: "moderation.automod.logchannel",
+						},
 					]),
 			),
 	)
