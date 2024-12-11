@@ -4,50 +4,50 @@ import type { ClientExtended } from "../utils/classes.ts";
 import { getData } from "../utils/mongohelper.ts";
 import { getNestedKey, type Config } from "../utils/config.ts";
 import { chatWithFuncs } from "../utils/textgen.ts";
-import { launch } from "puppeteer";
+// import { launch } from "puppeteer";
 
 export const eventType: Events = Events.MessageCreate;
 
 export const once = false;
 
-async function searchGoogle(query: string): Promise<string> {
-	const searchResultsAmount = 3;
-	const escapedTerm = encodeURIComponent(query);
-	const url = `https://searx.clowdertech.com/search?q=${escapedTerm}&language=auto&time_range=&safesearch=0&categories=general&format=json`;
+// async function searchGoogle(query: string): Promise<string> {
+// 	const searchResultsAmount = 3;
+// 	const escapedTerm = encodeURIComponent(query);
+// 	const url = `https://searx.clowdertech.com/search?q=${escapedTerm}&language=auto&time_range=&safesearch=0&categories=general&format=json`;
 
-	let searchResults = "";
-	let start = 0;
+// 	let searchResults = "";
+// 	let start = 0;
 
-	const browser = await launch({ headless: true, args: ["--no-sandbox"] });
-	const page = await browser.newPage();
+// 	const browser = await launch({ headless: true, args: ["--no-sandbox"] });
+// 	const page = await browser.newPage();
 
-	try {
-		const response = await page.goto(url, {
-			timeout: 30000,
-			waitUntil: "load",
-		});
-		if (!response?.ok()) {
-			return `Response not ok. Status ${response?.status()}.`;
-		}
-		const data = await response.json();
-		const results = data.results;
-		for (const result of results) {
-			searchResults += `[${start + 1}] ${result.url} || ${
-				result.content
-			}\n`;
-			start += 1;
-			if (start === searchResultsAmount) {
-				break;
-			}
-		}
-	} catch (error) {
-		return `An error occurred: ${error}`;
-	} finally {
-		await browser.close();
-	}
+// 	try {
+// 		const response = await page.goto(url, {
+// 			timeout: 30000,
+// 			waitUntil: "load",
+// 		});
+// 		if (!response?.ok()) {
+// 			return `Response not ok. Status ${response?.status()}.`;
+// 		}
+// 		const data = await response.json();
+// 		const results = data.results;
+// 		for (const result of results) {
+// 			searchResults += `[${start + 1}] ${result.url} || ${
+// 				result.content
+// 			}\n`;
+// 			start += 1;
+// 			if (start === searchResultsAmount) {
+// 				break;
+// 			}
+// 		}
+// 	} catch (error) {
+// 		return `An error occurred: ${error}`;
+// 	} finally {
+// 		await browser.close();
+// 	}
 
-	return searchResults;
-}
+// 	return searchResults;
+// }
 
 export async function execute(message: Message) {
 	if (message.author.bot) return;
@@ -133,25 +133,25 @@ export async function execute(message: Message) {
 						content: messages_string,
 					},
 				],
-			// 	tools: [
-			// 		{
-			// 			type: "function",
-			// 			function: {
-			// 				name: "search",
-			// 				description: "Search on Google.",
-			// 				parameters: {
-			// 					type: "object",
-			// 					properties: {
-			// 						query: {
-			// 							type: "string",
-			// 							description: "The search query.",
-			// 						},
-			// 					},
-			// 					required: ["query"],
-			// 				},
-			// 			},
-			// 		},
-			// 	],
+				// 	tools: [
+				// 		{
+				// 			type: "function",
+				// 			function: {
+				// 				name: "search",
+				// 				description: "Search on Google.",
+				// 				parameters: {
+				// 					type: "object",
+				// 					properties: {
+				// 						query: {
+				// 							type: "string",
+				// 							description: "The search query.",
+				// 						},
+				// 					},
+				// 					required: ["query"],
+				// 				},
+				// 			},
+				// 		},
+				// 	],
 			},
 			// {
 			// 	search: searchGoogle,
@@ -165,7 +165,7 @@ export async function execute(message: Message) {
 			.trim()
 			.replace(/^.*?<Output>/, "")
 			.replace("</Output>", "")
-			.split(",")
+			.split(",");
 
 		for (const possible of response) {
 			if (possible.length >= 1) {

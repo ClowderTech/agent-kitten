@@ -8,6 +8,7 @@ import {
 	ChatInputCommandInteraction,
 } from "discord.js";
 import { type ClientExtended, UserMadeError } from "../../../utils/classes.ts";
+import { TPlayerLoop } from "moonlink.js";
 
 export const data = new SlashCommandBuilder()
 	.setName("loop")
@@ -20,7 +21,7 @@ export const data = new SlashCommandBuilder()
 			.addChoices(
 				{
 					name: "No looping.",
-					value: "none",
+					value: "off",
 				},
 				{
 					name: "Loop the current song.",
@@ -67,10 +68,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		throw new UserMadeError("No songs are currently playing.");
 	}
 
-	const loop_type = interaction.options.get("type", true).value! as string;
-
-	const loop_type_number =
-		loop_type == "track" ? 1 : loop_type == "queue" ? 2 : "none";
+	const loop_type = interaction.options.getString(
+		"type",
+		true,
+	) as TPlayerLoop;
 
 	const channel = member.voice.channel;
 
@@ -124,7 +125,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		collector.on("end", async () => {
 			if (votes >= votesNeeded) {
 				player!.setLoop(loop_type);
-				if (loop_type == "none") {
+				if (loop_type == "off") {
 					await interaction.editReply({
 						content: "Disabled looping.",
 						embeds: [],
@@ -154,9 +155,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		return;
 	}
 
-	player!.setLoop(loop_type_number);
+	player!.setLoop(loop_type);
 
-	if (loop_type == "none") {
+	if (loop_type == "off") {
 		await interaction.reply({ content: "Disabled looping.", embeds: [] });
 		return;
 	} else if (loop_type == "track") {

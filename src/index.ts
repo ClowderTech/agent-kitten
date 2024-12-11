@@ -15,7 +15,7 @@ import {
 	StageChannel,
 } from "discord.js";
 
-import { MoonlinkManager, MoonlinkNode, MoonlinkPlayer } from "moonlink.js";
+import { Manager, Player } from "moonlink.js";
 
 import {
 	type ClientExtended,
@@ -57,36 +57,43 @@ const client: ClientExtended = new Client({
 
 client.usersMessaged = [];
 
-client.moonlink = new MoonlinkManager(
-	[
-		{
-			host: Deno.env.get("LAVALINK_HOST")!,
-			port: Number(Deno.env.get("LAVALINK_PORT")),
-			secure: Boolean(Deno.env.get("LAVALINK_SECURE")!),
-			password: Deno.env.get("LAVALINK_PASSWORD")!,
-			retryDelay: 5000,
-			retryAmount: 65535,
-			identifier: "main",
-		},
-	],
-	{},
-	(guild: string, sPayload: string) => {
-		// Sending payload information to the server
-		client.guilds.cache.get(guild)?.shard.send(JSON.parse(sPayload));
-	},
-);
+client.moonlink = new Manager({
+    nodes: [
+        {
+            host: Deno.env.get("LAVALINK_HOST")!, // lavalink.clowdertech.com
+            port: Number(Deno.env.get("LAVALINK_PORT")), // 443
+            secure: Boolean(Deno.env.get("LAVALINK_SECURE")!), // true
+            password: Deno.env.get("LAVALINK_PASSWORD")!, // ImGay69
+            retryDelay: 5000,
+            retryAmount: 65535,
+            identifier: "main",
+        },
+    ],
+    options: {
+        NodeLinkFeatures: true,
+        previousInArray: true,
+    },
+    sendPayload: (guildId: string, payload: string) => {
+        const guild = client.guilds.cache.get(guildId);
+        if (guild) guild.shard.send(JSON.parse(payload)); // Sending data to the shard if the guild is available
+    },
+});
+
+client.moonlink.on("debug", (message) => console.log("[DEBUG]", message));
 
 // Event: Node created
-client.moonlink.on("nodeCreate", (node: MoonlinkNode) => {
+client.moonlink.on("nodeCreate", (node) => {
 	console.log(`${node.host} was connected, and the magic is in the air`);
 });
 
-client.moonlink.on("nodeError", (node: MoonlinkNode, error: Error) => {
+client.moonlink.on("nodeError", (node, error) => {
 	console.error(`Node ${node.host} emitted an error: ${error}`);
 });
 
-client.moonlink.on("trackEnd", async (player: MoonlinkPlayer) => {
-	const channel = await client.channels.cache.get(player.voiceChannel);
+client.moonlink.on("trackEnd", async (player: Player) => {
+	const channel =
+		client.channels.cache.get(player.voiceChannelId) ||
+		(await client.channels.fetch(player.voiceChannelId));
 	if (
 		channel &&
 		channel.isVoiceBased() &&
@@ -423,9 +430,7 @@ client.once(Events.ClientReady, async (readyClient: Client) => {
 	client.moonlink.init(client.user!.id);
 });
 
-client.on("raw", (data) => {
-	client.moonlink.packetUpdate(data); // Passing raw data to Moonlink.js for handling
-});
+client.on("raw", (d) => client.moonlink.packetUpdate(d));
 
 async function getVoiceChannelMembers(guild: Guild) {
 	// Get all voice and stage channels in the guild

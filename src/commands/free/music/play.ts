@@ -51,15 +51,17 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		try {
 			player = client.moonlink.players.create({
 				guildId: guildID,
-				voiceChannel: member.voice.channel.id,
-				textChannel: interaction.channel.id,
+				voiceChannelId: member.voice.channel.id,
+				textChannelId: interaction.channel.id,
 				volume: 100,
 				autoPlay: false,
 				autoLeave: true,
 			});
 		} catch (error) {
 			if (error instanceof TypeError) {
-				client.moonlink.nodes.check();
+				const main_node = client.moonlink.nodes.get("main");
+
+				client.moonlink.nodes.check(main_node);
 				throw new Error(
 					"Please try this command again. We had to refresh the music player.",
 				);
@@ -86,7 +88,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	const playable = await client.moonlink.search({
 		query: song,
 		requester: interaction.user.id,
-		source: "soundcloud",
+		source: "youtubemusic",
 	});
 
 	if (playable.loadType === "empty") {

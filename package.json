@@ -12,7 +12,7 @@
 		"globals": "^15.13.0",
 		"ts-node": "^10.9.2",
 		"typescript": "^5.7.2",
-		"typescript-eslint": "^8.17.0",
+		"typescript-eslint": "^8.18.0",
 		"@discordjs/builders": "^1.9.0"
 	},
 	"peerDependencies": {
@@ -25,12 +25,12 @@
 		"discord.js": "^14.16.3",
 		"dotenv": "^16.4.7",
 		"jsdom": "^25.0.1",
-		"mongodb": "^6.11.0",
-		"moonlink.js": "^3.6.64",
+		"mongodb": "^6.12.0",
+		"moonlink.js": "^4.2.1",
 		"net-ipc": "2.2.0",
 		"node-html-parser": "^6.1.13",
-		"ollama": "^0.5.10",
-		"puppeteer": "^23.10.0",
+		"ollama": "^0.5.11",
+		"puppeteer": "^23.10.3",
 		"redis": "^4.7.0"
 	}
 }
