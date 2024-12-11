@@ -79,8 +79,6 @@ client.moonlink = new Manager({
     },
 });
 
-client.moonlink.on("debug", (message) => console.log("[DEBUG]", message));
-
 // Event: Node created
 client.moonlink.on("nodeCreate", (node) => {
 	console.log(`${node.host} was connected, and the magic is in the air`);
