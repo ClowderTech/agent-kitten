@@ -41,12 +41,6 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	) {
 		throw new UserMadeError("I cannot join the voice channel.");
 	}
-	if (
-		!member.voice.channel.members.get(client.user!.id) &&
-		interaction.guild.members.cache.get(client.user!.id)!.voice.channel
-	) {
-		throw new UserMadeError("I am in another voice channel.");
-	}
 
 	const player = client.moonlink.players.get(guildID);
 	if (!player) {
@@ -104,7 +98,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 		collector.on("end", async () => {
 			if (votes >= votesNeeded) {
-				await player.setVoiceChannel(
+				await player.setVoiceChannelId(
 					interaction.options.getChannel("channel", true).id,
 				);
 
@@ -128,7 +122,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		return;
 	}
 
-	await player.setVoiceChannel(
+	await player.setVoiceChannelId(
 		interaction.options.getChannel("channel", true).id,
 	);
 
