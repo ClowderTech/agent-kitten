@@ -15,7 +15,7 @@ import {
 	StageChannel,
 } from "discord.js";
 
-import { Manager, Player } from "moonlink.js";
+import { Manager } from "moonlink.js";
 
 import {
 	type ClientExtended,
@@ -88,7 +88,7 @@ client.moonlink.on("nodeError", (node, error) => {
 	console.error(`Node ${node.host} emitted an error: ${error}`);
 });
 
-client.moonlink.on("trackEnd", async (player: Player) => {
+client.moonlink.on("trackEnd", async (player) => {
 	const channel =
 		client.channels.cache.get(player.voiceChannelId) ||
 		(await client.channels.fetch(player.voiceChannelId));
