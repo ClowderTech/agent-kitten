@@ -129,7 +129,7 @@ export async function execute(_oldMessage: Message, newMessage: Message) {
 		const { chat_response } = await chatWithFuncs(
 			client.ollama,
 			{
-				model: "qwen2.5:7b",
+				model: "mistral-nemo:12b",
 				messages: [
 					{
 						role: "system",
