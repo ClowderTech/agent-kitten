@@ -58,25 +58,25 @@ const client: ClientExtended = new Client({
 client.usersMessaged = [];
 
 client.moonlink = new Manager({
-    nodes: [
-        {
-            host: Deno.env.get("LAVALINK_HOST")!, // lavalink.clowdertech.com
-            port: Number(Deno.env.get("LAVALINK_PORT")), // 443
-            secure: Boolean(Deno.env.get("LAVALINK_SECURE")!), // true
-            password: Deno.env.get("LAVALINK_PASSWORD")!, // ImGay69
-            retryDelay: 5000,
-            retryAmount: 65535,
-            identifier: "main",
-        },
-    ],
-    options: {
-        NodeLinkFeatures: true,
-        previousInArray: true,
-    },
-    sendPayload: (guildId: string, payload: string) => {
-        const guild = client.guilds.cache.get(guildId);
-        if (guild) guild.shard.send(JSON.parse(payload)); // Sending data to the shard if the guild is available
-    },
+	nodes: [
+		{
+			host: Deno.env.get("LAVALINK_HOST")!, // lavalink.clowdertech.com
+			port: Number(Deno.env.get("LAVALINK_PORT")), // 443
+			secure: Boolean(Deno.env.get("LAVALINK_SECURE")!), // true
+			password: Deno.env.get("LAVALINK_PASSWORD")!, // ImGay69
+			retryDelay: 5000,
+			retryAmount: 65535,
+			identifier: "main",
+		},
+	],
+	options: {
+		NodeLinkFeatures: true,
+		previousInArray: true,
+	},
+	sendPayload: (guildId: string, payload: string) => {
+		const guild = client.guilds.cache.get(guildId);
+		if (guild) guild.shard.send(JSON.parse(payload)); // Sending data to the shard if the guild is available
+	},
 });
 
 // Event: Node created

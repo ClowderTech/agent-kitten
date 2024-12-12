@@ -1,12 +1,11 @@
 import { EmbedBuilder, Events, Message } from "discord.js";
-import { prettyExpGain } from "../utils/leveling.ts";
 import type { ClientExtended } from "../utils/classes.ts";
 import { getData } from "../utils/mongohelper.ts";
 import { getNestedKey, type Config } from "../utils/config.ts";
 import { chatWithFuncs } from "../utils/textgen.ts";
 import { launch } from "puppeteer";
 
-export const eventType: Events = Events.MessageCreate;
+export const eventType: Events = Events.MessageUpdate;
 
 export const once = false;
 
@@ -48,6 +47,7 @@ async function searchGoogle(query: string): Promise<string> {
 
 	return searchResults;
 }
+
 function cutStringAfterPipeOrReturnOriginal(str: string): string {
 	// Check if the string contains a pipe ('|')
 	const index = str.indexOf("|");
@@ -61,22 +61,17 @@ function cutStringAfterPipeOrReturnOriginal(str: string): string {
 	return str.substring(index + 1);
 }
 
-export async function execute(message: Message) {
-	if (message.author.bot) return;
+export async function execute(_oldMessage: Message, newMessage: Message) {
+	if (newMessage.author.bot) return;
 
-	const client = message.client as ClientExtended;
+	const client = newMessage.client as ClientExtended;
 
-	if (!client.usersMessaged.includes(message.author.id)) {
-		prettyExpGain(client, message.author);
-		client.usersMessaged.push(message.author.id);
-	}
-
-	if (!message.inGuild()) {
+	if (!newMessage.inGuild()) {
 		return;
 	}
 
 	const serverData = await getData(client, "config", {
-		serverId: message.guildId,
+		serverId: newMessage.guildId,
 	});
 	const configData: Config = serverData[0]?.config || {};
 
@@ -106,13 +101,13 @@ export async function execute(message: Message) {
 #### 7. No Bot Misuse
 - Do not misuse bots (e.g., spamming commands, using them for harassment).`;
 
-		const channel = message.channel;
+		const channel = newMessage.channel;
 
 		if (!channel) {
 			return;
 		}
 
-		const guild = message.guild;
+		const guild = newMessage.guild;
 
 		if (!guild) {
 			return;
