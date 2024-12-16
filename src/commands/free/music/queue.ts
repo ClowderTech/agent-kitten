@@ -54,9 +54,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		.setDescription(
 			`**Now Playing:**\n[${player.current.title || "Unknown Track"}](${
 				player.current.url || "https://www.google.com/"
-			}) (requested by ${
+			}) (requested by <@!${
 				player.current.requestedBy
-			}) (duration: ${Math.floor(
+			}>) (duration: ${Math.floor(
 				calculatedPosition / 1000,
 			)}/${Math.floor(player.current.duration / 1000)}s)`,
 		);
@@ -68,7 +68,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 				(song: Track, index: number) =>
 					`${index + 1}. [${song.title || "Unknown Track"}](${
 						song.url || "https://www.google.com/"
-					}) (requested by ${song.requestedBy})`,
+					}) (requested by <@!${song.requestedBy}>)`,
 			)
 			.join("\n");
 		embed.addFields({
