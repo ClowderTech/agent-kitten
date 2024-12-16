@@ -1,0 +1,40 @@
+name: Linton
+
+on:
+    push:
+        branches:
+            - main # Specify the branches to listen to for pushes
+    pull_request:
+        branches:
+            - main # This allows the workflow to trigger on pull requests to the specified branch
+
+permissions: {}
+
+jobs:
+    build:
+        name: Lint
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            packages: read
+            statuses: write
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Install Node.js LTS 20
+              uses: actions/setup-node@v4
+
+            - name: Install npm dependencies
+              run: npm install # This reads the package.json and installs dependencies
+
+            - name: Run Prettier to fix lint issues
+              run: |
+                  npx prettier --check . 
+                  npx prettier --write .
+
+            - name: Run ESLint to fix lint issues
+              run: npx eslint . --fix
