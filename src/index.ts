@@ -70,18 +70,12 @@ client.moonlink = new Manager({
 		},
 	],
 	options: {
-		NodeLinkFeatures: true,
-		previousInArray: true,
+		defaultPlatformSearch: "youtubemusic"
 	},
 	sendPayload: (guildId: string, payload: string) => {
 		const guild = client.guilds.cache.get(guildId);
 		if (guild) guild.shard.send(JSON.parse(payload)); // Sending data to the shard if the guild is available
 	},
-});
-
-// Event: Node created
-client.moonlink.on("nodeCreate", (node) => {
-	console.log(`${node.host} was connected, and the magic is in the air`);
 });
 
 client.moonlink.on("nodeError", (node, error) => {
@@ -108,32 +102,6 @@ client.ollama = new Ollama({
 });
 client.mongoclient = new MongoClient(Deno.env.get("MONGODB_URI")!);
 client.mongoclient.connect();
-
-// client.moonlink = new MoonlinkManager(
-//     [
-//         {
-//             host: process.env.LAVALINK_HOST,
-//             port: Number(process.env.LAVALINK_PORT),
-//             secure: true,
-//             password: process.env.LAVALINK_PASSWORD,
-//         }
-//     ],
-//     {
-//         autoResume: true,
-//     },
-//     (guildID: any, sPayload: any) => {
-//         client.guilds.cache.get(guildID)!.shard.send(JSON.parse(sPayload));
-//     }
-// );
-
-// // Event: Node created
-// client.moonlink.on("nodeCreate", node => {
-//     console.log(`${node.host} was connected, and the magic is in the air`);
-// });
-
-// client.moonlink.on("nodeError", (node, error) => {
-//     console.error(`Node ${node.host} emitted an error: ${error}`);
-// });
 
 // Check if file is valid JS or TS file
 function checkForValidFile(file: string): boolean {

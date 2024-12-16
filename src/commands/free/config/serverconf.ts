@@ -31,10 +31,6 @@ export const data = new SlashCommandBuilder()
 							value: "moderation.automod.enabled",
 						},
 						{
-							name: "moderation.automod.rules",
-							value: "moderation.automod.rules",
-						},
-						{
 							name: "music.maxvolume",
 							value: "music.maxvolume",
 						},
@@ -68,10 +64,6 @@ export const data = new SlashCommandBuilder()
 						{
 							name: "moderation.automod.enabled",
 							value: "moderation.automod.enabled",
-						},
-						{
-							name: "moderation.automod.rules",
-							value: "moderation.automod.rules",
 						},
 						{
 							name: "music.maxvolume",
