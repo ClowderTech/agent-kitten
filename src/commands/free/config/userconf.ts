@@ -84,10 +84,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	const subcommand = interaction.options.getSubcommand(); // Get subcommand directly
 
 	if (subcommand === "set") {
-		const key = interaction.options.get("key")?.value as string;
-		const value = interaction.options.get("value")?.value as string;
+		const key = interaction.options.getString("key", true);
+		const value = interaction.options.getString("value", true);
 
-		let parsedValue: string | number | boolean;
+		let parsedValue;
 		try {
 			parsedValue = JSON.parse(value); // Attempt to parse it
 		} catch {
@@ -96,7 +96,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 		const configData = {
 			userId: userId,
-			config: setNestedKey({ ...oldConfigData }, key, parsedValue),
+			config: setNestedKey(oldConfigData, key, parsedValue),
 		};
 
 		try {
@@ -142,7 +142,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		}
 	} else if (subcommand === "setraw") {
 		// Handling the 'setraw' subcommand
-		const rawValue = interaction.options.get("value")?.value as string;
+		const rawValue = interaction.options.getString("value", true);
 		let parsedData;
 
 		try {

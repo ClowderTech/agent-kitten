@@ -7,7 +7,6 @@ import { scanMessage } from "../utils/textgen.ts";
 
 export const eventType: Events = Events.MessageCreate;
 
-
 export async function execute(message: Message) {
 	if (message.author.bot) return;
 
@@ -25,9 +24,14 @@ export async function execute(message: Message) {
 	const serverData = await getData(client, "config", {
 		serverId: message.guildId,
 	});
+
 	const configData: Config = serverData[0]?.config || {};
 
 	if (getNestedKey(configData, "moderation.automod.enabled")) {
-		await scanMessage(message, configData)
+		const role = getNestedKey(configData, "moderation.automod.bypassrole");
+
+		if (!role || !message.member?.roles.cache.has(String(role))) {
+			await scanMessage(message, configData);
+		}
 	}
 }

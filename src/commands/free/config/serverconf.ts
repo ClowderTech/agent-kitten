@@ -42,6 +42,14 @@ export const data = new SlashCommandBuilder()
 							name: "moderation.automod.logchannel",
 							value: "moderation.automod.logchannel",
 						},
+						{
+							name: "moderation.automod.bypassrole",
+							value: "moderation.automod.bypassrole",
+						},
+						{
+							name: "moderation.automod.disabledcategories",
+							value: "moderation.automod.disabledcategories",
+						},
 					]),
 			)
 			.addStringOption((option) =>
@@ -76,6 +84,14 @@ export const data = new SlashCommandBuilder()
 						{
 							name: "moderation.automod.logchannel",
 							value: "moderation.automod.logchannel",
+						},
+						{
+							name: "moderation.automod.bypassrole",
+							value: "moderation.automod.bypassrole",
+						},
+						{
+							name: "moderation.automod.disabledcategories",
+							value: "moderation.automod.disabledcategories",
 						},
 					]),
 			),
@@ -118,7 +134,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		const key = interaction.options.getString("key", true);
 		const value = interaction.options.getString("value", true);
 
-		let parsedValue: string | number | boolean;
+		let parsedValue;
 		try {
 			parsedValue = JSON.parse(value); // Attempt to parse it
 		} catch {
@@ -127,7 +143,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 		const configData = {
 			serverId: serverId,
-			config: setNestedKey({ ...oldConfigData }, key, parsedValue),
+			config: setNestedKey(oldConfigData, key, parsedValue),
 		};
 
 		try {
@@ -155,7 +171,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		}
 	} else if (subcommand === "get") {
 		// Handling the 'get' subcommand
-		const key = interaction.options.getString("key", true) as string; // Optional key
+		const key = interaction.options.getString("key", true); // Optional key
 		// If a key is specified, return its value
 
 		const value = getNestedKey(oldConfigData, key);

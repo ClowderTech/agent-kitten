@@ -23,6 +23,6 @@ export async function execute(_oldMessage: Message, newMessage: Message) {
 	const configData: Config = serverData[0]?.config || {};
 
 	if (getNestedKey(configData, "moderation.automod.enabled")) {
-		await scanMessage(newMessage, configData)
+		await scanMessage(newMessage, configData);
 	}
 }

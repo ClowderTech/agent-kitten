@@ -52,8 +52,5 @@ RUN deno install --allow-scripts=npm:puppeteer
 # Copy all other files from the current directory to /app in the container
 COPY . .
 
-# Expose port for 
-EXPOSE 5000
-
 # Command to run the application
 CMD ["deno", "run", "--allow-all", "src/index.ts"]

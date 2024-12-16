@@ -69,24 +69,24 @@ export async function convertBlobToUint8Array(blob: Blob): Promise<Uint8Array> {
 
 // Define the mapping of S{num} to a user-friendly deletion message
 const deletionReasons: { [key: string]: string } = {
-    S1: "Promotes violent crimes, including terrorism, murder, assault, or animal abuse.",
-    S2: "Promotes non-violent crimes, such as fraud, theft, or drug-related offenses.",
-    S3: "Promotes or endorses sex-related crimes, including sexual assault or sex trafficking.",
-    S4: "Involves or promotes child sexual exploitation.",
-    S5: "Contains false information that could harm someone's reputation.",
-    S6: "Contains specialized advice (financial, medical, legal) that could be dangerous or misleading.",
-    S7: "Contains personal or sensitive information that could jeopardize someone's privacy or security.",
-    S8: "Violates intellectual property rights, such as using copyrighted material without permission.",
-    S9: "Promotes the creation of dangerous weapons like chemical, biological, or nuclear weapons.",
-    S10: "Contains hate speech or dehumanizes individuals based on their race, gender, religion, or other personal characteristics.",
-    S11: "Encourages self-harm, including suicide, self-injury, or harmful eating behaviors.",
-    S12: "Contains explicit sexual content or erotica.",
-    S13: "Contains incorrect information about elections or voting processes."
+	S1: "Promotes violent crimes, including terrorism, murder, assault, or animal abuse.",
+	S2: "Promotes non-violent crimes, such as fraud, theft, or drug-related offenses.",
+	S3: "Promotes or endorses sex-related crimes, including sexual assault or sex trafficking.",
+	S4: "Involves or promotes child sexual exploitation.",
+	S5: "Contains false information that could harm someone's reputation.",
+	S6: "Contains specialized advice (financial, medical, legal) that could be dangerous or misleading.",
+	S7: "Contains personal or sensitive information that could jeopardize someone's privacy or security.",
+	S8: "Violates intellectual property rights, such as using copyrighted material without permission.",
+	S9: "Promotes the creation of dangerous weapons like chemical, biological, or nuclear weapons.",
+	S10: "Contains hate speech or dehumanizes individuals based on their race, gender, religion, or other personal characteristics.",
+	S11: "Encourages self-harm, including suicide, self-injury, or harmful eating behaviors.",
+	S12: "Contains explicit sexual content or erotica.",
+	S13: "Contains incorrect information about elections or voting processes.",
 };
 
 // Function to get the deletion message based on the code
 function getDeletionMessage(code: string): string {
-    return deletionReasons[code] || "Unknown reason for deletion.";
+	return deletionReasons[code] || "Unknown reason for deletion.";
 }
 
 export async function scanMessage(message: DiscordMessage, configData: Config) {
@@ -105,8 +105,7 @@ export async function scanMessage(message: DiscordMessage, configData: Config) {
 	}
 
 	const messages = channel.messages.cache.last(
-		Number(getNestedKey(configData, "moderation.automod.lookback")) ||
-			1,
+		Number(getNestedKey(configData, "moderation.automod.lookback")) || 1,
 	);
 
 	let messages_string = "";
@@ -117,28 +116,43 @@ export async function scanMessage(message: DiscordMessage, configData: Config) {
 
 	messages_string = messages_string.normalize().trim();
 
-	const { chat_response } = await chatWithFuncs(
-		client.ollama,
-		{
-			model: "llama-guard3:8b",
-			messages: [
-				{
-					role: "user",
-					content: messages_string
-				}
-			]
-		}
-	);
+	const { chat_response } = await chatWithFuncs(client.ollama, {
+		model: "llama-guard3:8b",
+		messages: [
+			{
+				role: "user",
+				content: messages_string,
+			},
+		],
+	});
 
-	const response = chat_response.message.content.normalize().trim()
+	const response = chat_response.message.content.normalize().trim();
 
 	if (response.includes("unsafe")) {
+		const reason = response.replace("unsafe", "").trim();
 
-		const reason = getDeletionMessage(response.replace("unsafe", "").trim())
+		if (reason === "S14") {
+			return;
+		}
 
-		let log_channel_id =
-			getNestedKey(configData, "moderation.automod.logchannel") ||
-			null;
+		const disabledcategories = getNestedKey(
+			configData,
+			"moderation.automod.disabledcategories",
+		);
+
+		if (Array.isArray(disabledcategories)) {
+			// Check if the array contains 'reason'
+			if (disabledcategories.includes(reason)) {
+				return;
+			}
+		}
+
+		const reasonMessage = getDeletionMessage(reason);
+
+		let log_channel_id = getNestedKey(
+			configData,
+			"moderation.automod.logchannel",
+		);
 
 		if (
 			typeof log_channel_id === "string" ||
@@ -170,7 +184,7 @@ export async function scanMessage(message: DiscordMessage, configData: Config) {
 						},
 						{
 							name: "Violation Reason",
-							value: `\`\`\`${reason}\`\`\``,
+							value: `\`\`\`${reasonMessage}\`\`\``,
 						},
 					);
 
@@ -194,7 +208,7 @@ export async function scanMessage(message: DiscordMessage, configData: Config) {
 					},
 					{
 						name: "Violation Reason",
-						value: `\`\`\`${reason}\`\`\``,
+						value: `\`\`\`${reasonMessage}\`\`\``,
 					},
 				)
 				.setFooter({
