@@ -8,6 +8,7 @@ jobs:
     runs-on: docker
     container: 
       image: ghcr.io/catthehacker/ubuntu:act-latest
+      options: --privileged
     env:
       DOCKER_HOST: tcp://host.docker.internal:2376
     steps:
