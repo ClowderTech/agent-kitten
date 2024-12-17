@@ -7,7 +7,7 @@ jobs:
   docker:
     runs-on: docker
     container: 
-      image: docker:23.0.6-dind
+      image: catthehacker/ubuntu:full-latest
     steps:
       -
         name: Login to Docker Hub
