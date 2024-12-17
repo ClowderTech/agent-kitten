@@ -12,8 +12,8 @@ jobs:
         uses: docker/login-action@v3.3.0
         with:
           registry: forgejo.clowdertech.com
-          username: Bearer
-          password: ${{ env.GITHUB_TOKEN }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v3.2.0
@@ -25,4 +25,4 @@ jobs:
         uses: docker/build-push-action@v6.10.0
         with:
           push: true
-          tags: ${{ env.GITHUB_REPOSITORY }}:${{ env.GITHUB_REF_NAME }}
+          tags: forgejo.clowdertech.com/${{ env.GITHUB_REPOSITORY }}:${{ env.GITHUB_REF_NAME }}
