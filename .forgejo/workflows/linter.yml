@@ -18,6 +18,9 @@ jobs:
               with:
                   deno-version: vx.x.x
 
+            - name: Install Dependencies
+              run: deno install
+
             - name: Lint
               run: deno lint
 
