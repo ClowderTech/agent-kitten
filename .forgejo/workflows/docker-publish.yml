@@ -32,6 +32,4 @@ jobs:
               with:
                   context: .
                   push: true
-                  tags: |
-                      forgejo.clowdertech.com/${{ github.repository }}:${{ github.sha }}
-                      forgejo.clowdertech.com/${{ github.repository }}:${{ github.ref_name }}
+                  tags: forgejo.clowdertech.com/${{ github.repository }}:${{ github.ref_name }}
