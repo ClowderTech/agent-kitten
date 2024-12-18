@@ -33,7 +33,7 @@ jobs:
 
             - name: Run Prettier to fix lint issues
               run: |
-                  npx prettier --check . 
+                  npx prettier --check .
                   npx prettier --write .
 
             - name: Run ESLint to fix lint issues

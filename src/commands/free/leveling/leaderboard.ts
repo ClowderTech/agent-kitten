@@ -1,12 +1,12 @@
 import {
+	ChatInputCommandInteraction,
 	EmbedBuilder,
 	SlashCommandBuilder,
-	ChatInputCommandInteraction,
 } from "discord.js";
 import type { ClientExtended } from "../../../utils/classes.ts"; // Import your client extended type
 import {
-	getUsersByExperienceRange,
 	calculateLevelFromExperience,
+	getUsersByExperienceRange,
 } from "../../../utils/leveling.ts"; // Adjust the import path
 
 // Define the command using SlashCommandBuilder
@@ -26,7 +26,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	topUsers.forEach((user) => {
 		const level = calculateLevelFromExperience(user.experience); // Calculate the user's level
-		description += `<@!${user.userId}> - Level: ${level}, Experience: ${user.experience}\n`; // Create mention with level and experience
+		description +=
+			`<@!${user.userId}> - Level: ${level}, Experience: ${user.experience}\n`; // Create mention with level and experience
 	});
 
 	// Create an embed to display the results

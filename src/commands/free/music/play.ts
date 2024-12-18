@@ -1,9 +1,9 @@
 import {
-	SlashCommandStringOption,
-	SlashCommandBuilder,
-	GuildMember,
-	EmbedBuilder,
 	ChatInputCommandInteraction,
+	EmbedBuilder,
+	GuildMember,
+	SlashCommandBuilder,
+	SlashCommandStringOption,
 } from "discord.js";
 import { type ClientExtended, UserMadeError } from "../../../utils/classes.ts";
 
@@ -14,7 +14,7 @@ export const data = new SlashCommandBuilder()
 		option
 			.setName("song")
 			.setDescription("The song name or url to play.")
-			.setRequired(true),
+			.setRequired(true)
 	);
 
 export async function execute(interaction: ChatInputCommandInteraction) {
@@ -26,7 +26,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		throw new UserMadeError("You must use this in a server.");
 	}
 	const guildID = interaction.guild.id;
-	const member: GuildMember = <GuildMember>interaction.member;
+	const member: GuildMember = <GuildMember> interaction.member;
 	if (!member.voice) {
 		throw new UserMadeError("You are not in a voice channel.");
 	}
@@ -127,8 +127,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 				playlistInfo
 					? `Queued playlist: \`${playlistInfo.name}\``
 					: `Currently playing: \`${
-							playable.tracks[0]?.title || "Unknown Track"
-						}\``,
+						playable.tracks[0]?.title || "Unknown Track"
+					}\``,
 			)
 			.setColor("#2b2d31")
 			.setThumbnail(

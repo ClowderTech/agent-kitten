@@ -1,14 +1,14 @@
 import {
+	ChatInputCommandInteraction,
 	EmbedBuilder,
-	SlashCommandBuilder,
-	User,
-	SlashCommandIntegerOption,
 	GuildMember,
 	MessageReaction,
-	ChatInputCommandInteraction,
+	SlashCommandBuilder,
+	SlashCommandIntegerOption,
+	User,
 } from "discord.js";
 import { type ClientExtended, UserMadeError } from "../../../utils/classes.ts";
-import { getNestedKey, type Config } from "../../../utils/config.ts";
+import { type Config, getNestedKey } from "../../../utils/config.ts";
 import { getData } from "../../../utils/mongohelper.ts";
 
 export const data = new SlashCommandBuilder()
@@ -19,7 +19,7 @@ export const data = new SlashCommandBuilder()
 			.setName("volume")
 			.setDescription("The volume you want to set.")
 			.setRequired(true)
-			.setMinValue(0),
+			.setMinValue(0)
 	);
 
 export async function execute(interaction: ChatInputCommandInteraction) {
@@ -31,7 +31,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		throw new UserMadeError("You must use this in a server.");
 	}
 	const guildID = interaction.guild.id;
-	const member: GuildMember = <GuildMember>interaction.member;
+	const member: GuildMember = <GuildMember> interaction.member;
 	if (!member.voice) {
 		throw new UserMadeError("You are not in a voice channel.");
 	}
@@ -74,8 +74,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	const serverData = await getData(client, "config", { serverId: serverId });
 	const configData: Config = serverData[0]?.config || {};
 
-	const maxVolume =
-		(getNestedKey(configData, "music.maxvolume") as number) || 100;
+	const maxVolume = (getNestedKey(configData, "music.maxvolume") as number) ||
+		100;
 
 	if (volume < 0 || volume > maxVolume) {
 		throw new UserMadeError(
@@ -88,8 +88,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			member.roles.cache.some((role) => role.name === "DJ") ||
 			member.permissions.has("ModerateMembers", true) ||
 			channel.members.filter(
-				(member) => member.id !== client.user!.id && !member.user.bot,
-			).size <= 2
+					(member) =>
+						member.id !== client.user!.id && !member.user.bot,
+				).size <= 2
 		)
 	) {
 		const votesNeeded = Math.ceil(

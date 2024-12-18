@@ -1,7 +1,7 @@
 import {
+	ChatInputCommandInteraction,
 	EmbedBuilder,
 	SlashCommandBuilder,
-	ChatInputCommandInteraction,
 } from "discord.js";
 import { type ClientExtended, UserMadeError } from "../../../utils/classes.ts";
 import { Track } from "moonlink.js";
@@ -54,11 +54,11 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		.setDescription(
 			`**Now Playing:**\n[${player.current.title || "Unknown Track"}](${
 				player.current.url || "https://www.google.com/"
-			}) (requested by <@!${
-				player.current.requestedBy
-			}>) (duration: ${Math.floor(
-				calculatedPosition / 1000,
-			)}/${Math.floor(player.current.duration / 1000)}s)`,
+			}) (requested by <@!${player.current.requestedBy}>) (duration: ${
+				Math.floor(
+					calculatedPosition / 1000,
+				)
+			}/${Math.floor(player.current.duration / 1000)}s)`,
 		);
 
 	if (queue.size > 0) {

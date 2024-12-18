@@ -1,14 +1,14 @@
 import {
+	ChatInputCommandInteraction,
 	EmbedBuilder,
 	SlashCommandBuilder,
-	ChatInputCommandInteraction,
 } from "discord.js";
 import type { ClientExtended } from "../../../utils/classes.ts";
 import { getData, setData } from "../../../utils/mongohelper.ts"; // Adjust the import path as necessary
 import {
+	type Config,
 	getNestedKey,
 	setNestedKey,
-	type Config,
 } from "../../../utils/config.ts";
 
 export const data = new SlashCommandBuilder()
@@ -28,14 +28,14 @@ export const data = new SlashCommandBuilder()
 							name: "leveling.levelupmessaging",
 							value: "leveling.levelupmessaging",
 						},
-					]),
+					])
 			)
 			.addStringOption((option) =>
 				option
 					.setName("value")
 					.setDescription("The configuration value to set")
-					.setRequired(true),
-			),
+					.setRequired(true)
+			)
 	)
 	.addSubcommand((subcommand) =>
 		subcommand
@@ -51,8 +51,8 @@ export const data = new SlashCommandBuilder()
 							name: "leveling.levelupmessaging",
 							value: "leveling.levelupmessaging",
 						},
-					]),
-			),
+					])
+			)
 	)
 	.addSubcommand((subcommand) =>
 		subcommand
@@ -64,13 +64,13 @@ export const data = new SlashCommandBuilder()
 					.setDescription(
 						"The raw configuration value as a JSON string",
 					)
-					.setRequired(true),
-			),
+					.setRequired(true)
+			)
 	) // New raw set command
 	.addSubcommand((subcommand) =>
 		subcommand
 			.setName("getraw")
-			.setDescription("Get the entire raw user configuration."),
+			.setDescription("Get the entire raw user configuration.")
 	); // New raw get command
 
 export async function execute(interaction: ChatInputCommandInteraction) {
@@ -182,11 +182,13 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	} else if (subcommand === "getraw") {
 		// Handling the 'getraw' subcommand
 		await interaction.reply({
-			content: `Raw configuration: \n\`\`\`json\n${JSON.stringify(
-				oldConfigData,
-				null,
-				2,
-			)}\n\`\`\``,
+			content: `Raw configuration: \n\`\`\`json\n${
+				JSON.stringify(
+					oldConfigData,
+					null,
+					2,
+				)
+			}\n\`\`\``,
 			ephemeral: true,
 		});
 	}

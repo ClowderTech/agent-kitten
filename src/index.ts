@@ -1,18 +1,18 @@
 import {
-	Events,
+	type APIApplicationCommand,
+	ChannelType,
 	Client,
-	GatewayIntentBits,
 	Collection,
+	EmbedBuilder,
+	Events,
+	GatewayIntentBits,
+	Guild,
+	type Interaction,
 	REST,
 	Routes,
-	type Interaction,
-	EmbedBuilder,
 	SlashCommandBuilder,
-	type APIApplicationCommand,
-	Guild,
-	ChannelType,
-	VoiceChannel,
 	StageChannel,
+	VoiceChannel,
 } from "discord.js";
 
 import { Manager } from "moonlink.js";
@@ -83,8 +83,7 @@ client.moonlink.on("nodeError", (node, error) => {
 });
 
 client.moonlink.on("trackEnd", async (player) => {
-	const channel =
-		client.channels.cache.get(player.voiceChannelId) ||
+	const channel = client.channels.cache.get(player.voiceChannelId) ||
 		(await client.channels.fetch(player.voiceChannelId));
 	if (
 		channel &&
@@ -293,14 +292,12 @@ function areCommandsRegistered(
 			}
 
 			// Check each property of the option, with default for required
-			const actualRequired =
-				actualOption.required !== undefined
-					? registeredOption.required
-					: false; // Get actual required value (true or false)
-			const registeredRequired =
-				registeredOption.required !== undefined
-					? registeredOption.required
-					: false; // Assume false if undefined
+			const actualRequired = actualOption.required !== undefined
+				? registeredOption.required
+				: false; // Get actual required value (true or false)
+			const registeredRequired = registeredOption.required !== undefined
+				? registeredOption.required
+				: false; // Assume false if undefined
 
 			if (
 				actualOption.name !== registeredOption.name ||
@@ -369,7 +366,7 @@ client.once(Events.ClientReady, async (readyClient: Client) => {
 
 			await rest.put(Routes.applicationCommands(client.user!.id), {
 				body: Object.values(commands).map((command) =>
-					command.data.toJSON(),
+					command.data.toJSON()
 				),
 			});
 
@@ -380,7 +377,7 @@ client.once(Events.ClientReady, async (readyClient: Client) => {
 				),
 				{
 					body: Object.values(devCommands).map((command) =>
-						command.data.toJSON(),
+						command.data.toJSON()
 					),
 				},
 			);

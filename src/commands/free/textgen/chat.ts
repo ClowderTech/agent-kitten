@@ -1,13 +1,13 @@
 import {
-	EmbedBuilder,
-	SlashCommandBuilder,
-	SlashCommandStringOption,
 	ApplicationCommandOptionType,
 	ChatInputCommandInteraction,
+	EmbedBuilder,
 	Message as DiscordMessage,
+	SlashCommandBuilder,
+	SlashCommandStringOption,
 } from "discord.js";
 import type { ClientExtended } from "../../../utils/classes.ts";
-import { WithId, Document } from "mongodb";
+import { Document, WithId } from "mongodb";
 import * as ts from "typescript";
 import * as vm from "node:vm";
 import { launch } from "puppeteer";
@@ -26,37 +26,37 @@ export const data = new SlashCommandBuilder()
 		option
 			.setName("message")
 			.setDescription("The message to send to Agent Kitten.")
-			.setRequired(true),
+			.setRequired(true)
 	)
 	.addAttachmentOption((option) =>
 		option
 			.setName("attachment1")
 			.setDescription("An attachment to send to Agent Kitten.")
-			.setRequired(false),
+			.setRequired(false)
 	)
 	.addAttachmentOption((option) =>
 		option
 			.setName("attachment2")
 			.setDescription("An attachment to send to Agent Kitten.")
-			.setRequired(false),
+			.setRequired(false)
 	)
 	.addAttachmentOption((option) =>
 		option
 			.setName("attachment3")
 			.setDescription("An attachment to send to Agent Kitten.")
-			.setRequired(false),
+			.setRequired(false)
 	)
 	.addAttachmentOption((option) =>
 		option
 			.setName("attachment4")
 			.setDescription("An attachment to send to Agent Kitten.")
-			.setRequired(false),
+			.setRequired(false)
 	)
 	.addAttachmentOption((option) =>
 		option
 			.setName("attachment5")
 			.setDescription("An attachment to send to Agent Kitten.")
-			.setRequired(false),
+			.setRequired(false)
 	);
 
 // Function to split text into chunks for Discord embeds while handling code blocks and other formatting
@@ -166,7 +166,8 @@ function executeEval(code: string) {
 async function searchGoogle(query: string): Promise<string> {
 	const searchResultsAmount = 3;
 	const escapedTerm = encodeURIComponent(query);
-	const url = `https://searx.clowdertech.com/search?q=${escapedTerm}&language=auto&time_range=&safesearch=0&categories=general&format=json`;
+	const url =
+		`https://searx.clowdertech.com/search?q=${escapedTerm}&language=auto&time_range=&safesearch=0&categories=general&format=json`;
 
 	let searchResults = "";
 	let start = 0;
@@ -185,9 +186,9 @@ async function searchGoogle(query: string): Promise<string> {
 		const data = await response.json();
 		const results = data.results;
 		for (const result of results) {
-			searchResults += `[${start + 1}] ${result.url} || ${
-				result.content
-			}\n`;
+			searchResults += `[${
+				start + 1
+			}] ${result.url} || ${result.content}\n`;
 			start += 1;
 			if (start === searchResultsAmount) {
 				break;
@@ -250,13 +251,11 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	const message = interaction.options.getString("message", true); // Get the message content
 
-	const attachments =
-		interaction.options.data
-			.filter(
-				(option) =>
-					option.type === ApplicationCommandOptionType.Attachment,
-			)
-			.map((option) => option.attachment!) || []; // Get the attachment objects
+	const attachments = interaction.options.data
+		.filter(
+			(option) => option.type === ApplicationCommandOptionType.Attachment,
+		)
+		.map((option) => option.attachment!) || []; // Get the attachment objects
 
 	// Loop through each attachment and process it
 	const attachmentContents: string[] = [];
@@ -453,8 +452,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 					new EmbedBuilder()
 						.setAuthor({
 							name: "Agent Kitten",
-							iconURL:
-								client.user?.avatarURL() ??
+							iconURL: client.user?.avatarURL() ??
 								"https://via.placeholder.com/150x150?color=black",
 							url: "https://agentkitten.com/",
 						})
@@ -470,8 +468,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 					new EmbedBuilder()
 						.setAuthor({
 							name: "Agent Kitten",
-							iconURL:
-								client.user?.avatarURL() ??
+							iconURL: client.user?.avatarURL() ??
 								"https://via.placeholder.com/150x150?color=black",
 							url: "https://agentkitten.com/",
 						})

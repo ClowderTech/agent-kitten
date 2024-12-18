@@ -1,11 +1,11 @@
 import {
-	EmbedBuilder,
-	SlashCommandBuilder,
-	User,
-	GuildMember,
-	SlashCommandNumberOption,
-	MessageReaction,
 	ChatInputCommandInteraction,
+	EmbedBuilder,
+	GuildMember,
+	MessageReaction,
+	SlashCommandBuilder,
+	SlashCommandNumberOption,
+	User,
 } from "discord.js";
 import { type ClientExtended, UserMadeError } from "../../../utils/classes.ts";
 import type { Queue } from "moonlink.js";
@@ -35,7 +35,7 @@ export const data = new SlashCommandBuilder()
 			.setDescription("The amount of songs to skip.")
 			.setRequired(false)
 			.setMaxValue(600)
-			.setMinValue(1),
+			.setMinValue(1)
 	);
 
 export async function execute(interaction: ChatInputCommandInteraction) {
@@ -47,7 +47,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		throw new UserMadeError("You must use this in a server.");
 	}
 	const guildID = interaction.guild.id;
-	const member: GuildMember = <GuildMember>interaction.member;
+	const member: GuildMember = <GuildMember> interaction.member;
 	if (!member.voice) {
 		throw new UserMadeError("You are not in a voice channel.");
 	}
@@ -87,8 +87,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			member.roles.cache.some((role) => role.name === "DJ") ||
 			member.permissions.has("ModerateMembers", true) ||
 			channel.members.filter(
-				(member) => member.id !== client.user!.id && !member.user.bot,
-			).size <= 2
+					(member) =>
+						member.id !== client.user!.id && !member.user.bot,
+				).size <= 2
 		)
 	) {
 		const votesNeeded = Math.ceil(
@@ -100,9 +101,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		const embed = new EmbedBuilder()
 			.setTitle("Vote to stop")
 			.setDescription(
-				`You are not a DJ, so you need to vote. React with ✅ to vote to skip the song(s). Have ${
-					votesNeeded
-				} votes in 30 seconds. The vote will end <t:${
+				`You are not a DJ, so you need to vote. React with ✅ to vote to skip the song(s). Have ${votesNeeded} votes in 30 seconds. The vote will end <t:${
 					Math.floor(Date.now() / 1000) + 30
 				}:R>`,
 			)

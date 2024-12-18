@@ -1,8 +1,8 @@
 import type { ObjectId } from "mongodb";
 import type { ClientExtended } from "./classes.ts";
-import { getData, setData, listData } from "./mongohelper.ts"; // Import mongoHelpers functions
-import { User, EmbedBuilder, MessageFlags } from "discord.js";
-import { getNestedKey, type Config } from "./config.ts";
+import { getData, listData, setData } from "./mongohelper.ts"; // Import mongoHelpers functions
+import { EmbedBuilder, MessageFlags, User } from "discord.js";
+import { type Config, getNestedKey } from "./config.ts";
 
 interface UserExperience {
 	userId: string;
@@ -190,7 +190,8 @@ export async function prettyExpGain(
 			)
 			.setTimestamp()
 			.setFooter({
-				text: "If you don't want these messages, execute /userconf set key:leveling.levelupmessaging value:false",
+				text:
+					"If you don't want these messages, execute /userconf set key:leveling.levelupmessaging value:false",
 			}); // Correctly formatted footer
 
 		// Send the embed message as a DM to the user

@@ -1,7 +1,7 @@
 import {
+	ChatInputCommandInteraction,
 	EmbedBuilder,
 	SlashCommandBuilder,
-	ChatInputCommandInteraction,
 } from "discord.js";
 
 export const data = new SlashCommandBuilder()
@@ -20,9 +20,11 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			},
 			{
 				name: "Bot Uptime",
-				value: `${Math.floor(
-					interaction.client.uptime / 1000 / 60,
-				)} minutes`,
+				value: `${
+					Math.floor(
+						interaction.client.uptime / 1000 / 60,
+					)
+				} minutes`,
 			},
 			{
 				name: "Bot Version",

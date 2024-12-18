@@ -4,7 +4,7 @@ import {
 	SlashCommandBuilder,
 	SlashCommandStringOption,
 } from "@discordjs/builders";
-import { CommandInteraction, Collection } from "discord.js";
+import { Collection, CommandInteraction } from "discord.js";
 import type { ClientExtended } from "../utils/classes.ts";
 
 const checkForValidFile = (file: string): boolean => {
@@ -30,7 +30,7 @@ export const data = new SlashCommandBuilder()
 		option
 			.setName("command")
 			.setDescription("The command to reload.")
-			.setRequired(true),
+			.setRequired(true)
 	);
 
 export async function execute(interaction: CommandInteraction) {

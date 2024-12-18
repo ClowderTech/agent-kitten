@@ -1,11 +1,11 @@
 import {
+	ChatInputCommandInteraction,
 	EmbedBuilder,
-	SlashCommandBuilder,
-	User,
 	GuildMember,
 	MessageReaction,
-	ChatInputCommandInteraction,
+	SlashCommandBuilder,
 	SlashCommandChannelOption,
+	User,
 } from "discord.js";
 import { type ClientExtended, UserMadeError } from "../../../utils/classes.ts";
 
@@ -16,7 +16,7 @@ export const data = new SlashCommandBuilder()
 		option
 			.setName("channel")
 			.setDescription("The channel to join.")
-			.setRequired(true),
+			.setRequired(true)
 	);
 
 export async function execute(interaction: ChatInputCommandInteraction) {
@@ -28,7 +28,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		throw new UserMadeError("You must use this in a server.");
 	}
 	const guildID = interaction.guild.id;
-	const member: GuildMember = <GuildMember>interaction.member;
+	const member: GuildMember = <GuildMember> interaction.member;
 	if (!member.voice) {
 		throw new UserMadeError("You are not in a voice channel.");
 	}
@@ -54,8 +54,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			member.roles.cache.some((role) => role.name === "DJ") ||
 			member.permissions.has("ModerateMembers", true) ||
 			channel.members.filter(
-				(member) => member.id !== client.user!.id && !member.user.bot,
-			).size <= 2
+					(member) =>
+						member.id !== client.user!.id && !member.user.bot,
+				).size <= 2
 		)
 	) {
 		const votesNeeded = Math.ceil(

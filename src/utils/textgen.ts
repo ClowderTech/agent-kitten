@@ -33,13 +33,13 @@ export async function chatWithFuncs(
 			const func = functions[element.function.name];
 			if (func) {
 				// Optimized: Directly await the function call
-				toolCallResponse += `Function "${
-					element.function.name
-				}" executed and returned: "${await func(
-					...Object.values(element.function.arguments),
-				)}"\n`;
+				toolCallResponse +=
+					`Function "${element.function.name}" executed and returned: "${await func(
+						...Object.values(element.function.arguments),
+					)}"\n`;
 			} else {
-				toolCallResponse += `Function "${element.function.name}" not found.\n`;
+				toolCallResponse +=
+					`Function "${element.function.name}" not found.\n`;
 			}
 		}
 
@@ -111,7 +111,8 @@ export async function scanMessage(message: DiscordMessage, configData: Config) {
 	let messages_string = "";
 
 	for (const message of messages) {
-		messages_string += `Author Name: ${message.author.displayName}\nContent: ${message.content}\n\n`;
+		messages_string +=
+			`Author Name: ${message.author.displayName}\nContent: ${message.content}\n\n`;
 	}
 
 	messages_string = messages_string.normalize().trim();
@@ -161,8 +162,7 @@ export async function scanMessage(message: DiscordMessage, configData: Config) {
 			if (typeof log_channel_id === "number") {
 				log_channel_id = String(log_channel_id);
 			}
-			const log_channel =
-				guild.channels.cache.get(log_channel_id) ||
+			const log_channel = guild.channels.cache.get(log_channel_id) ||
 				(await guild.channels.fetch(log_channel_id));
 			if (log_channel && log_channel.isSendable()) {
 				const embed = new EmbedBuilder()
@@ -172,11 +172,13 @@ export async function scanMessage(message: DiscordMessage, configData: Config) {
 					.addFields(
 						{
 							name: "Message Author",
-							value: `<@!${message.author.id}> \`${message.author.id}\``,
+							value:
+								`<@!${message.author.id}> \`${message.author.id}\``,
 						},
 						{
 							name: "Message Channel",
-							value: `<#${message.channelId}> \`${message.channelId}\``,
+							value:
+								`<#${message.channelId}> \`${message.channelId}\``,
 						},
 						{
 							name: "Message Content",
@@ -200,7 +202,8 @@ export async function scanMessage(message: DiscordMessage, configData: Config) {
 				.addFields(
 					{
 						name: "Message Channel",
-						value: `<#${message.channelId}> \`${message.channelId}\``,
+						value:
+							`<#${message.channelId}> \`${message.channelId}\``,
 					},
 					{
 						name: "Message Content",
@@ -212,7 +215,8 @@ export async function scanMessage(message: DiscordMessage, configData: Config) {
 					},
 				)
 				.setFooter({
-					text: "This message was detected using our AI AutoMod system. If you believe this was a mistake, please contact a staff member of the server.",
+					text:
+						"This message was detected using our AI AutoMod system. If you believe this was a mistake, please contact a staff member of the server.",
 				});
 
 			await message.author.send({ embeds: [embed] });

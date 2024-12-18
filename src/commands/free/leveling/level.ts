@@ -1,14 +1,14 @@
 import {
+	ChatInputCommandInteraction,
 	EmbedBuilder,
 	SlashCommandBuilder,
 	User,
-	ChatInputCommandInteraction,
 } from "discord.js";
 import { type ClientExtended } from "../../../utils/classes.ts";
 import {
-	getMemberExperience,
-	calculateLevelFromExperience,
 	calculateExperienceFromLevel,
+	calculateLevelFromExperience,
+	getMemberExperience,
 } from "../../../utils/leveling.ts"; // Import necessary functions
 
 // Define the new command with an optional user option
@@ -19,13 +19,13 @@ export const data = new SlashCommandBuilder()
 		option
 			.setName("user")
 			.setDescription("Select a user to check their level.")
-			.setRequired(false),
+			.setRequired(false)
 	);
 
 export async function execute(interaction: ChatInputCommandInteraction) {
 	// Get the user option; if not provided, default to the command executor
-	const user: User =
-		interaction.options.get("user", false)?.user || interaction.user;
+	const user: User = interaction.options.get("user", false)?.user ||
+		interaction.user;
 
 	// Fetch the member's experience using the helper function
 	const userId = user.id; // Get the ID of the target user

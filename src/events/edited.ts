@@ -1,7 +1,7 @@
 import { Events, Message } from "discord.js";
 import type { ClientExtended } from "../utils/classes.ts";
 import { getData } from "../utils/mongohelper.ts";
-import { getNestedKey, type Config } from "../utils/config.ts";
+import { type Config, getNestedKey } from "../utils/config.ts";
 import { scanMessage } from "../utils/textgen.ts";
 
 export const eventType: Events = Events.MessageUpdate;
