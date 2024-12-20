@@ -8,8 +8,6 @@ import {
 } from "discord.js";
 import type { ClientExtended } from "../../../utils/classes.ts";
 import { Document, WithId } from "mongodb";
-import * as ts from "typescript";
-import * as vm from "node:vm";
 import { launch } from "puppeteer";
 import {
 	chatWithFuncs,
@@ -18,6 +16,7 @@ import {
 import { ChatRequest } from "ollama";
 import { parse } from "node-html-parser";
 import { getData, setData } from "../../../utils/mongohelper.ts";
+import { deadline } from "@std/async";
 
 export const data = new SlashCommandBuilder()
 	.setName("chat")
@@ -107,59 +106,83 @@ function splitText(text: string, maxLength: number = 2000): string[] {
 	return chunks; // Return the array of text chunks
 }
 
-function executeEval(code: string) {
-	code.replace("\\n", "\n");
-	code.replace("\\t", "\t");
+class CapturingLogger {
+	private capturedOutput: string = "";
+
+	log(...args: unknown[]): void {
+		this.capturedOutput += args.map((arg) => String(arg)).join(" ") + "\n";
+	}
+
+	error(...args: unknown[]): void {
+		this.capturedOutput += "ERROR: " +
+			args.map((arg) => String(arg)).join(" ") + "\n";
+	}
+
+	warn(...args: unknown[]): void {
+		this.capturedOutput += "WARN: " +
+			args.map((arg) => String(arg)).join(" ") + "\n";
+	}
+
+	debug(...args: unknown[]): void {
+		this.capturedOutput += "DEBUG: " +
+			args.map((arg) => String(arg)).join(" ") + "\n";
+	}
+
+	getCapturedOutput(): string {
+		return this.capturedOutput.trim() || "No console output captured";
+	}
+}
+
+async function executeEval(code: string): Promise<string> {
+	// Replace escape sequences
+	code = code.replace(/\\n/g, "\n").replace(/\\t/g, "\t");
+
+	// Construct the module code
+	const evalCode = `
+		export async function execute(): Promise<void> {
+			${code}
+		}
+	`;
+
+	const evalTempFile = "./evalTempFile.ts";
+
+	// Write the code to a temporary file
+	await Deno.writeTextFile(evalTempFile, evalCode);
+
+	// Create an instance of CapturingLogger
+	const logger = new CapturingLogger();
+
+	// Temporarily override console methods
+	const originalConsole = { ...console };
+	console.log = logger.log.bind(logger);
+	console.error = logger.error.bind(logger);
+	console.warn = logger.warn.bind(logger);
+	console.debug = logger.debug.bind(logger);
 
 	try {
-		// Define the tsconfig object directly with the correct types
-		const tsconfig = {
-			compilerOptions: {
-				lib: ["ESNext", "DOM"],
-				target: ts.ScriptTarget.ESNext,
-				module: ts.ModuleKind.None, // Ensure no module system
-				noEmitHelpers: true, // Try to prevent additional helper functions
-				allowJs: true,
-				noEmit: true, // Change to true if we don’t want to emit files
-				strict: true,
-				skipLibCheck: true,
-			},
-		};
+		// Dynamically import the module
+		const evalTempModule = await import(`./${evalTempFile}`);
 
-		// Step 2: Get the compiler options from the tsconfig
-		const compilerOptions = tsconfig.compilerOptions; // Extract compilerOptions
+		// Execute the function with a timeout
+		await deadline(evalTempModule.execute(), 3000);
 
-		// Step 3: Transpile the TypeScript code using the options from tsconfig
-		const transpiledCode = ts.transpileModule(code, {
-			// Transpile the code
-			compilerOptions: compilerOptions, // Apply the compiler options from tsconfig
-		});
-
-		// Step 4: Create a new context for evaluation
-		const context = vm.createContext({
-			// Creating a new VM context
-			consoleOutput: null, // We will store console output here
-			console: {
-				// Override the console methods
-				log: (output: unknown) => {
-					context.consoleOutput = output; // Capture console logs
-				},
-			},
-		});
-
-		// Run the transpiled code in the new context
-		const script = new vm.Script(transpiledCode.outputText); // Create a new script from the output
-		script.runInContext(context); // Run the script in the VM context
-
-		// Step 5: Check if any console output is captured
-		if (context.consoleOutput !== null) {
-			return String(context.consoleOutput); // Return the console output as a string
-		} else {
-			return "No console output captured"; // If nothing was outputted
-		}
+		// Return the captured output
+		return logger.getCapturedOutput();
 	} catch (error) {
-		// Handle errors
-		return `Error: ${error || "Unknown error occurred"}`; // Return the error message
+		if (error instanceof Error) {
+			return `${error.name}: ${error.message}`;
+		} else {
+			return "An unknown error occurred";
+		}
+	} finally {
+		// Clean up by removing the temporary file
+		await Deno.remove(evalTempFile);
+
+		// Restore the original console methods
+		console.log = originalConsole.log;
+		console.error = originalConsole.error;
+		console.warn = originalConsole.warn;
+		console.debug = originalConsole.debug;
 	}
 }
 
