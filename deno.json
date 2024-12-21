@@ -16,7 +16,7 @@
 	},
 	"tasks": {
 		"devstart": "deno run --env-file --allow-all src/index.ts",
-		"start": "deno run --env-file --allow-env --allow-read --allow-write --allow-net --allow-sys --allow-run src/index.ts",
+		"start": "deno run --allow-env --allow-read --allow-write --allow-net --allow-sys --allow-run src/index.ts",
 		"test": "deno test",
 		"lint": "deno lint && deno fmt --indent-width 4 --use-tabs --check && deno check src/*",
 		"fixlint": "deno fmt --indent-width 4 --use-tabs"
