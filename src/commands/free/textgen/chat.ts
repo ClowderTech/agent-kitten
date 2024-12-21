@@ -1,6 +1,8 @@
 import {
 	ApplicationCommandOptionType,
+	ApplicationIntegrationType,
 	ChatInputCommandInteraction,
+	InteractionContextType,
 	SlashCommandBuilder,
 	SlashCommandStringOption,
 } from "discord.js";
@@ -18,6 +20,15 @@ import { deadline } from "@std/async";
 export const data = new SlashCommandBuilder()
 	.setName("chat")
 	.setDescription("Chat with Agent Kitten.")
+	.setIntegrationTypes([
+		ApplicationIntegrationType.UserInstall,
+		ApplicationIntegrationType.GuildInstall,
+	])
+	.setContexts([
+		InteractionContextType.BotDM,
+		InteractionContextType.Guild,
+		InteractionContextType.PrivateChannel,
+	])
 	.addStringOption((option: SlashCommandStringOption) =>
 		option
 			.setName("message")
