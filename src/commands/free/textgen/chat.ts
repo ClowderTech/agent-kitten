@@ -1,8 +1,6 @@
 import {
 	ApplicationCommandOptionType,
 	ChatInputCommandInteraction,
-	EmbedBuilder,
-	Message as DiscordMessage,
 	SlashCommandBuilder,
 	SlashCommandStringOption,
 } from "discord.js";
@@ -14,7 +12,6 @@ import {
 	convertBlobToUint8Array,
 } from "../../../utils/textgen.ts";
 import { ChatRequest } from "ollama";
-import { parse } from "node-html-parser";
 import { getData, setData } from "../../../utils/mongohelper.ts";
 import { deadline } from "@std/async";
 
@@ -58,52 +55,58 @@ export const data = new SlashCommandBuilder()
 			.setRequired(false)
 	);
 
-// Function to split text into chunks for Discord embeds while handling code blocks and other formatting
 function splitText(text: string, maxLength: number = 2000): string[] {
-	// Initialize variables
-	const lines = text.split(/\r?\n/); // Split the text by lines
-	const chunks: string[] = []; // Array to store the resulting chunks
-	let currentChunk = ""; // String to accumulate the current chunk
-	let codeBlockOpen = false; // Boolean to track if we are inside a code block
+	const lines = text.split(/\r?\n/);
+	const chunks: string[] = [];
+	let currentChunk = "";
+	let codeBlockOpen = false;
 
-	// Function to safely push a chunk and handle reopen code block if needed
 	const pushChunk = () => {
 		if (codeBlockOpen) {
-			currentChunk += "```\n"; // Close the code block in the current chunk
-			chunks.push(currentChunk.trim()); // Add trimmed chunk to the array
-			currentChunk = "```\n"; // Reopen code block in the next chunk
+			currentChunk += "```\n";
+			chunks.push(currentChunk.trim());
+			currentChunk = "```\n";
 		} else {
-			chunks.push(currentChunk.trim()); // Add trimmed chunk to the array
-			currentChunk = ""; // Reset the current chunk
+			chunks.push(currentChunk.trim());
+			currentChunk = "";
 		}
 	};
 
-	// Iterate through each line in the text
 	for (const line of lines) {
-		// Track code block state
 		if (line.trim().startsWith("```")) {
 			codeBlockOpen = !codeBlockOpen;
 		}
 
-		// Check if adding the line would exceed the chunk's max length
 		if (currentChunk.length + line.length + 1 > maxLength) {
-			// +1 for the newline character
-			pushChunk(); // Push the current chunk to the array
-			currentChunk += line + "\n"; // Start a new chunk with the current line
+			if (line.length + 1 > maxLength) {
+				let remainingLine = line;
+				while (remainingLine.length > 0) {
+					const spaceLeft = maxLength - currentChunk.length - 1;
+					const segment = remainingLine.slice(0, spaceLeft);
+					currentChunk += segment;
+					remainingLine = remainingLine.slice(spaceLeft);
+					if (remainingLine.length > 0) {
+						pushChunk();
+					}
+				}
+				currentChunk += "\n";
+			} else {
+				pushChunk();
+				currentChunk += line + "\n";
+			}
 		} else {
-			currentChunk += line + "\n"; // Add the line to the current chunk
+			currentChunk += line + "\n";
 		}
 	}
 
-	// Handle the final chunk
 	if (currentChunk.trim()) {
 		if (codeBlockOpen) {
-			currentChunk += "```"; // Close any open code block
+			currentChunk += "```";
 		}
-		chunks.push(currentChunk.trim()); // Add the final chunk to the array
+		chunks.push(currentChunk.trim());
 	}
 
-	return chunks; // Return the array of text chunks
+	return chunks;
 }
 
 class CapturingLogger {
@@ -144,7 +147,7 @@ async function executeEval(code: string): Promise<string> {
 		}
 	`;
 
-	const evalTempFile = "./evalTempFile.ts";
+	const evalTempFile = `${Deno.cwd()}/evalTempFile.ts`;
 
 	// Write the code to a temporary file
 	await Deno.writeTextFile(evalTempFile, evalCode);
@@ -161,7 +164,7 @@ async function executeEval(code: string): Promise<string> {
 
 	try {
 		// Dynamically import the module
-		const evalTempModule = await import(`./${evalTempFile}`);
+		const evalTempModule = await import(`${evalTempFile}`);
 
 		// Execute the function with a timeout
 		await deadline(evalTempModule.execute(), 3000);
@@ -200,7 +203,7 @@ async function searchGoogle(query: string): Promise<string> {
 
 	try {
 		const response = await page.goto(url, {
-			timeout: 30000,
+			timeout: 10000,
 			waitUntil: "load",
 		});
 		if (!response?.ok()) {
@@ -226,11 +229,9 @@ async function searchGoogle(query: string): Promise<string> {
 	return searchResults;
 }
 
-// Function to scrape a Cloudflare-protected site
 async function scrapeWebsite(url: string): Promise<string> {
-	// Launch a headless Chromium browser with some parameters
 	const browser = await launch({
-		headless: true, // Running in headful mode may help bypass some protections
+		headless: true,
 		args: ["--no-sandbox"],
 	});
 
@@ -240,28 +241,67 @@ async function scrapeWebsite(url: string): Promise<string> {
 		const response = await page.goto(url, {
 			timeout: 30000,
 			waitUntil: "load",
-		}); // Navigate to the URL
-		const content = await page.content(); // Get the page content
+		});
 
 		if (!response?.ok()) {
 			return `Response not ok. Status ${response?.status()}.`;
 		}
 
-		const root = parse(content); // Parse the content
-		const anchors = root.querySelectorAll("a[href]"); // Find <a> tags
+		await page.waitForSelector("body");
 
-		anchors.forEach((a) => {
-			const linkText = `[${a.text}](${a.getAttribute("href")})`; // Create link text
-			a.replaceWith(linkText); // Replace <a> tag with link text
+		const visibleTextWithLinks = await page.evaluate(() => {
+			// Function to determine if an element is visible
+			function isVisible(element: HTMLElement): boolean {
+				const style = globalThis.getComputedStyle(element);
+				return (
+					style.display !== "none" &&
+					style.visibility !== "hidden" &&
+					style.opacity !== "0" &&
+					element.offsetWidth > 0 &&
+					element.offsetHeight > 0
+				);
+			}
+
+			// Remove non-visible elements that might interfere with text extraction
+			const elementsToRemove = document.querySelectorAll(
+				"script, style, header, footer, nav, .ad, .popup, .hidden",
+			);
+			elementsToRemove.forEach((el) => el.remove());
+
+			// Traverse the document and collect visible text and links
+			const walker = document.createTreeWalker(
+				document.body,
+				NodeFilter.SHOW_TEXT,
+				null,
+			);
+			let node: Text | null;
+			const textWithLinks: string[] = [];
+
+			while ((node = walker.nextNode() as Text | null)) {
+				const parentElement = node.parentElement;
+				if (parentElement && isVisible(parentElement)) {
+					const textContent = node.textContent?.trim();
+					if (textContent) {
+						if (parentElement.tagName.toLowerCase() === "a") {
+							const href = (parentElement as HTMLAnchorElement)
+								.href;
+							textWithLinks.push(`[${textContent}](${href})`);
+						} else {
+							textWithLinks.push(textContent);
+						}
+					}
+				}
+			}
+
+			return textWithLinks.join("\n");
 		});
 
-		const textWithLinks = root.text; // Get the modified text
-		return textWithLinks; // Return the modified text
+		return visibleTextWithLinks;
 	} catch (error) {
 		console.error("Error scraping website:", error);
 		return "Error occurred during scraping.";
 	} finally {
-		await browser.close(); // Ensure the browser is closed
+		await browser.close();
 	}
 }
 
@@ -304,7 +344,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 					contentType.includes("; charset=utf-8"))
 			) {
 				const text = await response.text(); // Read the text content
-				attachmentContents.push(text); // Add the text content to the array
+				attachmentContents.push(text.normalize().trim()); // Add the text content to the array
 			} else if (
 				contentType &&
 				(contentType.includes("image") || contentType.includes("video"))
@@ -315,19 +355,19 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 				const { chat_response } = await chatWithFuncs(ollama, {
 					model: "moondream:1.8b",
-					keep_alive: -1,
 					messages: [
 						{
 							role: "user",
-							content: "Describe this image or video in detail.",
+							content:
+								"Describe this image or video in as much detail as you possibly can.",
 							images: [image],
 						},
 					],
 				});
 
-				console.log(chat_response.message.content);
-
-				attachmentURLs.push(chat_response.message.content);
+				attachmentURLs.push(
+					chat_response.message.content.normalize().trim(),
+				);
 			}
 		} catch (error) {
 			console.error("Error processing attachment:", error);
@@ -365,7 +405,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 				{
 					role: "system",
 					content:
-						"You are Agent Kitten, a helpful AI powered discord bot made by the ClowderTech LLC. You are here to help people with their problems. Your own website is https://agentkitten.com. Also, make sure to walk through the user all the steps you did to get your answer before giving the full answer, especially if you are fixing or creating a users code or doing a math problem. For instance with coding, write out the steps you would take to fix or create the code before giving the code and then adding comments of what youre doing on that line before writing the line of code.",
+						"You are Agent Kitten, a helpful AI powered discord bot made by the ClowderTech LLC. You are here to help people with their problems. Your own website is https://agentkitten.com/.",
 				},
 			],
 		};
@@ -387,11 +427,6 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		// model: "mistral-nemo",
 		model: "qwen2.5:7b",
 		messages: user_data.messages,
-		stream: false,
-		options: {
-			num_ctx: 16383,
-			num_predict: 4095,
-		},
 		tools: [
 			{
 				type: "function",
@@ -466,41 +501,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	await setData(client, "textgen", user_data);
 
-	let lastMessage: DiscordMessage | null = null;
-
 	for (const chunk of splitText(chat_response.message.content!, 4000)) {
-		if (!lastMessage) {
-			lastMessage = await interaction.followUp({
-				embeds: [
-					new EmbedBuilder()
-						.setAuthor({
-							name: "Agent Kitten",
-							iconURL: client.user?.avatarURL() ??
-								"https://via.placeholder.com/150x150?color=black",
-							url: "https://agentkitten.com/",
-						})
-						.setTitle("Response")
-						.setDescription(chunk)
-						.setColor("#2b2d31")
-						.setTimestamp(),
-				],
-			});
-		} else {
-			lastMessage = await lastMessage.reply({
-				embeds: [
-					new EmbedBuilder()
-						.setAuthor({
-							name: "Agent Kitten",
-							iconURL: client.user?.avatarURL() ??
-								"https://via.placeholder.com/150x150?color=black",
-							url: "https://agentkitten.com/",
-						})
-						.setTitle("Response")
-						.setDescription(chunk)
-						.setColor("#2b2d31")
-						.setTimestamp(),
-				],
-			});
-		}
+		await interaction.followUp({
+			content: chunk,
+			allowedMentions: { parse: [], repliedUser: true },
+		});
 	}
 }

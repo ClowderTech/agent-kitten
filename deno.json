@@ -1,39 +1,28 @@
 {
 	"type": "module",
 	"imports": {
+		"@discordjs/builders": "npm:@discordjs/builders@^1.9.0",
 		"@discordjs/voice": "npm:@discordjs/voice@^0.18.0",
+		"@std/assert": "jsr:@std/assert@^1.0.10",
 		"@std/async": "jsr:@std/async@^1.0.9",
 		"@std/log": "jsr:@std/log@^0.224.12",
+		"@std/testing": "jsr:@std/testing@^1.0.8",
 		"discord.js": "npm:discord.js@^14.16.3",
 		"jsdom": "npm:jsdom@^25.0.1",
 		"mongodb": "npm:mongodb@^6.12.0",
 		"moonlink.js": "npm:moonlink.js@^4.2.1",
-		"node-html-parser": "npm:node-html-parser@^6.1.13",
 		"ollama": "npm:ollama@^0.5.11",
-		"puppeteer": "npm:puppeteer@^23.10.3",
-		"@types/jsdom": "npm:@types/jsdom@^21.1.7",
-		"globals": "npm:globals@^15.13.0",
-		"@discordjs/builders": "npm:@discordjs/builders@^1.9.0"
+		"puppeteer": "npm:puppeteer@^23.11.1"
 	},
 	"tasks": {
-		"start": "deno run src/index.ts",
+		"devstart": "deno run --env-file --allow-all src/index.ts",
+		"start": "deno run --env-file --allow-env --allow-read --allow-write --allow-net --allow-sys --allow-run src/index.ts",
+		"test": "deno test",
 		"lint": "deno lint && deno fmt --indent-width 4 --use-tabs --check && deno check src/*",
 		"fixlint": "deno fmt --indent-width 4 --use-tabs"
 	},
-	"devDependencies": {
-		"@types/jsdom": "npm:@types/jsdom@^21.1.7",
-		"globals": "npm:globals@^15.13.0",
-		"@discordjs/builders": "npm:@discordjs/builders@^1.9.0"
-	},
-	"dependencies": {
-		"@discordjs/voice": "npm:@discordjs/voice@^0.18.0",
-		"discord.js": "npm:discord.js@^14.16.3",
-		"jsdom": "npm:jsdom@^25.0.1",
-		"mongodb": "npm:mongodb@^6.12.0",
-		"moonlink.js": "npm:moonlink.js@^4.2.1",
-		"node-html-parser": "npm:node-html-parser@^6.1.13",
-		"ollama": "npm:ollama@^0.5.11",
-		"puppeteer": "npm:puppeteer@^23.10.3"
-	},
-	"nodeModulesDir": "auto"
+	"nodeModulesDir": "auto",
+	"compilerOptions": {
+		"lib": ["DOM", "ESNext", "deno.ns"]
+	}
 }
