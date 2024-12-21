@@ -1,8 +1,6 @@
 import {
 	ApplicationCommandOptionType,
 	ChatInputCommandInteraction,
-	EmbedBuilder,
-	Message as DiscordMessage,
 	SlashCommandBuilder,
 	SlashCommandStringOption,
 } from "discord.js";
@@ -57,52 +55,58 @@ export const data = new SlashCommandBuilder()
 			.setRequired(false)
 	);
 
-// Function to split text into chunks for Discord embeds while handling code blocks and other formatting
 function splitText(text: string, maxLength: number = 2000): string[] {
-	// Initialize variables
-	const lines = text.split(/\r?\n/); // Split the text by lines
-	const chunks: string[] = []; // Array to store the resulting chunks
-	let currentChunk = ""; // String to accumulate the current chunk
-	let codeBlockOpen = false; // Boolean to track if we are inside a code block
+	const lines = text.split(/\r?\n/);
+	const chunks: string[] = [];
+	let currentChunk = "";
+	let codeBlockOpen = false;
 
-	// Function to safely push a chunk and handle reopen code block if needed
 	const pushChunk = () => {
 		if (codeBlockOpen) {
-			currentChunk += "```\n"; // Close the code block in the current chunk
-			chunks.push(currentChunk.trim()); // Add trimmed chunk to the array
-			currentChunk = "```\n"; // Reopen code block in the next chunk
+			currentChunk += "```\n";
+			chunks.push(currentChunk.trim());
+			currentChunk = "```\n";
 		} else {
-			chunks.push(currentChunk.trim()); // Add trimmed chunk to the array
-			currentChunk = ""; // Reset the current chunk
+			chunks.push(currentChunk.trim());
+			currentChunk = "";
 		}
 	};
 
-	// Iterate through each line in the text
 	for (const line of lines) {
-		// Track code block state
 		if (line.trim().startsWith("```")) {
 			codeBlockOpen = !codeBlockOpen;
 		}
 
-		// Check if adding the line would exceed the chunk's max length
 		if (currentChunk.length + line.length + 1 > maxLength) {
-			// +1 for the newline character
-			pushChunk(); // Push the current chunk to the array
-			currentChunk += line + "\n"; // Start a new chunk with the current line
+			if (line.length + 1 > maxLength) {
+				let remainingLine = line;
+				while (remainingLine.length > 0) {
+					const spaceLeft = maxLength - currentChunk.length - 1;
+					const segment = remainingLine.slice(0, spaceLeft);
+					currentChunk += segment;
+					remainingLine = remainingLine.slice(spaceLeft);
+					if (remainingLine.length > 0) {
+						pushChunk();
+					}
+				}
+				currentChunk += "\n";
+			} else {
+				pushChunk();
+				currentChunk += line + "\n";
+			}
 		} else {
-			currentChunk += line + "\n"; // Add the line to the current chunk
+			currentChunk += line + "\n";
 		}
 	}
 
-	// Handle the final chunk
 	if (currentChunk.trim()) {
 		if (codeBlockOpen) {
-			currentChunk += "```"; // Close any open code block
+			currentChunk += "```";
 		}
-		chunks.push(currentChunk.trim()); // Add the final chunk to the array
+		chunks.push(currentChunk.trim());
 	}
 
-	return chunks; // Return the array of text chunks
+	return chunks;
 }
 
 class CapturingLogger {
@@ -279,8 +283,8 @@ async function scrapeWebsite(url: string): Promise<string> {
 					const textContent = node.textContent?.trim();
 					if (textContent) {
 						if (parentElement.tagName.toLowerCase() === "a") {
-							const href =
-								(parentElement as HTMLAnchorElement).href;
+							const href = (parentElement as HTMLAnchorElement)
+								.href;
 							textWithLinks.push(`[${textContent}](${href})`);
 						} else {
 							textWithLinks.push(textContent);
@@ -497,41 +501,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	await setData(client, "textgen", user_data);
 
-	let lastMessage: DiscordMessage | null = null;
-
 	for (const chunk of splitText(chat_response.message.content!, 4000)) {
-		if (!lastMessage) {
-			lastMessage = await interaction.followUp({
-				embeds: [
-					new EmbedBuilder()
-						.setAuthor({
-							name: "Agent Kitten",
-							iconURL: client.user?.avatarURL() ??
-								"https://via.placeholder.com/150x150?color=black",
-							url: "https://agentkitten.com/",
-						})
-						.setTitle("Response")
-						.setDescription(chunk)
-						.setColor("#2b2d31")
-						.setTimestamp(),
-				],
-			});
-		} else {
-			lastMessage = await lastMessage.reply({
-				embeds: [
-					new EmbedBuilder()
-						.setAuthor({
-							name: "Agent Kitten",
-							iconURL: client.user?.avatarURL() ??
-								"https://via.placeholder.com/150x150?color=black",
-							url: "https://agentkitten.com/",
-						})
-						.setTitle("Response")
-						.setDescription(chunk)
-						.setColor("#2b2d31")
-						.setTimestamp(),
-				],
-			});
-		}
+		await interaction.followUp({
+			content: chunk,
+			allowedMentions: { parse: [], repliedUser: true },
+		});
 	}
 }
