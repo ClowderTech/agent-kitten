@@ -43,10 +43,10 @@ RUN apt-get update && apt-get install -y \
     wget \
     xdg-utils
 
-# Copy package.json and package-lock.json (if it exists) to Docker image
-COPY package*.json ./
+# Copy deno.json and package-lock.json (if it exists) to Docker image
+COPY deno.json ./
 
-# Install Node.js dependencies
+# Install Deno dependencies
 RUN deno install --allow-scripts=npm:puppeteer
 
 # Copy all other files from the current directory to /app in the container
