@@ -501,10 +501,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	await setData(client, "textgen", user_data);
 
-	for (const chunk of splitText(chat_response.message.content!, 4000)) {
+	for (const chunk of splitText(chat_response.message.content!, 2000)) {
 		await interaction.followUp({
 			content: chunk,
-			allowedMentions: { parse: [], repliedUser: true },
+			allowedMentions: { parse: [] },
 		});
 	}
 }
