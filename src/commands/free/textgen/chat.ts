@@ -14,7 +14,6 @@ import {
 	convertBlobToUint8Array,
 } from "../../../utils/textgen.ts";
 import { ChatRequest } from "ollama";
-import { parse } from "node-html-parser";
 import { getData, setData } from "../../../utils/mongohelper.ts";
 import { deadline } from "@std/async";
 
@@ -144,7 +143,7 @@ async function executeEval(code: string): Promise<string> {
 		}
 	`;
 
-	const evalTempFile = "./evalTempFile.ts";
+	const evalTempFile = `${Deno.cwd()}/evalTempFile.ts`;
 
 	// Write the code to a temporary file
 	await Deno.writeTextFile(evalTempFile, evalCode);
@@ -161,7 +160,7 @@ async function executeEval(code: string): Promise<string> {
 
 	try {
 		// Dynamically import the module
-		const evalTempModule = await import(`./${evalTempFile}`);
+		const evalTempModule = await import(`${evalTempFile}`);
 
 		// Execute the function with a timeout
 		await deadline(evalTempModule.execute(), 3000);
@@ -200,7 +199,7 @@ async function searchGoogle(query: string): Promise<string> {
 
 	try {
 		const response = await page.goto(url, {
-			timeout: 30000,
+			timeout: 10000,
 			waitUntil: "load",
 		});
 		if (!response?.ok()) {
@@ -226,11 +225,9 @@ async function searchGoogle(query: string): Promise<string> {
 	return searchResults;
 }
 
-// Function to scrape a Cloudflare-protected site
 async function scrapeWebsite(url: string): Promise<string> {
-	// Launch a headless Chromium browser with some parameters
 	const browser = await launch({
-		headless: true, // Running in headful mode may help bypass some protections
+		headless: true,
 		args: ["--no-sandbox"],
 	});
 
@@ -240,28 +237,67 @@ async function scrapeWebsite(url: string): Promise<string> {
 		const response = await page.goto(url, {
 			timeout: 30000,
 			waitUntil: "load",
-		}); // Navigate to the URL
-		const content = await page.content(); // Get the page content
+		});
 
 		if (!response?.ok()) {
 			return `Response not ok. Status ${response?.status()}.`;
 		}
 
-		const root = parse(content); // Parse the content
-		const anchors = root.querySelectorAll("a[href]"); // Find <a> tags
+		await page.waitForSelector("body");
 
-		anchors.forEach((a) => {
-			const linkText = `[${a.text}](${a.getAttribute("href")})`; // Create link text
-			a.replaceWith(linkText); // Replace <a> tag with link text
+		const visibleTextWithLinks = await page.evaluate(() => {
+			// Function to determine if an element is visible
+			function isVisible(element: HTMLElement): boolean {
+				const style = globalThis.getComputedStyle(element);
+				return (
+					style.display !== "none" &&
+					style.visibility !== "hidden" &&
+					style.opacity !== "0" &&
+					element.offsetWidth > 0 &&
+					element.offsetHeight > 0
+				);
+			}
+
+			// Remove non-visible elements that might interfere with text extraction
+			const elementsToRemove = document.querySelectorAll(
+				"script, style, header, footer, nav, .ad, .popup, .hidden",
+			);
+			elementsToRemove.forEach((el) => el.remove());
+
+			// Traverse the document and collect visible text and links
+			const walker = document.createTreeWalker(
+				document.body,
+				NodeFilter.SHOW_TEXT,
+				null,
+			);
+			let node: Text | null;
+			const textWithLinks: string[] = [];
+
+			while ((node = walker.nextNode() as Text | null)) {
+				const parentElement = node.parentElement;
+				if (parentElement && isVisible(parentElement)) {
+					const textContent = node.textContent?.trim();
+					if (textContent) {
+						if (parentElement.tagName.toLowerCase() === "a") {
+							const href =
+								(parentElement as HTMLAnchorElement).href;
+							textWithLinks.push(`[${textContent}](${href})`);
+						} else {
+							textWithLinks.push(textContent);
+						}
+					}
+				}
+			}
+
+			return textWithLinks.join("\n");
 		});
 
-		const textWithLinks = root.text; // Get the modified text
-		return textWithLinks; // Return the modified text
+		return visibleTextWithLinks;
 	} catch (error) {
 		console.error("Error scraping website:", error);
 		return "Error occurred during scraping.";
 	} finally {
-		await browser.close(); // Ensure the browser is closed
+		await browser.close();
 	}
 }
 
@@ -304,7 +340,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 					contentType.includes("; charset=utf-8"))
 			) {
 				const text = await response.text(); // Read the text content
-				attachmentContents.push(text); // Add the text content to the array
+				attachmentContents.push(text.normalize().trim()); // Add the text content to the array
 			} else if (
 				contentType &&
 				(contentType.includes("image") || contentType.includes("video"))
@@ -315,19 +351,19 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 				const { chat_response } = await chatWithFuncs(ollama, {
 					model: "moondream:1.8b",
-					keep_alive: -1,
 					messages: [
 						{
 							role: "user",
-							content: "Describe this image or video in detail.",
+							content:
+								"Describe this image or video in as much detail as you possibly can.",
 							images: [image],
 						},
 					],
 				});
 
-				console.log(chat_response.message.content);
-
-				attachmentURLs.push(chat_response.message.content);
+				attachmentURLs.push(
+					chat_response.message.content.normalize().trim(),
+				);
 			}
 		} catch (error) {
 			console.error("Error processing attachment:", error);
@@ -365,7 +401,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 				{
 					role: "system",
 					content:
-						"You are Agent Kitten, a helpful AI powered discord bot made by the ClowderTech LLC. You are here to help people with their problems. Your own website is https://agentkitten.com. Also, make sure to walk through the user all the steps you did to get your answer before giving the full answer, especially if you are fixing or creating a users code or doing a math problem. For instance with coding, write out the steps you would take to fix or create the code before giving the code and then adding comments of what youre doing on that line before writing the line of code.",
+						"You are Agent Kitten, a helpful AI powered discord bot made by the ClowderTech LLC. You are here to help people with their problems. Your own website is https://agentkitten.com/.",
 				},
 			],
 		};
@@ -387,11 +423,6 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		// model: "mistral-nemo",
 		model: "qwen2.5:7b",
 		messages: user_data.messages,
-		stream: false,
-		options: {
-			num_ctx: 16383,
-			num_predict: 4095,
-		},
 		tools: [
 			{
 				type: "function",
