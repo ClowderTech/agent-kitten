@@ -1,10 +1,24 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
+import {
+	ApplicationIntegrationType,
+	ChatInputCommandInteraction,
+	InteractionContextType,
+	SlashCommandBuilder,
+} from "discord.js";
 import type { ClientExtended } from "../../../utils/classes.ts";
 import { deleteData, getData } from "../../../utils/mongohelper.ts";
 
 export const data = new SlashCommandBuilder()
 	.setName("chatreset")
-	.setDescription("Reset the chat with Agent Kitten.");
+	.setDescription("Reset the chat with Agent Kitten.")
+	.setIntegrationTypes([
+		ApplicationIntegrationType.UserInstall,
+		ApplicationIntegrationType.GuildInstall,
+	])
+	.setContexts([
+		InteractionContextType.BotDM,
+		InteractionContextType.Guild,
+		InteractionContextType.PrivateChannel,
+	]);
 
 export async function execute(interaction: ChatInputCommandInteraction) {
 	const client = interaction.client as ClientExtended;
