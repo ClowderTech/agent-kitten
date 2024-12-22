@@ -120,70 +120,40 @@ function splitText(text: string, maxLength: number = 2000): string[] {
 	return chunks;
 }
 
-class CapturingLogger {
-	private capturedOutput: string = "";
-
-	log(...args: unknown[]): void {
-		this.capturedOutput += args.map((arg) => String(arg)).join(" ") + "\n";
-	}
-
-	error(...args: unknown[]): void {
-		this.capturedOutput += "ERROR: " +
-			args.map((arg) => String(arg)).join(" ") + "\n";
-	}
-
-	warn(...args: unknown[]): void {
-		this.capturedOutput += "WARN: " +
-			args.map((arg) => String(arg)).join(" ") + "\n";
-	}
-
-	debug(...args: unknown[]): void {
-		this.capturedOutput += "DEBUG: " +
-			args.map((arg) => String(arg)).join(" ") + "\n";
-	}
-
-	getCapturedOutput(): string {
-		return this.capturedOutput.trim() || "No console output captured";
-	}
-}
-
 async function executeEval(code: string): Promise<string> {
-	// Replace escape sequences
-	code = code.replace(/\\n/g, "\n").replace(/\\t/g, "\t");
-
-	// Construct the module code
-	const evalCode = `
-		export async function execute(): Promise<void> {
-			${code}
-		}
-	`;
-
 	const evalTempFile = `${Deno.cwd()}/evalTempFile.ts`;
 
 	// Write the code to a temporary file
-	await Deno.writeTextFile(evalTempFile, evalCode);
+	await Deno.writeTextFile(evalTempFile, code);
 
-	// Create an instance of CapturingLogger
-	const logger = new CapturingLogger();
+	const command = new Deno.Command(Deno.execPath(), {
+		args: [
+			"run",
+			"--quiet",
+			evalTempFile,
+		],
+		stdout: "piped",
+		stderr: "piped",
+	});
 
-	// Temporarily override console methods
-	const originalConsole = { ...console };
-	console.log = logger.log.bind(logger);
-	console.error = logger.error.bind(logger);
-	console.warn = logger.warn.bind(logger);
-	console.debug = logger.debug.bind(logger);
+	const child = command.spawn();
 
 	try {
-		// Dynamically import the module
-		const evalTempModule = await import(`${evalTempFile}`);
+		// Attempt to get the output with a timeout
+		const { stdout, stderr } = await deadline(child.output(), 3000);
 
-		// Execute the function with a timeout
-		await deadline(evalTempModule.execute(), 3000);
+		// Decode the output
+		const output = new TextDecoder().decode(stdout);
+		const errorOutput = new TextDecoder().decode(stderr);
 
-		// Return the captured output
-		return logger.getCapturedOutput();
+		// Return error output if present, otherwise return standard output
+		return errorOutput ? `Error: ${errorOutput}` : output;
 	} catch (error) {
-		if (error instanceof Error) {
+		if (error instanceof DOMException) {
+			// Kill the subprocess if a timeout occurs
+			child.kill("SIGTERM");
+			return "DeadlineError: Execution timed out. Scripts may run for only 3 seconds or longer.";
+		} else if (error instanceof Error) {
 			return `${error.name}: ${error.message}`;
 		} else {
 			return "An unknown error occurred";
@@ -191,12 +161,6 @@ async function executeEval(code: string): Promise<string> {
 	} finally {
 		// Clean up by removing the temporary file
 		await Deno.remove(evalTempFile);
-
-		// Restore the original console methods
-		console.log = originalConsole.log;
-		console.error = originalConsole.error;
-		console.warn = originalConsole.warn;
-		console.debug = originalConsole.debug;
 	}
 }
 
