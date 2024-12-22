@@ -147,12 +147,14 @@ async function executeEval(code: string): Promise<string> {
 		const errorOutput = new TextDecoder().decode(stderr);
 
 		// Return error output if present, otherwise return standard output
-		return errorOutput ? `Error: ${errorOutput}` : output;
+		return errorOutput
+			? errorOutput.normalize().trim()
+			: output.normalize().trim();
 	} catch (error) {
 		if (error instanceof DOMException) {
 			// Kill the subprocess if a timeout occurs
 			child.kill("SIGTERM");
-			return "DeadlineError: Execution timed out. Scripts may run for only 3 seconds or longer.";
+			return "Execution timed out. Scripts may run for only 3 seconds or longer.";
 		} else if (error instanceof Error) {
 			return `${error.name}: ${error.message}`;
 		} else {
