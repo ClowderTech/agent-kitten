@@ -140,7 +140,7 @@ async function executeEval(code: string): Promise<string> {
 
 	try {
 		// Attempt to get the output with a timeout
-		const { stdout, stderr } = await deadline(child.output(), 3000);
+		const { stdout, stderr } = await deadline(child.output(), 10000);
 
 		// Decode the output
 		const output = new TextDecoder().decode(stdout);
@@ -216,7 +216,7 @@ async function scrapeWebsite(url: string): Promise<string> {
 
 	try {
 		const response = await page.goto(url, {
-			timeout: 30000,
+			timeout: 10000,
 			waitUntil: "load",
 		});
 
@@ -331,7 +331,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 				);
 
 				const { chat_response } = await chatWithFuncs(ollama, {
-					model: "moondream:1.8b",
+					model: "minicpm-v:8b",
 					messages: [
 						{
 							role: "user",
@@ -399,10 +399,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	user_data.messages.push(newMessageJson);
 
 	const request: ChatRequest = {
-		// model: 'mixtral:8x7b',
-		// model: 'gpt-4o-mini',
-		// model: "mistral-nemo",
-		model: "qwen2.5:7b",
+		model: "qwen2.5:14b",
 		messages: user_data.messages,
 		tools: [
 			{
