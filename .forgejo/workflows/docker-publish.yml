@@ -9,7 +9,6 @@ on:
     pull_request:
         types: [opened, synchronize, reopened]
 
-
 jobs:
     docker:
         runs-on: docker
