@@ -95,9 +95,14 @@ client.moonlink.on("trackEnd", async (player) => {
 	}
 });
 
+const headers = {
+	"Authorization": `Bearer ${Deno.env.get("OPENAI_BAPI_KEY")}`,
+} as HeadersInit;
+
 client.commands = new Collection();
 client.ollama = new Ollama({
-	host: "https://ollama.clowdertech.com",
+	host: Deno.env.get("OPENAI_BASE_URL"),
+	headers: headers,
 });
 client.mongoclient = new MongoClient(Deno.env.get("MONGODB_URI")!);
 client.mongoclient.connect();
