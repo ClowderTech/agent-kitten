@@ -44,7 +44,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	// Build the embed
 	const embed: EmbedBuilder = new EmbedBuilder()
-		.setColor("#2b2d31")
+		.setColor(0x9A2D7D)
 		.setTitle("Level Information")
 		.setDescription(`<@${userId}>, here is your level info!`) // Ping the user
 		.addFields(

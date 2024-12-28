@@ -155,7 +155,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 			const embed = new EmbedBuilder()
 				.setTitle("Server Configuration Updated")
-				.setColor("#2b2d31")
+				.setColor(0x9A2D7D)
 				.setTimestamp()
 				.addFields(
 					{ name: "Your Key", value: key, inline: true },

@@ -45,7 +45,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 				player.queue.size + (player.playing ? 1 : 0)
 			} song(s))`,
 		)
-		.setColor("#2b2d31")
+		.setColor(0x9A2D7D)
 		.setTimestamp()
 		.setThumbnail(
 			player.current.artworkUrl ||

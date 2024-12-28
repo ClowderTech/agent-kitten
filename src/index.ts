@@ -223,7 +223,7 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
 		if (error instanceof Error) {
 			embed = new EmbedBuilder()
 				.setTitle(`${error.name}: ${error.message}`)
-				.setColor(0xff0000);
+				.setColor(0x9A2D7D);
 			if (
 				interaction.guild &&
 				interaction.guild.id === "1185316093078802552"
@@ -233,7 +233,7 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
 		} else {
 			embed = new EmbedBuilder()
 				.setTitle(`Error: ${error}`)
-				.setColor(0xff0000);
+				.setColor(0x9A2D7D);
 		}
 
 		if (interaction.replied || interaction.deferred) {
