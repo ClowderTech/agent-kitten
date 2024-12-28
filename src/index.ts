@@ -96,7 +96,7 @@ client.moonlink.on("trackEnd", async (player) => {
 });
 
 const headers = {
-	"Authorization": `Bearer ${Deno.env.get("OPENAI_BAPI_KEY")}`,
+	"Authorization": `Bearer ${Deno.env.get("OPENAI_API_KEY")}`,
 } as HeadersInit;
 
 client.commands = new Collection();
