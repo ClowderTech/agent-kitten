@@ -106,7 +106,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 				}:R>`,
 			)
 			.setTimestamp()
-			.setColor("#2b2d31");
+			.setColor(0x9A2D7D);
 
 		const interaction_reply = await interaction.reply({ embeds: [embed] });
 

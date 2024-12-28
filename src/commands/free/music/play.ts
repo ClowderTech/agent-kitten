@@ -106,7 +106,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 					playable.tracks[0].title || "Unknown Track"
 				}\``,
 			)
-			.setColor("#2b2d31")
+			.setColor(0x9A2D7D)
 			.setThumbnail(
 				playable.tracks[0].artworkUrl ||
 					"https://www.solidbackgrounds.com/images/3840x2160/3840x2160-black-solid-color-background.jpg",
@@ -130,7 +130,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 						playable.tracks[0]?.title || "Unknown Track"
 					}\``,
 			)
-			.setColor("#2b2d31")
+			.setColor(0x9A2D7D)
 			.setThumbnail(
 				playable.tracks[0].artworkUrl ||
 					"https://www.solidbackgrounds.com/images/3840x2160/3840x2160-black-solid-color-background.jpg",
@@ -146,7 +146,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 					playable.tracks[0].title || "Unknown Track"
 				}\``,
 			)
-			.setColor("#2b2d31")
+			.setColor(0x9A2D7D)
 			.setThumbnail(
 				playable.tracks[0].artworkUrl ||
 					"https://www.solidbackgrounds.com/images/3840x2160/3840x2160-black-solid-color-background.jpg",

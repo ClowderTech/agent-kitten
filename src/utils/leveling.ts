@@ -168,7 +168,7 @@ export async function prettyExpGain(
 		); // Get EXP needed for next level
 
 		const embed = new EmbedBuilder()
-			.setColor("#4caf50") // Changed color to a more vibrant green
+			.setColor(0x9A2D7D) // Changed color to a more vibrant green
 			.setTitle("🎉 Congratulations! 🎉") // Added icons to the title
 			.setDescription(`<@!${userId}>, you leveled up! 🎊`) // Added an emoji to the description
 			.addFields(

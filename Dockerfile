@@ -53,4 +53,4 @@ RUN deno install --allow-scripts=npm:puppeteer
 COPY . .
 
 # Command to run the application
-CMD ["deno", "run", "start"]
+CMD ["deno", "run", "prodstart"]

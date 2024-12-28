@@ -30,11 +30,15 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	if (!chatData[0]) {
 		await interaction.reply({
 			content: "You already had no chat data.",
+			ephemeral: true,
 		});
 		return;
 	}
 
 	await deleteData(client, "textgen", chatData[0]["_id"]);
 
-	await interaction.reply({ content: "The chat has been reset." });
+	await interaction.reply({
+		content: "Your chat data has been reset.",
+		ephemeral: true,
+	});
 }

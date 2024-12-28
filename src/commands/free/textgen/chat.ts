@@ -16,6 +16,7 @@ import {
 import { ChatRequest } from "ollama";
 import { getData, setData } from "../../../utils/mongohelper.ts";
 import { deadline } from "@std/async";
+import { EmbedBuilder } from "@discordjs/builders";
 
 export const data = new SlashCommandBuilder()
 	.setName("chat")
@@ -382,7 +383,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 				{
 					role: "system",
 					content:
-						"You are Agent Kitten, a helpful AI powered discord bot made by the ClowderTech LLC. You are here to help people with their problems. Your own website is https://agentkitten.com/.",
+						"You are Agent Kitten, a helpful AI powered discord bot made by the ClowderTech LLC. You are here to help people with their problems or to interact with the person to help them feel better. Your own website is https://agentkitten.com/. Please make sure to use your tools and function calls whenever useful. You can search the internet, scrape websites, and execute typescript code.",
 				},
 			],
 		};
@@ -475,9 +476,30 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	await setData(client, "textgen", user_data);
 
-	for (const chunk of splitText(chat_response.message.content!, 2000)) {
+	for (const chunk of splitText(chat_response.message.content, 4000)) {
 		await interaction.followUp({
-			content: chunk,
+			embeds: [
+				new EmbedBuilder()
+					.setAuthor({
+						name: client.application!.name ||
+							client.user!.globalName || client.user!.username,
+						iconURL: client.application!.iconURL() ||
+							client.application!.coverURL() ||
+							client.user!.avatarURL() ||
+							client.user!.defaultAvatarURL,
+						url: client.application!.customInstallURL || undefined,
+					})
+					.setTitle("Response")
+					.setDescription(chunk)
+					.setTimestamp(Date.now())
+					.setFooter({
+						iconURL: interaction.user.avatarURL() ||
+							interaction.user.defaultAvatarURL,
+						text: interaction.user.globalName ||
+							interaction.user.username,
+					})
+					.setColor(0x9A2D7D),
+			],
 			allowedMentions: { parse: [] },
 		});
 	}

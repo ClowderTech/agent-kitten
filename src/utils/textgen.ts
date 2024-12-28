@@ -168,7 +168,7 @@ export async function scanMessage(message: DiscordMessage, configData: Config) {
 				const embed = new EmbedBuilder()
 					.setTimestamp(message.createdTimestamp)
 					.setTitle("AutoMod Violation Alert")
-					.setColor("Red")
+					.setColor(0x9A2D7D)
 					.addFields(
 						{
 							name: "Message Author",
@@ -198,7 +198,7 @@ export async function scanMessage(message: DiscordMessage, configData: Config) {
 			const embed = new EmbedBuilder()
 				.setTimestamp(message.createdTimestamp)
 				.setTitle("AutoMod Violation")
-				.setColor("Red")
+				.setColor(0x9A2D7D)
 				.addFields(
 					{
 						name: "Message Channel",

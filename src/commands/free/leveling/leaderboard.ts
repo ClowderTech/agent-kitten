@@ -33,7 +33,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	// Create an embed to display the results
 	const embed: EmbedBuilder = new EmbedBuilder()
 		.setTitle("Leaderboard")
-		.setColor("#2b2d31")
+		.setColor(0x9A2D7D)
 		.setDescription(description) // Set the description with user mentions
 		.setTimestamp();
 
