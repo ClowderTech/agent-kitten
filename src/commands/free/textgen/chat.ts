@@ -399,8 +399,20 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	user_data.messages.push(newMessageJson);
 
+	const sku_id = Deno.env.get("AIPLUS_SKU_ID")!;
+
+	const subscribed =
+		client.application!.subscriptions.cache.some((subscription) =>
+			subscription.userId === interaction.user.id &&
+			subscription.skuIds.includes(sku_id)
+		) ||
+		client.application!.subscriptions.fetch({
+				user: interaction.user.id,
+				sku: sku_id,
+			}) != null;
+
 	const request: ChatRequest = {
-		model: "qwen2.5:14b",
+		model: subscribed ? "qwen2.5:32b-instruct-q3_K_L" : "qwen2.5:14b",
 		messages: user_data.messages,
 		tools: [
 			{
