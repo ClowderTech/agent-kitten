@@ -443,6 +443,7 @@ setInterval(() => {
 function gracefulShutdown() {
 	console.log("Received shutdown signal, closing Discord client...");
 	client.mongoclient.close();
+	client.ollama.abort();
 	client
 		.destroy()
 		.then(() => {
