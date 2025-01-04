@@ -412,15 +412,16 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			})).size === 1;
 
 	const request: ChatRequest = {
-		model: subscribed ? "qwen2.5:32b-instruct-q3_K_L" : "qwen2.5:14b",
+		model: subscribed
+			? "qwen2.5:32b-instruct-q3_K_M"
+			: "qwen2.5:14b-instruct-q4_K_M",
 		messages: user_data.messages,
 		tools: [
 			{
 				type: "function",
 				function: {
 					name: "eval",
-					description:
-						"Execute TypeScript code. Use console.log to output data. Make sure to not use infinite loops, do anything illegal, try to retrieve credentials, or access anything about your code.",
+					description: "Execute TypeScript code.",
 					parameters: {
 						type: "object",
 						properties: {
