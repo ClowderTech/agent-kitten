@@ -412,15 +412,16 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			})).size === 1;
 
 	const request: ChatRequest = {
-		model: subscribed ? "qwen2.5:32b-instruct-q3_K_M" : "qwen2.5:14b-instruct-q4_K_M",
+		model: subscribed
+			? "qwen2.5:32b-instruct-q3_K_M"
+			: "qwen2.5:14b-instruct-q4_K_M",
 		messages: user_data.messages,
 		tools: [
 			{
 				type: "function",
 				function: {
 					name: "eval",
-					description:
-						"Execute TypeScript code.",
+					description: "Execute TypeScript code.",
 					parameters: {
 						type: "object",
 						properties: {
