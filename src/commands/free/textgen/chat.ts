@@ -8,7 +8,7 @@ import {
 } from "discord.js";
 import type { ClientExtended } from "../../../utils/classes.ts";
 import { Document, WithId } from "mongodb";
-import { launch } from "puppeteer";
+import { connect } from "puppeteer";
 import {
 	chatWithFuncs,
 	convertBlobToUint8Array,
@@ -176,12 +176,14 @@ async function searchGoogle(query: string): Promise<string> {
 	let searchResults = "";
 	let start = 0;
 
-	const browser = await launch({ headless: true, args: ["--no-sandbox"] });
+	const browser = await connect({
+		browserWSEndpoint: Deno.env.get("BROWSER_WS_URL")!,
+	});
 	const page = await browser.newPage();
 
 	try {
 		const response = await page.goto(url, {
-			timeout: 10000,
+			timeout: 30000,
 			waitUntil: "load",
 		});
 		if (!response?.ok()) {
@@ -208,16 +210,15 @@ async function searchGoogle(query: string): Promise<string> {
 }
 
 async function scrapeWebsite(url: string): Promise<string> {
-	const browser = await launch({
-		headless: true,
-		args: ["--no-sandbox"],
+	const browser = await connect({
+		browserWSEndpoint: Deno.env.get("BROWSER_WS_URL")!,
 	});
 
 	const page = await browser.newPage();
 
 	try {
 		const response = await page.goto(url, {
-			timeout: 10000,
+			timeout: 30000,
 			waitUntil: "load",
 		});
 
@@ -399,17 +400,13 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	user_data.messages.push(newMessageJson);
 
-	const sku_id = Deno.env.get("AIPLUS_SKU_ID")!;
+	const sku_id = Deno.env.get("AIPLUS_SKU_ID") || "";
 
-	const subscribed =
-		client.application!.subscriptions.cache.some((subscription) =>
-			subscription.userId === interaction.user.id &&
-			subscription.skuIds.includes(sku_id)
-		) ||
-		(await client.application!.subscriptions.fetch({
-				user: interaction.user.id,
-				sku: sku_id,
-			})).size === 1;
+	const subscribed = client.application!.subscriptions.cache.some((
+		subscription,
+	) => subscription.userId === interaction.user.id &&
+		subscription.skuIds.includes(sku_id)
+	);
 
 	const request: ChatRequest = {
 		model: subscribed
