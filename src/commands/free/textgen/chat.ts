@@ -176,7 +176,9 @@ async function searchGoogle(query: string): Promise<string> {
 	let searchResults = "";
 	let start = 0;
 
-	const browser = await connect({ browserWSEndpoint: Deno.env.get("BROWSER_WS_URL")! });
+	const browser = await connect({
+		browserWSEndpoint: Deno.env.get("BROWSER_WS_URL")!,
+	});
 	const page = await browser.newPage();
 
 	try {
@@ -208,7 +210,9 @@ async function searchGoogle(query: string): Promise<string> {
 }
 
 async function scrapeWebsite(url: string): Promise<string> {
-	const browser = await connect({ browserWSEndpoint: Deno.env.get("BROWSER_WS_URL")! });
+	const browser = await connect({
+		browserWSEndpoint: Deno.env.get("BROWSER_WS_URL")!,
+	});
 
 	const page = await browser.newPage();
 

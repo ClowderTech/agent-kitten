@@ -8,4 +8,4 @@ services:
     browser:
         image: ghcr.io/browserless/chromium:latest
         ports:
-          - 3000:3000
+            - 3000:3000
