@@ -412,7 +412,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			})).size === 1;
 
 	const request: ChatRequest = {
-		model: subscribed ? "qwen2.5:32b-instruct-q3_K_M" : "qwen2.5:14b",
+		model: subscribed ? "qwen2.5:32b-instruct-q3_K_M" : "qwen2.5:14b-instruct-q4_K_M",
 		messages: user_data.messages,
 		tools: [
 			{
