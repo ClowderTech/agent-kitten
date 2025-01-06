@@ -191,7 +191,7 @@ export async function prettyExpGain(
 			userid: userId,
 		}) as UserConfig[];
 		let userConf: UserConfig;
-		let levelUpMessagingSetting
+		let levelUpMessagingSetting;
 		if (serverData.length > 0) {
 			userConf = serverData[0];
 
@@ -204,7 +204,7 @@ export async function prettyExpGain(
 				levelUpMessagingSetting = true;
 			}
 		} else {
-			levelUpMessagingSetting = true
+			levelUpMessagingSetting = true;
 		}
 
 		if (levelUpMessagingSetting) {
