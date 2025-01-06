@@ -5,6 +5,7 @@ import {
 	SlashCommandBuilder,
 } from "discord.js";
 import type { ClientExtended } from "../../utils/classes.ts";
+import { ObjectId } from "mongodb"
 import { getData, setData } from "../../utils/mongohelper.ts"; // Adjust the import path as necessary
 import { type Config, getNestedKey, setNestedKey } from "../../utils/config.ts";
 
@@ -138,14 +139,14 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		}
 
 		const configData = {
-			_id: serverData[0]._id,
+			_id: serverData[0]._id || new ObjectId(),
 			serverid: serverId,
 			config: setNestedKey(oldConfigData, key, parsedValue),
 		};
 
 		try {
 			if (serverData.length > 0) {
-				await setData(client, "config", configData, serverData[0]._id); // Update existing config
+				await setData(client, "config", configData, serverData[0]._id || new ObjectId()); // Update existing config
 			} else {
 				await setData(client, "config", configData); // Insert new config
 			}
@@ -196,14 +197,14 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		}
 
 		const configData = {
-			_id: serverData[0]._id,
+			_id: serverData[0]._id || new ObjectId(),
 			serverid: serverId,
 			config: parsedData, // Set to the parsed JSON object
 		};
 
 		try {
 			if (serverData.length > 0) {
-				await setData(client, "config", configData, serverData[0]._id); // Update existing raw config
+				await setData(client, "config", configData, serverData[0]._id || new ObjectId()); // Update existing raw config
 			} else {
 				await setData(client, "config", configData); // Insert new raw config
 			}
