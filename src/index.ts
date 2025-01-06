@@ -36,6 +36,7 @@ const client: ClientExtended = new Client({
 	intents: [
 		GatewayIntentBits.AutoModerationConfiguration,
 		GatewayIntentBits.AutoModerationExecution,
+		GatewayIntentBits.DirectMessagePolls,
 		GatewayIntentBits.DirectMessageReactions,
 		GatewayIntentBits.DirectMessageTyping,
 		GatewayIntentBits.DirectMessages,
