@@ -2,6 +2,7 @@ import type { ChatRequest, ChatResponse, Message, Ollama } from "ollama";
 import { EmbedBuilder, type Message as DiscordMessage } from "discord.js";
 import { Config, getNestedKey } from "./config.ts";
 import { ClientExtended } from "./classes.ts";
+import { ObjectId } from "mongodb";
 
 export type SyncOrAsyncFunction = (
 	...args: string[]
@@ -87,6 +88,12 @@ const deletionReasons: { [key: string]: string } = {
 // Function to get the deletion message based on the code
 function getDeletionMessage(code: string): string {
 	return deletionReasons[code] || "Unknown reason for deletion.";
+}
+
+export interface ChatData {
+	_id: ObjectId;
+	userid: string;
+	messages: Message[];
 }
 
 export async function scanMessage(message: DiscordMessage, configData: Config) {

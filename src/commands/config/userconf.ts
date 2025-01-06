@@ -1,54 +1,29 @@
 import {
 	ChatInputCommandInteraction,
 	EmbedBuilder,
-	PermissionsBitField,
+	MessageFlags,
 	SlashCommandBuilder,
 } from "discord.js";
-import type { ClientExtended } from "../../../utils/classes.ts";
-import { getData, setData } from "../../../utils/mongohelper.ts"; // Adjust the import path as necessary
-import {
-	type Config,
-	getNestedKey,
-	setNestedKey,
-} from "../../../utils/config.ts";
+import type { ClientExtended } from "../../utils/classes.ts";
+import { getData, setData } from "../../utils/mongohelper.ts"; // Adjust the import path as necessary
+import { type Config, getNestedKey, setNestedKey } from "../../utils/config.ts";
 
 export const data = new SlashCommandBuilder()
-	.setName("serverconf")
-	.setDescription("Manage your server configuration options.")
-	.setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
+	.setName("userconf")
+	.setDescription("Manage your user configuration options.")
 	.addSubcommand((subcommand) =>
 		subcommand
 			.setName("set")
-			.setDescription("Set a server configuration option.")
+			.setDescription("Set a user configuration option.")
 			.addStringOption((option) =>
 				option
 					.setName("key")
 					.setDescription("The configuration key you want to set")
 					.setRequired(true)
-					.addChoices([
+					.setChoices([
 						{
-							name: "moderation.automod.enabled",
-							value: "moderation.automod.enabled",
-						},
-						{
-							name: "music.maxvolume",
-							value: "music.maxvolume",
-						},
-						{
-							name: "moderation.automod.lookback",
-							value: "moderation.automod.lookback",
-						},
-						{
-							name: "moderation.automod.logchannel",
-							value: "moderation.automod.logchannel",
-						},
-						{
-							name: "moderation.automod.bypassrole",
-							value: "moderation.automod.bypassrole",
-						},
-						{
-							name: "moderation.automod.disabledcategories",
-							value: "moderation.automod.disabledcategories",
+							name: "leveling.levelupmessaging",
+							value: "leveling.levelupmessaging",
 						},
 					])
 			)
@@ -62,36 +37,16 @@ export const data = new SlashCommandBuilder()
 	.addSubcommand((subcommand) =>
 		subcommand
 			.setName("get")
-			.setDescription("Get a server configuration option.")
+			.setDescription("Get a user configuration option.")
 			.addStringOption((option) =>
 				option
 					.setName("key")
 					.setDescription("The configuration key you want to get")
 					.setRequired(true)
-					.addChoices([
+					.setChoices([
 						{
-							name: "moderation.automod.enabled",
-							value: "moderation.automod.enabled",
-						},
-						{
-							name: "music.maxvolume",
-							value: "music.maxvolume",
-						},
-						{
-							name: "moderation.automod.lookback",
-							value: "moderation.automod.lookback",
-						},
-						{
-							name: "moderation.automod.logchannel",
-							value: "moderation.automod.logchannel",
-						},
-						{
-							name: "moderation.automod.bypassrole",
-							value: "moderation.automod.bypassrole",
-						},
-						{
-							name: "moderation.automod.disabledcategories",
-							value: "moderation.automod.disabledcategories",
+							name: "leveling.levelupmessaging",
+							value: "leveling.levelupmessaging",
 						},
 					])
 			)
@@ -99,7 +54,7 @@ export const data = new SlashCommandBuilder()
 	.addSubcommand((subcommand) =>
 		subcommand
 			.setName("setraw")
-			.setDescription("Set the raw server configuration.")
+			.setDescription("Set the raw user configuration.")
 			.addStringOption((option) =>
 				option
 					.setName("value")
@@ -112,20 +67,15 @@ export const data = new SlashCommandBuilder()
 	.addSubcommand((subcommand) =>
 		subcommand
 			.setName("getraw")
-			.setDescription("Get the entire raw server configuration.")
+			.setDescription("Get the entire raw user configuration.")
 	); // New raw get command
 
 export async function execute(interaction: ChatInputCommandInteraction) {
-	if (!interaction.guild) {
-		await interaction.reply({ content: "This was not sent in a server." });
-		return;
-	}
-
-	const serverId = interaction.guild.id; // Get the ID of the server executing the command
+	const userId = interaction.user.id; // Get the ID of the user executing the command
 	const client = interaction.client as ClientExtended;
 
-	const serverData = await getData(client, "config", { serverId: serverId });
-	const oldConfigData: Config = serverData[0]?.config || {};
+	const userData = await getData(client, "config", { userid: userId });
+	const oldConfigData: Config = userData[0]?.config || {};
 
 	// Determine which subcommand is called
 	const subcommand = interaction.options.getSubcommand(); // Get subcommand directly
@@ -142,19 +92,19 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		}
 
 		const configData = {
-			serverId: serverId,
+			userid: userId,
 			config: setNestedKey(oldConfigData, key, parsedValue),
 		};
 
 		try {
-			if (serverData.length > 0) {
-				await setData(client, "config", configData, serverData[0]._id); // Update existing config
+			if (userData.length > 0) {
+				await setData(client, "config", configData, userData[0]._id); // Update existing config
 			} else {
 				await setData(client, "config", configData); // Insert new config
 			}
 
 			const embed = new EmbedBuilder()
-				.setTitle("Server Configuration Updated")
+				.setTitle("User Configuration Updated")
 				.setColor(0x9A2D7D)
 				.setTimestamp()
 				.addFields(
@@ -162,26 +112,30 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 					{ name: "New Value", value: value },
 				);
 
-			await interaction.reply({ embeds: [embed] });
+			await interaction.reply({ embeds: [embed], ephemeral: true });
 		} catch (error) {
-			console.error(`Error updating server configuration: ${error}`);
+			console.error(`Error updating user configuration: ${error}`);
 			await interaction.reply({
 				content: "There was an error updating your configuration.",
+				flags: [MessageFlags.Ephemeral],
 			});
 		}
 	} else if (subcommand === "get") {
 		// Handling the 'get' subcommand
-		const key = interaction.options.getString("key", true); // Optional key
-		// If a key is specified, return its value
+		const key = interaction.options.getString("key", true) as string; // Optional key
 
 		const value = getNestedKey(oldConfigData, key);
 
 		if (value) {
 			await interaction.reply({
 				content: `Value for \`${key}\`: ${value}`,
+				flags: [MessageFlags.Ephemeral],
 			});
 		} else {
-			await interaction.reply({ content: `Key \`${key}\` not found.` });
+			await interaction.reply({
+				content: `Key \`${key}\` not found.`,
+				flags: [MessageFlags.Ephemeral],
+			});
 		}
 	} else if (subcommand === "setraw") {
 		// Handling the 'setraw' subcommand
@@ -194,29 +148,32 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			await interaction.reply({
 				content:
 					"Invalid JSON format. Please provide a valid JSON string.",
+				flags: [MessageFlags.Ephemeral],
 			});
 			return;
 		}
 
 		const configData = {
-			serverId: serverId,
+			userid: userId,
 			config: parsedData, // Set to the parsed JSON object
 		};
 
 		try {
-			if (serverData.length > 0) {
-				await setData(client, "config", configData, serverData[0]._id); // Update existing raw config
+			if (userData.length > 0) {
+				await setData(client, "config", configData, userData[0]._id); // Update existing raw config
 			} else {
 				await setData(client, "config", configData); // Insert new raw config
 			}
 
 			await interaction.reply({
 				content: "Raw configuration has been updated successfully.",
+				flags: [MessageFlags.Ephemeral],
 			});
 		} catch (error) {
-			console.error(`Error updating raw server configuration: ${error}`);
+			console.error(`Error updating raw user configuration: ${error}`);
 			await interaction.reply({
 				content: "There was an error updating your raw configuration.",
+				flags: [MessageFlags.Ephemeral],
 			});
 		}
 	} else if (subcommand === "getraw") {
@@ -229,6 +186,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 					2,
 				)
 			}\n\`\`\``,
+			flags: [MessageFlags.Ephemeral],
 		});
 	}
 }

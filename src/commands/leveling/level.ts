@@ -2,14 +2,13 @@ import {
 	ChatInputCommandInteraction,
 	EmbedBuilder,
 	SlashCommandBuilder,
-	User,
 } from "discord.js";
-import { type ClientExtended } from "../../../utils/classes.ts";
+import { type ClientExtended } from "../../utils/classes.ts";
 import {
-	calculateExperienceFromLevel,
-	calculateLevelFromExperience,
+	calculateExpToNextLevel,
 	getMemberExperience,
-} from "../../../utils/leveling.ts"; // Import necessary functions
+	getMemberLevel,
+} from "../../utils/leveling.ts"; // Import necessary functions
 
 // Define the new command with an optional user option
 export const data = new SlashCommandBuilder()
@@ -24,31 +23,41 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction: ChatInputCommandInteraction) {
 	// Get the user option; if not provided, default to the command executor
-	const user: User = interaction.options.get("user", false)?.user ||
+	const user = interaction.options.get("user", false)?.user ||
 		interaction.user;
+	const guildId = interaction.guildId;
+
+	if (!guildId) {
+		interaction.reply("You didn't execute this in a server!");
+		return;
+	}
 
 	// Fetch the member's experience using the helper function
 	const userId = user.id; // Get the ID of the target user
 	const memberExperience = await getMemberExperience(
 		interaction.client as ClientExtended,
 		userId,
+		guildId,
+	);
+	const memberLevel = await getMemberLevel(
+		interaction.client as ClientExtended,
+		userId,
+		guildId,
 	);
 
-	// Calculate the user's current level using their experience
-	const currentLevel = calculateLevelFromExperience(memberExperience);
-
 	// Calculate how much experience is needed for the next level
-	const expNeededForNextLevel = calculateExperienceFromLevel(
-		currentLevel + 1,
+	const expNeededForNextLevel = calculateExpToNextLevel(
+		memberLevel,
+		memberExperience,
 	);
 
 	// Build the embed
 	const embed: EmbedBuilder = new EmbedBuilder()
 		.setColor(0x9A2D7D)
 		.setTitle("Level Information")
-		.setDescription(`<@${userId}>, here is your level info!`) // Ping the user
+		.setDescription(`Here is <@${userId}>'s level info!`) // Ping the user
 		.addFields(
-			{ name: "Current Level", value: `${currentLevel}`, inline: true },
+			{ name: "Current Level", value: `${memberLevel}`, inline: true },
 			{
 				name: "Current Experience",
 				value: `${memberExperience}`,

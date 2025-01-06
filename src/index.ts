@@ -8,6 +8,7 @@ import {
 	GatewayIntentBits,
 	Guild,
 	type Interaction,
+	MessageFlags,
 	REST,
 	Routes,
 	SlashCommandBuilder,
@@ -38,7 +39,7 @@ const client: ClientExtended = new Client({
 		GatewayIntentBits.DirectMessageReactions,
 		GatewayIntentBits.DirectMessageTyping,
 		GatewayIntentBits.DirectMessages,
-		GatewayIntentBits.GuildEmojisAndStickers,
+		GatewayIntentBits.GuildExpressions,
 		GatewayIntentBits.GuildIntegrations,
 		GatewayIntentBits.GuildInvites,
 		GatewayIntentBits.GuildMembers,
@@ -227,24 +228,32 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
 
 		if (error instanceof Error) {
 			embed = new EmbedBuilder()
-				.setTitle(`${error.name}: ${error.message}`)
+				.setTitle(`${error.name}: ${error.message}`.substring(0, 255))
 				.setColor(0x9A2D7D);
 			if (
 				interaction.guild &&
 				interaction.guild.id === "1185316093078802552"
 			) {
-				embed = embed.setDescription(`\`\`\`${error.stack}\`\`\``);
+				embed = embed.setDescription(
+					`\`\`\`${error.stack?.substring(0, 4095)}\`\`\``,
+				);
 			}
 		} else {
 			embed = new EmbedBuilder()
-				.setTitle(`Error: ${error}`)
+				.setTitle(`Error: ${error}`.substring(0, 255))
 				.setColor(0x9A2D7D);
 		}
 
 		if (interaction.replied || interaction.deferred) {
-			await interaction.followUp({ embeds: [embed], ephemeral: true });
+			await interaction.followUp({
+				embeds: [embed],
+				flags: [MessageFlags.Ephemeral],
+			});
 		} else {
-			await interaction.reply({ embeds: [embed], ephemeral: true });
+			await interaction.reply({
+				embeds: [embed],
+				flags: [MessageFlags.Ephemeral],
+			});
 		}
 	}
 });
@@ -268,11 +277,17 @@ function areCommandsRegistered(
 		);
 
 		if (!registeredCommand) {
+			console.log(
+				`Command ${actualCommand.name} not registered`,
+			);
 			return true; // Command doesn't exist in registered
 		}
 
 		// Compare descriptions
 		if (registeredCommand.description !== actualCommand.description) {
+			console.log(
+				`Command description mismatch for command ${actualCommand.name}: expected "${actualCommand.name}", got "${registeredCommand.name}"`,
+			);
 			return true; // Mismatch on description
 		}
 
@@ -282,6 +297,9 @@ function areCommandsRegistered(
 
 		// Compare number of options
 		if (actualOptions.length !== registeredOptions.length) {
+			console.log(
+				`Options length mismatch for command ${actualCommand.name}: expected "${actualOptions.length}", got "${registeredOptions.length}"`,
+			);
 			return true; // Mismatch on number of options
 		}
 
@@ -293,24 +311,45 @@ function areCommandsRegistered(
 			);
 
 			if (!registeredOption) {
+				console.log(
+					`Option ${actualOption.name} not registered for command ${actualCommand.name}`,
+				);
 				return true; // Mismatch because option doesn't exist in registered
 			}
 
 			// Check each property of the option, with default for required
 			const actualRequired = actualOption.required !== undefined
-				? registeredOption.required
+				? actualOption.required
 				: false; // Get actual required value (true or false)
 			const registeredRequired = registeredOption.required !== undefined
 				? registeredOption.required
 				: false; // Assume false if undefined
 
-			if (
-				actualOption.name !== registeredOption.name ||
-				actualOption.description !== registeredOption.description ||
-				actualRequired !== registeredRequired || // Use our defined logic
-				actualOption.type !== registeredOption.type
-			) {
-				return true; // Option properties do not match
+			if (actualOption.name !== registeredOption.name) {
+				console.log(
+					`Option name mismatch for command ${actualCommand.name}: expected "${actualOption.name}", got "${registeredOption.name}"`,
+				);
+				return true;
+			}
+			if (actualOption.description !== registeredOption.description) {
+				console.log(
+					`Option ${actualOption.name} description mismatch for command ${actualCommand.name}: expected "${actualOption.description}", got "${registeredOption.description}"`,
+				);
+				return true;
+			}
+
+			if (actualOption.type !== registeredOption.type) {
+				console.log(
+					`Option ${actualOption.name} type mismatch for command ${actualCommand.name}: expected "${actualOption.type}", got "${registeredOption.type}"`,
+				);
+				return true;
+			}
+
+			if (actualRequired !== registeredRequired) {
+				console.log(
+					`Option ${actualOption.name} required mismatch for command ${actualCommand.name}: expected "${actualRequired}", got "${registeredRequired}"`,
+				);
+				return true;
 			}
 		}
 	}
@@ -421,7 +460,7 @@ async function getVoiceChannelMembers(guild: Guild) {
 					!member.voice.mute &&
 					!(member.voice.channelId === member.guild.afkChannelId)
 				) {
-					await prettyExpGain(client, member.user);
+					await prettyExpGain(client, member.user, guild);
 				}
 			}
 		}

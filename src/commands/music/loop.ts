@@ -4,19 +4,34 @@ import {
 	GuildMember,
 	MessageReaction,
 	SlashCommandBuilder,
-	SlashCommandChannelOption,
+	SlashCommandStringOption,
 	User,
 } from "discord.js";
-import { type ClientExtended, UserMadeError } from "../../../utils/classes.ts";
+import { type ClientExtended, UserMadeError } from "../../utils/classes.ts";
+import { TPlayerLoop } from "moonlink.js";
 
 export const data = new SlashCommandBuilder()
-	.setName("summon")
-	.setDescription("Tell the bot to come to your voice channel.")
-	.addChannelOption((option: SlashCommandChannelOption) =>
+	.setName("loop")
+	.setDescription("Sets the queue to loop.")
+	.addStringOption((option: SlashCommandStringOption) =>
 		option
-			.setName("channel")
-			.setDescription("The channel to join.")
+			.setName("type")
+			.setDescription("Type of looping you want for the queue.")
 			.setRequired(true)
+			.addChoices(
+				{
+					name: "No looping.",
+					value: "off",
+				},
+				{
+					name: "Loop the current song.",
+					value: "track",
+				},
+				{
+					name: "Loop the whole queue.",
+					value: "queue",
+				},
+			)
 	);
 
 export async function execute(interaction: ChatInputCommandInteraction) {
@@ -41,11 +56,22 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	) {
 		throw new UserMadeError("I cannot join the voice channel.");
 	}
+	if (
+		!member.voice.channel.members.get(client.user!.id) &&
+		interaction.guild.members.cache.get(client.user!.id)!.voice.channel
+	) {
+		throw new UserMadeError("I am in another voice channel.");
+	}
 
 	const player = client.moonlink.players.get(guildID);
 	if (!player) {
 		throw new UserMadeError("No songs are currently playing.");
 	}
+
+	const loop_type = interaction.options.getString(
+		"type",
+		true,
+	) as TPlayerLoop;
 
 	const channel = member.voice.channel;
 
@@ -68,7 +94,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		const embed = new EmbedBuilder()
 			.setTitle("Vote to stop")
 			.setDescription(
-				`You are not a DJ, so you need to vote. React with ✅ to vote to connect to your voice call. Have ${votesNeeded} votes in 30 seconds. The vote will end <t:${
+				`You are not a DJ, so you need to vote. React with ✅ to vote to loop the player. Have ${votesNeeded} votes in 30 seconds. The vote will end <t:${
 					Math.floor(Date.now() / 1000) + 30
 				}:R>`,
 			)
@@ -83,7 +109,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 		const filter = (reaction: MessageReaction, user: User) =>
 			reaction.emoji.name === "✅" &&
-			user.id !== client.user!.id &&
+			user.id !== client.user?.id &&
 			!user.bot;
 
 		const collector = message.createReactionCollector({
@@ -99,22 +125,29 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 		collector.on("end", async () => {
 			if (votes >= votesNeeded) {
-				await player.setVoiceChannelId(
-					interaction.options.getChannel("channel", true).id,
-				);
-
-				await player.connect({
-					setDeaf: true,
-					setMute: false,
-				});
-
-				await interaction.editReply({
-					content: "Connected to your voice call.",
-					embeds: [],
-				});
+				player!.setLoop(loop_type);
+				if (loop_type == "off") {
+					await interaction.editReply({
+						content: "Disabled looping.",
+						embeds: [],
+					});
+					return;
+				} else if (loop_type == "track") {
+					await interaction.editReply({
+						content: "Looping the current song.",
+						embeds: [],
+					});
+					return;
+				} else if (loop_type == "queue") {
+					await interaction.editReply({
+						content: "Looping the whole queue.",
+						embeds: [],
+					});
+					return;
+				}
 			} else {
 				await interaction.editReply({
-					content: "Not enough votes to connect to your voice call.",
+					content: "Not enough votes to start/end looping.",
 					embeds: [],
 				});
 			}
@@ -123,16 +156,22 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		return;
 	}
 
-	await player.setVoiceChannelId(
-		interaction.options.getChannel("channel", true).id,
-	);
+	player!.setLoop(loop_type);
 
-	await player.connect({
-		setDeaf: true,
-		setMute: false,
-	});
-
-	await interaction.reply({
-		content: "Connected to your voice call.",
-	});
+	if (loop_type == "off") {
+		await interaction.reply({ content: "Disabled looping.", embeds: [] });
+		return;
+	} else if (loop_type == "track") {
+		await interaction.reply({
+			content: "Looping the current song.",
+			embeds: [],
+		});
+		return;
+	} else if (loop_type == "queue") {
+		await interaction.reply({
+			content: "Looping the whole queue.",
+			embeds: [],
+		});
+		return;
+	}
 }

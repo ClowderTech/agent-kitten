@@ -12,13 +12,15 @@ export async function execute(message: Message) {
 
 	const client = message.client as ClientExtended;
 
-	if (!client.usersMessaged.includes(message.author.id)) {
-		prettyExpGain(client, message.author);
-		client.usersMessaged.push(message.author.id);
-	}
-
 	if (!message.inGuild()) {
 		return;
+	}
+
+	if (
+		!client.usersMessaged.includes(message.author.id)
+	) {
+		prettyExpGain(client, message.author, message.guild);
+		client.usersMessaged.push(message.author.id);
 	}
 
 	const serverData = await getData(client, "config", {

@@ -6,7 +6,7 @@ import {
 	SlashCommandBuilder,
 	User,
 } from "discord.js";
-import { type ClientExtended, UserMadeError } from "../../../utils/classes.ts";
+import { type ClientExtended, UserMadeError } from "../../utils/classes.ts";
 
 export const data = new SlashCommandBuilder()
 	.setName("stop")

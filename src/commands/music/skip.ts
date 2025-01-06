@@ -4,13 +4,39 @@ import {
 	GuildMember,
 	MessageReaction,
 	SlashCommandBuilder,
+	SlashCommandNumberOption,
 	User,
 } from "discord.js";
-import { type ClientExtended, UserMadeError } from "../../../utils/classes.ts";
+import { type ClientExtended, UserMadeError } from "../../utils/classes.ts";
+import type { Queue } from "moonlink.js";
+
+const removeFromQueue = (queue: Queue, amount: number) => {
+	// Check if amount is 2 or greater
+	if (amount >= 2) {
+		// Calculate how many times to remove from the front
+		const numberOfRemovals = amount - 1; // Calculate the number of removals
+
+		// Only remove items if we have valid positions in the queue
+		for (let i = 0; i < numberOfRemovals; i++) {
+			if (queue.size > 0) {
+				// Ensure there's something to remove
+				queue.remove(0); // Remove the item at index 0
+			}
+		}
+	}
+};
 
 export const data = new SlashCommandBuilder()
-	.setName("shuffle")
-	.setDescription("Shuffles the current songs in the queue.");
+	.setName("skip")
+	.setDescription("Skips the current song in the queue.")
+	.addNumberOption((option: SlashCommandNumberOption) =>
+		option
+			.setName("amount")
+			.setDescription("The amount of songs to skip.")
+			.setRequired(false)
+			.setMaxValue(600)
+			.setMinValue(1)
+	);
 
 export async function execute(interaction: ChatInputCommandInteraction) {
 	const client: ClientExtended = interaction.client as ClientExtended;
@@ -46,6 +72,14 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		throw new UserMadeError("No songs are currently playing.");
 	}
 
+	const amount_object = interaction.options.get("amount", false);
+	const amount = amount_object ? (amount_object.value as number) : 1;
+	if (amount > player.queue.size + (player.current ? 1 : 0)) {
+		throw new UserMadeError(
+			`You cannot skip more songs than the queue has (${player.queue.size} song(s)).`,
+		);
+	}
+
 	const channel = member.voice.channel;
 
 	if (
@@ -67,7 +101,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		const embed = new EmbedBuilder()
 			.setTitle("Vote to stop")
 			.setDescription(
-				`You are not a DJ, so you need to vote. React with ✅ to vote to shuffle the player. Have ${votesNeeded} votes in 30 seconds. The vote will end <t:${
+				`You are not a DJ, so you need to vote. React with ✅ to vote to skip the song(s). Have ${votesNeeded} votes in 30 seconds. The vote will end <t:${
 					Math.floor(Date.now() / 1000) + 30
 				}:R>`,
 			)
@@ -98,14 +132,24 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 		collector.on("end", async () => {
 			if (votes >= votesNeeded) {
-				await player.shuffle();
+				removeFromQueue(player.queue, amount);
+				if (player.queue.size == 0) {
+					player.destroy();
+					await interaction.editReply({
+						content:
+							"Skipped the current song and left the voice call.",
+						embeds: [],
+					});
+					return;
+				}
+				player.skip(0);
 				await interaction.editReply({
-					content: "Shuffled the current songs.",
+					content: "Skipped the current song.",
 					embeds: [],
 				});
 			} else {
 				await interaction.editReply({
-					content: "Not enough votes to stop the player.",
+					content: "Not enough votes to skip the song.",
 					embeds: [],
 				});
 			}
@@ -114,9 +158,16 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		return;
 	}
 
-	await player.shuffle();
+	removeFromQueue(player.queue, amount);
+	if (player.queue.size == 0) {
+		player.destroy();
+		await interaction.reply({
+			content: "Skipped the current song and left the voice call.",
+			embeds: [],
+		});
+		return;
+	}
+	player.skip(0);
 
-	await interaction.reply({
-		content: "Shuffled the current songs.",
-	});
+	await interaction.reply({ content: "Skipped the current song." });
 }

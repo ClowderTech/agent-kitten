@@ -7,9 +7,9 @@ import {
 	SlashCommandIntegerOption,
 	User,
 } from "discord.js";
-import { type ClientExtended, UserMadeError } from "../../../utils/classes.ts";
-import { type Config, getNestedKey } from "../../../utils/config.ts";
-import { getData } from "../../../utils/mongohelper.ts";
+import { type ClientExtended, UserMadeError } from "../../utils/classes.ts";
+import { type Config, getNestedKey } from "../../utils/config.ts";
+import { getData } from "../../utils/mongohelper.ts";
 
 export const data = new SlashCommandBuilder()
 	.setName("volume")

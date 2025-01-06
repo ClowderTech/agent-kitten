@@ -3,7 +3,7 @@ import {
 	EmbedBuilder,
 	SlashCommandBuilder,
 } from "discord.js";
-import { type ClientExtended, UserMadeError } from "../../../utils/classes.ts";
+import { type ClientExtended, UserMadeError } from "../../utils/classes.ts";
 import { Track } from "moonlink.js";
 
 export const data = new SlashCommandBuilder()

@@ -6,11 +6,11 @@ import {
 	SlashCommandBuilder,
 	User,
 } from "discord.js";
-import { type ClientExtended, UserMadeError } from "../../../utils/classes.ts";
+import { type ClientExtended, UserMadeError } from "../../utils/classes.ts";
 
 export const data = new SlashCommandBuilder()
-	.setName("pause")
-	.setDescription("Pauses or resumes the current song.");
+	.setName("shuffle")
+	.setDescription("Shuffles the current songs in the queue.");
 
 export async function execute(interaction: ChatInputCommandInteraction) {
 	const client: ClientExtended = interaction.client as ClientExtended;
@@ -67,7 +67,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		const embed = new EmbedBuilder()
 			.setTitle("Vote to stop")
 			.setDescription(
-				`You are not a DJ, so you need to vote. React with ✅ to vote to pause/resume the player. Have ${votesNeeded} votes in 30 seconds. The vote will end <t:${
+				`You are not a DJ, so you need to vote. React with ✅ to vote to shuffle the player. Have ${votesNeeded} votes in 30 seconds. The vote will end <t:${
 					Math.floor(Date.now() / 1000) + 30
 				}:R>`,
 			)
@@ -98,22 +98,14 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 		collector.on("end", async () => {
 			if (votes >= votesNeeded) {
-				if (player.paused) {
-					player.resume();
-
-					await interaction.editReply({
-						content: "Resumed the current song.",
-					});
-				} else {
-					player.pause();
-
-					await interaction.editReply({
-						content: "Paused the current song.",
-					});
-				}
+				await player.shuffle();
+				await interaction.editReply({
+					content: "Shuffled the current songs.",
+					embeds: [],
+				});
 			} else {
 				await interaction.editReply({
-					content: "Not enough votes to pause/resume the player.",
+					content: "Not enough votes to stop the player.",
 					embeds: [],
 				});
 			}
@@ -122,17 +114,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		return;
 	}
 
-	if (player.paused) {
-		player.resume();
+	await player.shuffle();
 
-		await interaction.reply({
-			content: "Resumed the current song.",
-		});
-	} else {
-		player.pause();
-
-		await interaction.reply({
-			content: "Paused the current song.",
-		});
-	}
+	await interaction.reply({
+		content: "Shuffled the current songs.",
+	});
 }
