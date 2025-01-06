@@ -95,7 +95,7 @@ export async function updateMemberStats(
 				serverid: serverId,
 				experience: newExperience,
 				level: newLevel,
-				_id: userobj
+				_id: userobj,
 			},
 			userobj,
 		);
@@ -108,7 +108,7 @@ export async function updateMemberStats(
 				serverid: serverId,
 				experience: newExperience,
 				level: newLevel,
-				_id: new ObjectId()
+				_id: new ObjectId(),
 			},
 		);
 	}

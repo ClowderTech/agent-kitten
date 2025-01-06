@@ -59,7 +59,7 @@ export async function setData(
 			if (data._id) {
 				id = data._id as ObjectId;
 			} else {
-				id = new ObjectId()
+				id = new ObjectId();
 			}
 		}
 
@@ -67,7 +67,7 @@ export async function setData(
 			const result = await collection.updateOne(
 				id instanceof ObjectId ? { _id: id } : id,
 				{ $set: data },
-				{ upsert: true }
+				{ upsert: true },
 			);
 			return result.modifiedCount > 0; // Return true if a document was modified
 		} else {
