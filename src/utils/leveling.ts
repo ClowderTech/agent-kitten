@@ -132,7 +132,7 @@ export async function getUsersByExperienceRange(
 
 	// Sort and slice users
 	const sortedUsers = users.sort((a, b) =>
-		a.level === b.level ? a.level - b.experience : a.level - b.level
+		a.level === b.level ? a.level - b.level : a.level - b.level
 	);
 	const slicedUsers = sortedUsers.slice(x, y + 1);
 
