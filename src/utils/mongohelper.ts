@@ -1,5 +1,5 @@
 // mongoHelpers.ts
-import { Collection, Document, ObjectId, WithId } from "mongodb";
+import { Collection, Document, Filter, ObjectId, WithId } from "mongodb";
 import type { ClientExtended } from "./classes.ts";
 
 function generateDatabaseName(botName: string): string {
@@ -80,10 +80,14 @@ export async function setData(
 }
 
 // List Data Function
-export async function listData(client: ClientExtended, collectionName: string) {
+export async function listData(
+	client: ClientExtended,
+	collectionName: string,
+	filter: Filter<Document> = {},
+) {
 	try {
 		const collection = getCollection(client, collectionName);
-		const result = await collection.find({}).toArray();
+		const result = await collection.find(filter).toArray();
 		return result;
 	} catch (error) {
 		console.error(`Error listing data: ${error}`);
@@ -95,15 +99,16 @@ export async function listData(client: ClientExtended, collectionName: string) {
 export async function deleteData(
 	client: ClientExtended,
 	collectionName: string,
-	id: string | ObjectId,
+	id: ObjectId | Filter<Document>,
 ) {
 	try {
 		const collection = getCollection(client, collectionName);
 
 		if (id) {
 			// Determine if id is a string or ObjectId and convert if necessary
-			const objectId = typeof id === "string" ? new ObjectId(id) : id;
-			const result = await collection.deleteOne({ _id: objectId });
+			const result = await collection.deleteOne(
+				id instanceof ObjectId ? { _id: id } : id,
+			);
 			return result.deletedCount > 0; // Return true if a document was modified
 		}
 	} catch (error) {

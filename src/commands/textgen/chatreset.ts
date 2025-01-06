@@ -2,10 +2,11 @@ import {
 	ApplicationIntegrationType,
 	ChatInputCommandInteraction,
 	InteractionContextType,
+	MessageFlags,
 	SlashCommandBuilder,
 } from "discord.js";
-import type { ClientExtended } from "../../../utils/classes.ts";
-import { deleteData, getData } from "../../../utils/mongohelper.ts";
+import type { ClientExtended } from "../../utils/classes.ts";
+import { deleteData } from "../../utils/mongohelper.ts";
 
 export const data = new SlashCommandBuilder()
 	.setName("chatreset")
@@ -23,22 +24,19 @@ export const data = new SlashCommandBuilder()
 export async function execute(interaction: ChatInputCommandInteraction) {
 	const client = interaction.client as ClientExtended;
 
-	const chatData = await getData(client, "textgen", {
-		userId: interaction.user.id,
+	const deleted = await deleteData(client, "textgen", {
+		userid: interaction.user.id,
 	});
 
-	if (!chatData[0]) {
+	if (!deleted) {
 		await interaction.reply({
 			content: "You already had no chat data.",
-			ephemeral: true,
+			flags: [MessageFlags.Ephemeral],
 		});
-		return;
+	} else {
+		await interaction.reply({
+			content: "Your chat data has been reset.",
+			flags: [MessageFlags.Ephemeral],
+		});
 	}
-
-	await deleteData(client, "textgen", chatData[0]["_id"]);
-
-	await interaction.reply({
-		content: "Your chat data has been reset.",
-		ephemeral: true,
-	});
 }

@@ -4,35 +4,13 @@ import {
 	GuildMember,
 	MessageReaction,
 	SlashCommandBuilder,
-	SlashCommandStringOption,
 	User,
 } from "discord.js";
-import { type ClientExtended, UserMadeError } from "../../../utils/classes.ts";
-import { TPlayerLoop } from "moonlink.js";
+import { type ClientExtended, UserMadeError } from "../../utils/classes.ts";
 
 export const data = new SlashCommandBuilder()
-	.setName("loop")
-	.setDescription("Sets the queue to loop.")
-	.addStringOption((option: SlashCommandStringOption) =>
-		option
-			.setName("type")
-			.setDescription("Type of looping you want for the queue.")
-			.setRequired(true)
-			.addChoices(
-				{
-					name: "No looping.",
-					value: "off",
-				},
-				{
-					name: "Loop the current song.",
-					value: "track",
-				},
-				{
-					name: "Loop the whole queue.",
-					value: "queue",
-				},
-			)
-	);
+	.setName("pause")
+	.setDescription("Pauses or resumes the current song.");
 
 export async function execute(interaction: ChatInputCommandInteraction) {
 	const client: ClientExtended = interaction.client as ClientExtended;
@@ -68,11 +46,6 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		throw new UserMadeError("No songs are currently playing.");
 	}
 
-	const loop_type = interaction.options.getString(
-		"type",
-		true,
-	) as TPlayerLoop;
-
 	const channel = member.voice.channel;
 
 	if (
@@ -94,7 +67,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		const embed = new EmbedBuilder()
 			.setTitle("Vote to stop")
 			.setDescription(
-				`You are not a DJ, so you need to vote. React with ✅ to vote to loop the player. Have ${votesNeeded} votes in 30 seconds. The vote will end <t:${
+				`You are not a DJ, so you need to vote. React with ✅ to vote to pause/resume the player. Have ${votesNeeded} votes in 30 seconds. The vote will end <t:${
 					Math.floor(Date.now() / 1000) + 30
 				}:R>`,
 			)
@@ -109,7 +82,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 		const filter = (reaction: MessageReaction, user: User) =>
 			reaction.emoji.name === "✅" &&
-			user.id !== client.user?.id &&
+			user.id !== client.user!.id &&
 			!user.bot;
 
 		const collector = message.createReactionCollector({
@@ -125,29 +98,22 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 		collector.on("end", async () => {
 			if (votes >= votesNeeded) {
-				player!.setLoop(loop_type);
-				if (loop_type == "off") {
+				if (player.paused) {
+					player.resume();
+
 					await interaction.editReply({
-						content: "Disabled looping.",
-						embeds: [],
+						content: "Resumed the current song.",
 					});
-					return;
-				} else if (loop_type == "track") {
+				} else {
+					player.pause();
+
 					await interaction.editReply({
-						content: "Looping the current song.",
-						embeds: [],
+						content: "Paused the current song.",
 					});
-					return;
-				} else if (loop_type == "queue") {
-					await interaction.editReply({
-						content: "Looping the whole queue.",
-						embeds: [],
-					});
-					return;
 				}
 			} else {
 				await interaction.editReply({
-					content: "Not enough votes to start/end looping.",
+					content: "Not enough votes to pause/resume the player.",
 					embeds: [],
 				});
 			}
@@ -156,22 +122,17 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		return;
 	}
 
-	player!.setLoop(loop_type);
+	if (player.paused) {
+		player.resume();
 
-	if (loop_type == "off") {
-		await interaction.reply({ content: "Disabled looping.", embeds: [] });
-		return;
-	} else if (loop_type == "track") {
 		await interaction.reply({
-			content: "Looping the current song.",
-			embeds: [],
+			content: "Resumed the current song.",
 		});
-		return;
-	} else if (loop_type == "queue") {
+	} else {
+		player.pause();
+
 		await interaction.reply({
-			content: "Looping the whole queue.",
-			embeds: [],
+			content: "Paused the current song.",
 		});
-		return;
 	}
 }

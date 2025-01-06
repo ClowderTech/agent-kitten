@@ -1,12 +1,14 @@
 import type { ObjectId } from "mongodb";
 import type { ClientExtended } from "./classes.ts";
 import { getData, listData, setData } from "./mongohelper.ts"; // Import mongoHelpers functions
-import { EmbedBuilder, MessageFlags, User } from "discord.js";
+import { EmbedBuilder, Guild, MessageFlags, User } from "discord.js";
 import { type Config, getNestedKey } from "./config.ts";
 
-interface UserExperience {
-	userId: string;
+interface UserLeveling {
+	userid: string;
 	experience: number;
+	level: number;
+	serverid: string;
 	_id: ObjectId;
 }
 
@@ -29,170 +31,156 @@ export function calculateExpGain(multiplier: number = 1): number {
 }
 
 // Function to calculate experience required to reach the next level based on a quadratic equation
-export function calculateExpToNextLevel(currentLevel: number): number {
+export function calculateExpToNextLevel(
+	currentLevel: number,
+	currentExperience: number = 0,
+): number {
 	// Coefficients for the quadratic function
 	const a = 2;
 	const b = 50;
 	const c = 100;
 
 	// Quadratic formula to calculate experience needed
-	const expNeeded = a * Math.pow(currentLevel, 2) + b * currentLevel + c;
+	const expNeeded = a * Math.pow(currentLevel + 1, 2) + b * currentLevel + c;
 
-	return Math.floor(expNeeded / 10); // Return the experience needed for the next level
-}
-
-// Function to calculate the level based on total experience
-export function calculateLevelFromExperience(totalExperience: number): number {
-	let currentLevel = 0;
-	let accumulatedExperience = 0;
-
-	// Keep leveling up until the total experience is consumed
-	while (true) {
-		const experienceNeeded = calculateExpToNextLevel(currentLevel);
-
-		if (accumulatedExperience + experienceNeeded <= totalExperience) {
-			accumulatedExperience += experienceNeeded;
-			currentLevel++;
-		} else {
-			break; // Not enough experience to level up
-		}
-	}
-
-	return currentLevel; // Return the calculated level
+	return Math.floor(expNeeded / 10) - currentExperience; // Return the experience needed for the next level
 }
 
 // Updated function to get member experience using mongoHelper
 export async function getMemberExperience(
 	client: ClientExtended,
 	memberId: string,
-): Promise<number> {
-	const users = await getData(client, "levels", { userId: memberId });
+	serverId: string,
+) {
+	const users = await getData(client, "leveling", {
+		userid: memberId,
+		serverid: serverId,
+	});
 	return users.length > 0 ? users[0].experience : 0; // Return user experience or 0 if not found
 }
 
-// Updated function to update member experience using mongoHelper
-export async function updateMemberExperience(
+export async function getMemberLevel(
 	client: ClientExtended,
 	memberId: string,
-	newExperience: number,
+	serverId: string,
 ) {
-	// Step 1: Fetch existing user data
-	const users = await getData(client, "levels", { userId: memberId });
-
-	if (users.length > 0) {
-		// Step 2: If the user exists, update their experience
-		const userId = users[0]._id; // Retrieve the _id of the first user found
-		await setData(
-			client,
-			"levels",
-			{ userId: memberId, experience: newExperience },
-			userId,
-		); // Update using the ObjectId directly
-	} else {
-		// Step 3: If the user doesn't exist, create a new entry
-		await setData(client, "levels", {
-			userId: memberId,
-			experience: newExperience,
-		}); // Insert as a new document
-	}
+	const users = await getData(client, "leveling", {
+		userid: memberId,
+		serverid: serverId,
+	});
+	return users.length > 0 ? users[0].level : 0; // Return user experience or 0 if not found
 }
 
-// Updated function to get experience needed for next level
-export function calculateExperienceFromLevel(level: number): number {
-	let accumulatedExperience = 0;
-	let currentLevel = 0;
+// Updated function to update member experience using mongoHelper
+export async function updateMemberStats(
+	client: ClientExtended,
+	memberId: string,
+	serverId: string,
+	newExperience: number,
+	newLevel: number,
+) {
+	// Step 1: Fetch existing user data
+	const users = await getData(client, "leveling", {
+		userid: memberId,
+		serverid: serverId,
+	}) as UserLeveling[];
 
-	// Keep leveling up until the total experience is consumed
-	while (true) {
-		const experienceNeeded = calculateExpToNextLevel(currentLevel);
-
-		if (currentLevel + 1 <= level) {
-			accumulatedExperience += experienceNeeded;
-			currentLevel++;
-		} else {
-			break; // Not enough experience to level up
-		}
+	if (users[0]) {
+		const userobj = users[0]._id; // Retrieve the _id of the first user found
+		await setData(
+			client,
+			"leveling",
+			{
+				userid: memberId,
+				serverid: serverId,
+				experience: newExperience,
+				level: newLevel,
+			},
+			userobj,
+		);
+	} else {
+		await setData(
+			client,
+			"leveling",
+			{
+				userid: memberId,
+				serverid: serverId,
+				experience: newExperience,
+				level: newLevel,
+			},
+		);
 	}
-
-	return accumulatedExperience;
 }
 
 // Updated function to get users between index x and y based on experience
 export async function getUsersByExperienceRange(
 	client: ClientExtended,
+	serverId: string,
 	x: number,
 	y: number,
-): Promise<UserExperience[]> {
+): Promise<UserLeveling[]> {
 	if (x < 0 || y < x) {
 		throw new Error("Invalid indices: x must be >= 0 and y must be >= x.");
 	}
 
-	// Fetch all users and their experience from the "levels" collection
-	const users = await listData(client, "levels"); // Use the listData function
+	// Fetch all users and their experience from the "leveling" collection
+	const users = await listData(client, "leveling", {
+		serverid: serverId,
+	}) as UserLeveling[]; // Use the listData function
 
 	// Sort and slice users
-	const sortedUsers = users.sort((a, b) => b.experience - a.experience);
+	const sortedUsers = users.sort((a, b) =>
+		a.level === b.level ? a.level - b.experience : a.level - b.level
+	);
 	const slicedUsers = sortedUsers.slice(x, y + 1);
 
-	// Map sliced users to the defined interface structure
-	const result: UserExperience[] = slicedUsers.map((user) => ({
-		userId: user.userId,
-		experience: user.experience,
-		_id: user._id,
-	}));
-
-	return result; // Return the sliced users
+	return slicedUsers; // Return the sliced users
 }
 
 export async function prettyExpGain(
 	client: ClientExtended,
 	user: User,
+	guild: Guild,
 	multiplier: number = 1,
 ): Promise<void> {
 	const userId = user.id; // Get user ID
-	const currentExperience = await getMemberExperience(client, userId); // Fetch current experience
+	const guildId = guild.id;
+	const currentExperience = await getMemberExperience(
+		client,
+		userId,
+		guildId,
+	); // Fetch current experience
+	const currentLevel = await getMemberLevel(client, userId, guildId);
 	const expGain = calculateExpGain(multiplier); // Calculate new experience gain
 	const newExperience = currentExperience + expGain; // Update total experience
-
-	// Retrieve current level before updating
-	const currentLevel = calculateLevelFromExperience(currentExperience);
-	const newLevel = calculateLevelFromExperience(newExperience); // Calculate new level
+	const newLevel = calculateExpToNextLevel(currentLevel, newExperience) <= 0
+		? currentLevel + 1
+		: currentLevel;
 
 	// Update experience in the database
-	await updateMemberExperience(client, userId, newExperience);
+	await updateMemberStats(
+		client,
+		userId,
+		guildId,
+		newLevel > currentLevel ? 0 : newExperience,
+		newLevel,
+	);
 
 	// Check if the user leveled up
 	if (newLevel > currentLevel) {
-		const expNeededForNextLevel = calculateExperienceFromLevel(
-			newLevel + 1,
-		); // Get EXP needed for next level
-
 		const embed = new EmbedBuilder()
 			.setColor(0x9A2D7D) // Changed color to a more vibrant green
 			.setTitle("🎉 Congratulations! 🎉") // Added icons to the title
-			.setDescription(`<@!${userId}>, you leveled up! 🎊`) // Added an emoji to the description
-			.addFields(
-				{
-					name: "New Level",
-					value: `${newLevel}`,
-					inline: false,
-				}, // Added an emoji
-				{
-					name: "Experience",
-					value: `${newExperience}`,
-					inline: false,
-				}, // Added an emoji
-				{
-					name: "EXP Needed for Next Level",
-					value: `${expNeededForNextLevel}`,
-					inline: false,
-				}, // Added an emoji
-			)
-			.setTimestamp()
-			.setFooter({
-				text:
-					"If you don't want these messages, execute /userconf set key:leveling.levelupmessaging value:false",
-			}); // Correctly formatted footer
+			.setDescription(
+				`<@!${userId}>, you leveled up to level ${newLevel}! 🎊\n\n-# If you don't want these messages, execute </userconf set:${
+					client.application!.commands.cache.find((command) =>
+						command.name === "userconf"
+					)?.id ||
+					(await client.application!.commands.fetch()).find((
+						command,
+					) => command.name === "userconf")?.id
+				}> and set \`leveling.levelupmessaging\` to \`false\``,
+			);
 
 		// Send the embed message as a DM to the user
 
@@ -215,7 +203,10 @@ export async function prettyExpGain(
 					flags: [MessageFlags.SuppressNotifications],
 				});
 			} catch (error) {
-				console.error(`Could not send DM to ${user.username}:`, error);
+				console.error(
+					`Could not send DM to ${user.displayName}:`,
+					error,
+				);
 			}
 		}
 	}

@@ -6,15 +6,16 @@ import {
 	SlashCommandBuilder,
 	SlashCommandStringOption,
 } from "discord.js";
-import type { ClientExtended } from "../../../utils/classes.ts";
-import { Document, WithId } from "mongodb";
+import type { ClientExtended } from "../../utils/classes.ts";
+import { ObjectId } from "mongodb";
 import { connect } from "puppeteer";
 import {
+	ChatData,
 	chatWithFuncs,
 	convertBlobToUint8Array,
-} from "../../../utils/textgen.ts";
+} from "../../utils/textgen.ts";
 import { ChatRequest } from "ollama";
-import { getData, setData } from "../../../utils/mongohelper.ts";
+import { getData, setData } from "../../utils/mongohelper.ts";
 import { deadline } from "@std/async";
 import { EmbedBuilder } from "@discordjs/builders";
 
@@ -372,14 +373,15 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	}
 
 	const chatData = await getData(client, "textgen", {
-		userId: interaction.user.id,
-	});
+		userid: interaction.user.id,
+	}) as ChatData[];
 
-	let user_data: WithId<Document> | Record<string | number | symbol, unknown>;
+	let user_data: ChatData;
 
 	if (!chatData[0]) {
 		user_data = {
-			userId: interaction.user.id,
+			_id: new ObjectId(),
+			userid: interaction.user.id,
 			messages: [
 				{
 					role: "system",
@@ -409,10 +411,11 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	);
 
 	const request: ChatRequest = {
-		model: subscribed
-			? "qwen2.5:32b-instruct-q3_K_M"
-			: "qwen2.5:14b-instruct-q4_K_M",
+		model: subscribed ? "qwen2.5:32b" : "qwen2.5:14b",
 		messages: user_data.messages,
+		options: {
+			num_ctx: 16384,
+		},
 		tools: [
 			{
 				type: "function",
