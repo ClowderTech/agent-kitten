@@ -2,7 +2,7 @@ import { ObjectId } from "mongodb";
 import type { ClientExtended } from "./classes.ts";
 import { getData, listData, setData } from "./mongohelper.ts"; // Import mongoHelpers functions
 import { Channel, EmbedBuilder, Guild, MessageFlags, User } from "discord.js";
-import { type Config, getNestedKey } from "./config.ts";
+import { getNestedKey, UserConfig } from "./config.ts";
 
 interface UserLeveling {
 	userid: string;
@@ -187,16 +187,24 @@ export async function prettyExpGain(
 
 		// Send the embed message as a DM to the user
 
-		const userData = await getData(client, "config", { userId: userId });
-		const configData: Config = userData[0]?.config || {};
+		const serverData = await getData(client, "config", {
+			userid: userId,
+		}) as UserConfig[];
+		let userConf: UserConfig;
+		let levelUpMessagingSetting
+		if (serverData.length > 0) {
+			userConf = serverData[0];
 
-		let levelUpMessagingSetting = getNestedKey(
-			configData,
-			"leveling.levelupmessaging",
-		);
+			levelUpMessagingSetting = getNestedKey(
+				userConf.config,
+				"leveling.levelupmessaging",
+			);
 
-		if (levelUpMessagingSetting === null) {
-			levelUpMessagingSetting = true;
+			if (levelUpMessagingSetting === null) {
+				levelUpMessagingSetting = true;
+			}
+		} else {
+			levelUpMessagingSetting = true
 		}
 
 		if (levelUpMessagingSetting) {
