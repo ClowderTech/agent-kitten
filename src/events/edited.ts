@@ -18,7 +18,7 @@ export async function execute(_oldMessage: Message, newMessage: Message) {
 	}
 
 	const serverData = await getData(client, "config", {
-		serverId: newMessage.guildId,
+		serverid: newMessage.guildId,
 	});
 	const configData: Config = serverData[0]?.config || {};
 

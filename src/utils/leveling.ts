@@ -1,7 +1,7 @@
 import type { ObjectId } from "mongodb";
 import type { ClientExtended } from "./classes.ts";
 import { getData, listData, setData } from "./mongohelper.ts"; // Import mongoHelpers functions
-import { EmbedBuilder, Guild, MessageFlags, User } from "discord.js";
+import { Channel, EmbedBuilder, Guild, MessageFlags, User } from "discord.js";
 import { type Config, getNestedKey } from "./config.ts";
 
 interface UserLeveling {
@@ -141,6 +141,7 @@ export async function prettyExpGain(
 	client: ClientExtended,
 	user: User,
 	guild: Guild,
+	channel: Channel,
 	multiplier: number = 1,
 ): Promise<void> {
 	const userId = user.id; // Get user ID
@@ -172,7 +173,7 @@ export async function prettyExpGain(
 			.setColor(0x9A2D7D) // Changed color to a more vibrant green
 			.setTitle("🎉 Congratulations! 🎉") // Added icons to the title
 			.setDescription(
-				`<@!${userId}>, you leveled up to level ${newLevel}! 🎊\n\n-# If you don't want these messages, execute </userconf set:${
+				`<@!${userId}>, you leveled up to level ${newLevel} in ${channel.url}! 🎊\n\n-# If you don't want these messages, execute </userconf set:${
 					client.application!.commands.cache.find((command) =>
 						command.name === "userconf"
 					)?.id ||
