@@ -19,12 +19,12 @@ export async function execute(message: Message) {
 	if (
 		!client.usersMessaged.includes(message.author.id)
 	) {
-		prettyExpGain(client, message.author, message.guild);
+		prettyExpGain(client, message.author, message.guild, message.channel);
 		client.usersMessaged.push(message.author.id);
 	}
 
 	const serverData = await getData(client, "config", {
-		serverId: message.guildId,
+		serverid: message.guildId,
 	});
 
 	const configData: Config = serverData[0]?.config || {};

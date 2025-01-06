@@ -460,7 +460,7 @@ async function getVoiceChannelMembers(guild: Guild) {
 					!member.voice.mute &&
 					!(member.voice.channelId === member.guild.afkChannelId)
 				) {
-					await prettyExpGain(client, member.user, guild);
+					await prettyExpGain(client, member.user, guild, channel);
 				}
 			}
 		}
