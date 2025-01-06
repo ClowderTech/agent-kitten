@@ -92,6 +92,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		}
 
 		const configData = {
+			_id: userData[0]._id,
 			userid: userId,
 			config: setNestedKey(oldConfigData, key, parsedValue),
 		};
@@ -154,6 +155,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		}
 
 		const configData = {
+			_id: userData[0]._id,
 			userid: userId,
 			config: parsedData, // Set to the parsed JSON object
 		};
