@@ -235,7 +235,7 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
 				interaction.guild.id === "1185316093078802552"
 			) {
 				embed = embed.setDescription(
-					`\`\`\`${error.stack?.substring(0, 4095)}\`\`\``,
+					`\`\`\`${error.stack?.substring(0, 4085)}\`\`\``,
 				);
 			}
 		} else {
