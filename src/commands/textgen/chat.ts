@@ -408,7 +408,11 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		subscription,
 	) => subscription.userId === interaction.user.id &&
 		subscription.skuIds.includes(sku_id)
-	);
+	) ||
+		(await client.application!.subscriptions.fetch({
+				sku: sku_id,
+				user: interaction.user.id,
+			})).size > 0;
 
 	const request: ChatRequest = {
 		model: subscribed ? "qwen2.5:32b" : "qwen2.5:14b",
