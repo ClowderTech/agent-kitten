@@ -100,7 +100,12 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 		try {
 			if (userData.length > 0) {
-				await setData(client, "config", configData, userData[0]._id || new ObjectId()); // Update existing config
+				await setData(
+					client,
+					"config",
+					configData,
+					userData[0]._id || new ObjectId(),
+				); // Update existing config
 			} else {
 				await setData(client, "config", configData); // Insert new config
 			}
@@ -163,7 +168,12 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 		try {
 			if (userData.length > 0) {
-				await setData(client, "config", configData, userData[0]._id || new ObjectId()); // Update existing raw config
+				await setData(
+					client,
+					"config",
+					configData,
+					userData[0]._id || new ObjectId(),
+				); // Update existing raw config
 			} else {
 				await setData(client, "config", configData); // Insert new raw config
 			}
