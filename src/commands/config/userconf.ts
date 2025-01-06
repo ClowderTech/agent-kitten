@@ -135,9 +135,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 		const value = getNestedKey(userConf.config, key);
 
-		if (value) {
+		if (value != null) {
 			await interaction.reply({
-				content: `Value for \`${key}\`: ${value}`,
+				content: `Value for \`${key}\`: \`${value}\``,
 				flags: [MessageFlags.Ephemeral],
 			});
 		} else {
