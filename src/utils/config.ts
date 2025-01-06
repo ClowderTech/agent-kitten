@@ -1,9 +1,23 @@
+import { ObjectId } from "mongodb";
+
 export type Config =
 	| string
 	| number
 	| boolean
 	| Config[]
 	| { [key: string]: Config };
+
+export interface ServerConfig {
+	_id: ObjectId;
+	config: Config;
+	serverid: string;
+}
+
+export interface UserConfig {
+	_id: ObjectId;
+	config: Config;
+	userid: string;
+}
 
 export function setNestedKey(obj: Config, path: string, value: Config): Config {
 	const keys = path.split(".");

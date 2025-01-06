@@ -7,7 +7,11 @@ import {
 import type { ClientExtended } from "../../utils/classes.ts";
 import { ObjectId } from "mongodb";
 import { getData, setData } from "../../utils/mongohelper.ts"; // Adjust the import path as necessary
-import { type Config, getNestedKey, setNestedKey } from "../../utils/config.ts";
+import {
+	getNestedKey,
+	ServerConfig,
+	setNestedKey,
+} from "../../utils/config.ts";
 
 export const data = new SlashCommandBuilder()
 	.setName("serverconf")
@@ -121,8 +125,19 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	const serverId = interaction.guild.id; // Get the ID of the server executing the command
 	const client = interaction.client as ClientExtended;
 
-	const serverData = await getData(client, "config", { serverid: serverId });
-	const oldConfigData: Config = serverData[0]?.config || {};
+	const serverData = await getData(client, "config", {
+		serverid: serverId,
+	}) as ServerConfig[];
+	let serverConf: ServerConfig;
+	if (serverData.length > 0) {
+		serverConf = serverData[0];
+	} else {
+		serverConf = {
+			_id: new ObjectId(),
+			config: {},
+			serverid: serverId,
+		};
+	}
 
 	// Determine which subcommand is called
 	const subcommand = interaction.options.getSubcommand(); // Get subcommand directly
@@ -138,23 +153,14 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			parsedValue = value; // If parsing fails, keep it as a string
 		}
 
-		const configData = {
-			_id: serverData[0]._id || new ObjectId(),
-			serverid: serverId,
-			config: setNestedKey(oldConfigData, key, parsedValue),
-		};
+		serverConf.config = setNestedKey(serverConf.config, key, parsedValue);
 
 		try {
-			if (serverData.length > 0) {
-				await setData(
-					client,
-					"config",
-					configData,
-					serverData[0]._id || new ObjectId(),
-				); // Update existing config
-			} else {
-				await setData(client, "config", configData); // Insert new config
-			}
+			await setData(
+				client,
+				"config",
+				serverConf,
+			);
 
 			const embed = new EmbedBuilder()
 				.setTitle("Server Configuration Updated")
@@ -177,7 +183,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		const key = interaction.options.getString("key", true); // Optional key
 		// If a key is specified, return its value
 
-		const value = getNestedKey(oldConfigData, key);
+		const value = getNestedKey(serverConf.config, key);
 
 		if (value) {
 			await interaction.reply({
@@ -201,23 +207,14 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			return;
 		}
 
-		const configData = {
-			_id: serverData[0]._id || new ObjectId(),
-			serverid: serverId,
-			config: parsedData, // Set to the parsed JSON object
-		};
+		serverConf.config = parsedData;
 
 		try {
-			if (serverData.length > 0) {
-				await setData(
-					client,
-					"config",
-					configData,
-					serverData[0]._id || new ObjectId(),
-				); // Update existing raw config
-			} else {
-				await setData(client, "config", configData); // Insert new raw config
-			}
+			await setData(
+				client,
+				"config",
+				serverConf,
+			);
 
 			await interaction.reply({
 				content: "Raw configuration has been updated successfully.",
@@ -233,7 +230,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		await interaction.reply({
 			content: `Raw configuration: \n\`\`\`json\n${
 				JSON.stringify(
-					oldConfigData,
+					serverConf.config,
 					null,
 					2,
 				)
