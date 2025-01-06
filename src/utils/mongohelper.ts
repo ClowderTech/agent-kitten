@@ -33,7 +33,7 @@ function getCollection(
 export async function getData(
 	client: ClientExtended,
 	collectionName: string,
-	query: Record<string | number | symbol, unknown>,
+	query: ObjectId | Filter<Document>,
 ) {
 	try {
 		const collection = getCollection(client, collectionName);
@@ -49,8 +49,8 @@ export async function getData(
 export async function setData(
 	client: ClientExtended,
 	collectionName: string,
-	data: WithId<Document> | Record<string | number | symbol, unknown>,
-	id?: string | ObjectId,
+	data: WithId<Document>,
+	id?: ObjectId | Filter<Document>,
 ) {
 	try {
 		const collection = getCollection(client, collectionName);
@@ -58,15 +58,16 @@ export async function setData(
 		if (!id) {
 			if (data._id) {
 				id = data._id as ObjectId;
+			} else {
+				id = new ObjectId();
 			}
 		}
 
 		if (id) {
-			// Determine if id is a string or ObjectId and convert if necessary
-			const objectId = typeof id === "string" ? new ObjectId(id) : id;
 			const result = await collection.updateOne(
-				{ _id: objectId },
+				id instanceof ObjectId ? { _id: id } : id,
 				{ $set: data },
+				{ upsert: true },
 			);
 			return result.modifiedCount > 0; // Return true if a document was modified
 		} else {

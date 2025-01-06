@@ -1,4 +1,4 @@
-import type { ObjectId } from "mongodb";
+import { ObjectId } from "mongodb";
 import type { ClientExtended } from "./classes.ts";
 import { getData, listData, setData } from "./mongohelper.ts"; // Import mongoHelpers functions
 import { Channel, EmbedBuilder, Guild, MessageFlags, User } from "discord.js";
@@ -95,6 +95,7 @@ export async function updateMemberStats(
 				serverid: serverId,
 				experience: newExperience,
 				level: newLevel,
+				_id: userobj,
 			},
 			userobj,
 		);
@@ -107,6 +108,7 @@ export async function updateMemberStats(
 				serverid: serverId,
 				experience: newExperience,
 				level: newLevel,
+				_id: new ObjectId(),
 			},
 		);
 	}

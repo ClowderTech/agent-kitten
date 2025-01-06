@@ -378,7 +378,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	let user_data: ChatData;
 
-	if (!chatData[0]) {
+	if (chatData.length > 0) {
+		user_data = chatData[0];
+	} else {
 		user_data = {
 			_id: new ObjectId(),
 			userid: interaction.user.id,
@@ -390,8 +392,6 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 				},
 			],
 		};
-	} else {
-		user_data = chatData[0];
 	}
 
 	// Step 4: Push structuredContent into user_data.messages
