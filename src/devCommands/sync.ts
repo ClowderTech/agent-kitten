@@ -15,13 +15,13 @@ const getAllFiles = async (dirPath: string): Promise<string[]> => {
 		entries.map((entry) => {
 			const fullPath = join(dirPath, entry.name);
 			return entry.isDirectory() ? getAllFiles(fullPath) : [fullPath];
-		}),
+		})
 	);
 	return files.flat();
 };
 
 const loadCommands = async (
-	commandsPath: string,
+	commandsPath: string
 ): Promise<Record<string, Command>[]> => {
 	const commandFiles = await getAllFiles(commandsPath);
 	const commands = [];
@@ -32,7 +32,7 @@ const loadCommands = async (
 				commands.push(command.data.toJSON());
 			} else {
 				console.warn(
-					`Warn: ${file} does not have the proper structure.`,
+					`Warn: ${file} does not have the proper structure.`
 				);
 			}
 		}
@@ -58,21 +58,23 @@ export async function execute(interaction: CommandInteraction) {
 
 		await rest.put(
 			Routes.applicationCommands(interaction.client.user!.id),
-			{ body: commands },
+			{
+				body: commands,
+			}
 		);
 
 		await rest.put(
 			Routes.applicationGuildCommands(
 				interaction.client.user!.id,
-				"1185316093078802552",
+				"1185316093078802552"
 			),
-			{ body: devCommands },
+			{ body: devCommands }
 		);
 
 		console.log("Successfully reloaded application (/) commands.");
 
 		await interaction.reply(
-			`Synced ${commands.length + devCommands.length} commands.`,
+			`Synced ${commands.length + devCommands.length} commands.`
 		);
 	} catch (error) {
 		console.error(error);

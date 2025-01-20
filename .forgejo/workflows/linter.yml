@@ -18,19 +18,16 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v4
 
-            - name: Install Deno
-              uses: https://github.com/denoland/setup-deno@v2
+            - name: Setup Node
+              uses: actions/setup-node@v4
               with:
-                  deno-version: vx.x.x
+                  node-version: latest
 
             - name: Install Dependencies
-              run: deno install
+              run: npm install --include=dev
 
             - name: Lint
-              run: deno lint
+              run: npm run lint
 
-            - name: Format
-              run: deno fmt --indent-width 4 --use-tabs --check
-
-            - name: Check types
-              run: deno check src/*
+            - name: Test
+              run: npm run test

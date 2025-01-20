@@ -14,29 +14,30 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction: ChatInputCommandInteraction) {
 	const client: ClientExtended = interaction.client as ClientExtended;
+
 	if (!interaction.guild) {
 		throw new UserMadeError("You must use this in a server.");
 	}
 	if (!interaction.channel) {
 		throw new UserMadeError("You must use this in a server.");
 	}
+
 	const guildID = interaction.guild.id;
-	const member: GuildMember = <GuildMember> interaction.member;
-	if (!member.voice) {
-		throw new UserMadeError("You are not in a voice channel.");
-	}
-	if (!member.voice.channel) {
+	const member: GuildMember = interaction.member as GuildMember;
+
+	if (!member.voice || !member.voice.channel) {
 		throw new UserMadeError("You are not in a voice channel.");
 	}
 	if (
-		!member.voice.channel.joinable &&
-		!member.voice.channel.permissionsFor(client.user!.id)?.has("Speak")
+		!member.voice.channel.joinable ||
+		!member.voice.channel.permissionsFor(client.user!)!.has("Speak")
 	) {
 		throw new UserMadeError("I cannot join the voice channel.");
 	}
 	if (
-		!member.voice.channel.members.get(client.user!.id) &&
-		interaction.guild.members.cache.get(client.user!.id)!.voice.channel
+		interaction.guild.members.cache.get(client.user!.id)?.voice.channel &&
+		interaction.guild.members.cache.get(client.user!.id)!.voice.channel!
+			.id !== member.voice.channel.id
 	) {
 		throw new UserMadeError("I am in another voice channel.");
 	}
@@ -53,30 +54,28 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			member.roles.cache.some((role) => role.name === "DJ") ||
 			member.permissions.has("ModerateMembers", true) ||
 			channel.members.filter(
-					(member) =>
-						member.id !== client.user!.id && !member.user.bot,
-				).size <= 2
+				(member) => !member.user.bot && member.id !== client.user!.id
+			).size <= 2
 		)
 	) {
 		const votesNeeded = Math.ceil(
 			channel.members.filter(
-				(member) => member.id !== client.user!.id && !member.user.bot,
-			).size / 2,
+				(member) => !member.user.bot && member.id !== client.user!.id
+			).size / 2
 		);
 
 		const embed = new EmbedBuilder()
-			.setTitle("Vote to stop")
+			.setTitle("Vote to pause/resume")
 			.setDescription(
 				`You are not a DJ, so you need to vote. React with ✅ to vote to pause/resume the player. Have ${votesNeeded} votes in 30 seconds. The vote will end <t:${
 					Math.floor(Date.now() / 1000) + 30
-				}:R>`,
+				}:R>`
 			)
 			.setTimestamp()
-			.setColor(0x9A2D7D);
+			.setColor(0x9a2d7d);
 
-		const interaction_reply = await interaction.reply({ embeds: [embed] });
-
-		const message = await interaction_reply.fetch();
+		const interactionReply = await interaction.reply({ embeds: [embed] });
+		const message = await interactionReply.fetch();
 
 		await message.react("✅");
 
@@ -91,26 +90,15 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		});
 
 		let votes = 0;
-
-		collector.on("collect", () => {
-			votes++;
-		});
+		collector.on("collect", () => votes++);
 
 		collector.on("end", async () => {
 			if (votes >= votesNeeded) {
-				if (player.paused) {
-					player.resume();
-
-					await interaction.editReply({
-						content: "Resumed the current song.",
-					});
-				} else {
-					player.pause();
-
-					await interaction.editReply({
-						content: "Paused the current song.",
-					});
-				}
+				// eslint-disable-next-line @typescript-eslint/no-unused-expressions
+				player.paused ? player.resume() : player.pause();
+				await interaction.editReply({
+					content: `${player.paused ? "Resumed" : "Paused"} the current song.`,
+				});
 			} else {
 				await interaction.editReply({
 					content: "Not enough votes to pause/resume the player.",
@@ -122,17 +110,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		return;
 	}
 
-	if (player.paused) {
-		player.resume();
-
-		await interaction.reply({
-			content: "Resumed the current song.",
-		});
-	} else {
-		player.pause();
-
-		await interaction.reply({
-			content: "Paused the current song.",
-		});
-	}
+	// eslint-disable-next-line @typescript-eslint/no-unused-expressions
+	player.paused ? player.resume() : player.pause();
+	await interaction.reply({
+		content: `${player.paused ? "Resumed" : "Paused"} the current song.`,
+	});
 }

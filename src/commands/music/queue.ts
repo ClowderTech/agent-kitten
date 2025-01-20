@@ -43,22 +43,20 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		.setTitle(
 			`Queue${addon_title} (${
 				player.queue.size + (player.playing ? 1 : 0)
-			} song(s))`,
+			} song(s))`
 		)
-		.setColor(0x9A2D7D)
+		.setColor(0x9a2d7d)
 		.setTimestamp()
 		.setThumbnail(
 			player.current.artworkUrl ||
-				"https://www.solidbackgrounds.com/images/3840x2160/3840x2160-black-solid-color-background.jpg",
+				"https://www.solidbackgrounds.com/images/3840x2160/3840x2160-black-solid-color-background.jpg"
 		)
 		.setDescription(
 			`**Now Playing:**\n[${player.current.title || "Unknown Track"}](${
 				player.current.url || "https://www.google.com/"
-			}) (requested by <@!${player.current.requestedBy}>) (duration: ${
-				Math.floor(
-					calculatedPosition / 1000,
-				)
-			}/${Math.floor(player.current.duration / 1000)}s)`,
+			}) (requested by <@!${player.current.requestedBy}>) (duration: ${Math.floor(
+				calculatedPosition / 1000
+			)}/${Math.floor(player.current.duration / 1000)}s)`
 		);
 
 	if (queue.size > 0) {
@@ -68,13 +66,13 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 				(song: Track, index: number) =>
 					`${index + 1}. [${song.title || "Unknown Track"}](${
 						song.url || "https://www.google.com/"
-					}) (requested by <@!${song.requestedBy}>)`,
+					}) (requested by <@!${song.requestedBy}>)`
 			)
 			.join("\n");
 		embed.addFields({
 			name: "Next up:",
 			value: nextString.concat(
-				queue.size > 5 ? `\n... and ${queue.size - 5} more` : "",
+				queue.size > 5 ? `\n... and ${queue.size - 5} more` : ""
 			),
 		});
 	}

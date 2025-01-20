@@ -16,9 +16,7 @@ export async function execute(message: Message) {
 		return;
 	}
 
-	if (
-		!client.usersMessaged.includes(message.author.id)
-	) {
+	if (!client.usersMessaged.includes(message.author.id)) {
 		prettyExpGain(client, message.author, message.guild, message.channel);
 		client.usersMessaged.push(message.author.id);
 	}

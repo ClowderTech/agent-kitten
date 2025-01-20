@@ -1,5 +1,11 @@
 // mongoHelpers.ts
-import { Collection, Document, Filter, ObjectId, WithId } from "mongodb";
+import {
+	Collection,
+	type Document,
+	type Filter,
+	ObjectId,
+	type WithId,
+} from "mongodb";
 import type { ClientExtended } from "./classes.ts";
 
 function generateDatabaseName(botName: string): string {
@@ -22,7 +28,7 @@ function generateDatabaseName(botName: string): string {
 // Get a specific collection from MongoDB
 function getCollection(
 	client: ClientExtended,
-	collectionName: string,
+	collectionName: string
 ): Collection {
 	return client.mongoclient
 		.db(generateDatabaseName(client.user?.username || "Unknown"))
@@ -33,7 +39,7 @@ function getCollection(
 export async function getData(
 	client: ClientExtended,
 	collectionName: string,
-	query: ObjectId | Filter<Document>,
+	query: ObjectId | Filter<Document>
 ) {
 	try {
 		const collection = getCollection(client, collectionName);
@@ -50,7 +56,7 @@ export async function setData(
 	client: ClientExtended,
 	collectionName: string,
 	data: WithId<Document>,
-	id?: ObjectId | Filter<Document>,
+	id?: ObjectId | Filter<Document>
 ) {
 	try {
 		const collection = getCollection(client, collectionName);
@@ -67,7 +73,7 @@ export async function setData(
 			const result = await collection.updateOne(
 				id instanceof ObjectId ? { _id: id } : id,
 				{ $set: data },
-				{ upsert: true },
+				{ upsert: true }
 			);
 			return result.modifiedCount > 0; // Return true if a document was modified
 		} else {
@@ -84,7 +90,7 @@ export async function setData(
 export async function listData(
 	client: ClientExtended,
 	collectionName: string,
-	filter: Filter<Document> = {},
+	filter: Filter<Document> = {}
 ) {
 	try {
 		const collection = getCollection(client, collectionName);
@@ -100,7 +106,7 @@ export async function listData(
 export async function deleteData(
 	client: ClientExtended,
 	collectionName: string,
-	id: ObjectId | Filter<Document>,
+	id: ObjectId | Filter<Document>
 ) {
 	try {
 		const collection = getCollection(client, collectionName);
@@ -108,7 +114,7 @@ export async function deleteData(
 		if (id) {
 			// Determine if id is a string or ObjectId and convert if necessary
 			const result = await collection.deleteOne(
-				id instanceof ObjectId ? { _id: id } : id,
+				id instanceof ObjectId ? { _id: id } : id
 			);
 			return result.deletedCount > 0; // Return true if a document was modified
 		}

@@ -18,7 +18,7 @@ const getAllFiles = async (dirPath: string): Promise<string[]> => {
 		entries.map((entry) => {
 			const fullPath = join(dirPath, entry.name);
 			return entry.isDirectory() ? getAllFiles(fullPath) : [fullPath];
-		}),
+		})
 	);
 	return files.flat();
 };
@@ -77,22 +77,22 @@ export async function execute(interaction: CommandInteraction) {
 							const newCommand = await import(file);
 							client.commands.set(
 								newCommand.data.name,
-								newCommand,
+								newCommand
 							);
 							await interaction.reply(
-								`Command \`${newCommand.data.name}\` was reloaded!`,
+								`Command \`${newCommand.data.name}\` was reloaded!`
 							);
 							return true;
 						} catch (error: unknown) {
 							if (error instanceof Error) {
 								console.error(error);
 								await interaction.reply(
-									`There was an error while reloading a command \`${command.data.name}\`:\n\`\`\`${error.message}\`\`\``,
+									`There was an error while reloading a command \`${command.data.name}\`:\n\`\`\`${error.message}\`\`\``
 								);
 							} else {
 								console.error(error);
 								await interaction.reply(
-									`There was an unkown error while reloading a command \`${command.data.name}\``,
+									`There was an unkown error while reloading a command \`${command.data.name}\``
 								);
 							}
 							return false;

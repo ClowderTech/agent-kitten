@@ -40,7 +40,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	const embed: EmbedBuilder = new EmbedBuilder()
 		.setTitle("Debug Information")
-		.setColor(0x9A2D7D) // Purple-ish pink color
+		.setColor(0x9a2d7d) // Purple-ish pink color
 		.setTimestamp()
 		.addFields(
 			{
@@ -88,7 +88,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 				name: "Memory Usage",
 				value: formatBytes(process.memoryUsage().heapUsed),
 				inline: true,
-			},
+			}
 		);
 
 	await interaction.reply({ embeds: [embed] });

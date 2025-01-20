@@ -29,14 +29,13 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	let description = "🏆 **Top 10 Users** 🏆\n\n";
 
 	topUsers.forEach((user) => {
-		description +=
-			`<@!${user.userid}> - Level: ${user.level}, Experience: ${user.experience}\n`; // Create mention with level and experience
+		description += `<@!${user.userid}> - Level: ${user.level}, Experience: ${user.experience}\n`; // Create mention with level and experience
 	});
 
 	// Create an embed to display the results
 	const embed: EmbedBuilder = new EmbedBuilder()
 		.setTitle("Leaderboard")
-		.setColor(0x9A2D7D)
+		.setColor(0x9a2d7d)
 		.setDescription(description) // Set the description with user mentions
 		.setTimestamp();
 

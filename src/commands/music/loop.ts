@@ -8,7 +8,7 @@ import {
 	User,
 } from "discord.js";
 import { type ClientExtended, UserMadeError } from "../../utils/classes.ts";
-import { TPlayerLoop } from "moonlink.js";
+import type { TPlayerLoop } from "moonlink.js";
 
 export const data = new SlashCommandBuilder()
 	.setName("loop")
@@ -30,7 +30,7 @@ export const data = new SlashCommandBuilder()
 				{
 					name: "Loop the whole queue.",
 					value: "queue",
-				},
+				}
 			)
 	);
 
@@ -43,7 +43,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		throw new UserMadeError("You must use this in a server.");
 	}
 	const guildID = interaction.guild.id;
-	const member: GuildMember = <GuildMember> interaction.member;
+	const member: GuildMember = <GuildMember>interaction.member;
 	if (!member.voice) {
 		throw new UserMadeError("You are not in a voice channel.");
 	}
@@ -70,7 +70,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	const loop_type = interaction.options.getString(
 		"type",
-		true,
+		true
 	) as TPlayerLoop;
 
 	const channel = member.voice.channel;
@@ -80,15 +80,14 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			member.roles.cache.some((role) => role.name === "DJ") ||
 			member.permissions.has("ModerateMembers", true) ||
 			channel.members.filter(
-					(member) =>
-						member.id !== client.user!.id && !member.user.bot,
-				).size <= 2
+				(member) => member.id !== client.user!.id && !member.user.bot
+			).size <= 2
 		)
 	) {
 		const votesNeeded = Math.ceil(
 			channel.members.filter(
-				(member) => member.id !== client.user!.id && !member.user.bot,
-			).size / 2,
+				(member) => member.id !== client.user!.id && !member.user.bot
+			).size / 2
 		);
 
 		const embed = new EmbedBuilder()
@@ -96,10 +95,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			.setDescription(
 				`You are not a DJ, so you need to vote. React with ✅ to vote to loop the player. Have ${votesNeeded} votes in 30 seconds. The vote will end <t:${
 					Math.floor(Date.now() / 1000) + 30
-				}:R>`,
+				}:R>`
 			)
 			.setTimestamp()
-			.setColor(0x9A2D7D);
+			.setColor(0x9a2d7d);
 
 		const interaction_reply = await interaction.reply({ embeds: [embed] });
 
