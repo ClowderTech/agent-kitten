@@ -72,6 +72,7 @@ client.moonlink = new Manager({
 	],
 	options: {
 		defaultPlatformSearch: "youtubemusic",
+		autoResume: true,
 	},
 	sendPayload: (guildId: string, payload: string) => {
 		const guild = client.guilds.cache.get(guildId);
