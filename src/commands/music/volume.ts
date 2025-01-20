@@ -8,7 +8,7 @@ import {
 	User,
 } from "discord.js";
 import { type ClientExtended, UserMadeError } from "../../utils/classes.ts";
-import { type Config, getNestedKey } from "../../utils/config.ts";
+import { getNestedKey, type ServerConfig } from "../../utils/config.ts";
 import { getData } from "../../utils/mongohelper.ts";
 
 export const data = new SlashCommandBuilder()
@@ -31,7 +31,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		throw new UserMadeError("You must use this in a server.");
 	}
 	const guildID = interaction.guild.id;
-	const member: GuildMember = <GuildMember> interaction.member;
+	const member: GuildMember = <GuildMember>interaction.member;
 	if (!member.voice) {
 		throw new UserMadeError("You are not in a voice channel.");
 	}
@@ -57,7 +57,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	}
 	if (!player.playing) {
 		throw new Error(
-			"Goofy ahh library breaks every time. Now, we wait for the next update.",
+			"Goofy ahh library breaks every time. Now, we wait for the next update."
 		);
 	}
 
@@ -71,15 +71,18 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	const serverId = interaction.guild.id; // Get the ID of the server executing the command
 
-	const serverData = await getData(client, "config", { serverId: serverId });
-	const configData: Config = serverData[0]?.config || {};
+	const serverData = (await getData(client, "config", {
+		serverid: serverId,
+	})) as ServerConfig[];
 
-	const maxVolume = (getNestedKey(configData, "music.maxvolume") as number) ||
-		100;
+	const configData = serverData[0]?.config || {};
+
+	const maxVolume =
+		(getNestedKey(configData, "music.maxvolume") as number) || 100;
 
 	if (volume < 0 || volume > maxVolume) {
 		throw new UserMadeError(
-			`The volume must be between 0 and ${maxVolume}. This can be set using \`/serverconf set key:music.maxvolume value:ENTER_YOUR_NUMBER_HERE\``,
+			`The volume must be between 0 and ${maxVolume}. This can be set using \`/serverconf set key:music.maxvolume value:ENTER_YOUR_NUMBER_HERE\``
 		);
 	}
 
@@ -88,15 +91,14 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			member.roles.cache.some((role) => role.name === "DJ") ||
 			member.permissions.has("ModerateMembers", true) ||
 			channel.members.filter(
-					(member) =>
-						member.id !== client.user!.id && !member.user.bot,
-				).size <= 2
+				(member) => member.id !== client.user!.id && !member.user.bot
+			).size <= 2
 		)
 	) {
 		const votesNeeded = Math.ceil(
 			channel.members.filter(
-				(member) => member.id !== client.user!.id && !member.user.bot,
-			).size / 2,
+				(member) => member.id !== client.user!.id && !member.user.bot
+			).size / 2
 		);
 
 		const embed = new EmbedBuilder()
@@ -104,10 +106,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			.setDescription(
 				`You are not a DJ, so you need to vote. React with ✅ to vote to change the volume of the player. Have ${votesNeeded} votes in 30 seconds. The vote will end <t:${
 					Math.floor(Date.now() / 1000) + 30
-				}:R>`,
+				}:R>`
 			)
 			.setTimestamp()
-			.setColor(0x9A2D7D);
+			.setColor(0x9a2d7d);
 
 		const interaction_reply = await interaction.reply({ embeds: [embed] });
 

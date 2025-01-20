@@ -62,13 +62,12 @@ client.usersMessaged = [];
 client.moonlink = new Manager({
 	nodes: [
 		{
-			host: Deno.env.get("LAVALINK_HOST")!, // lavalink.clowdertech.com
-			port: Number(Deno.env.get("LAVALINK_PORT")), // 443
-			secure: Boolean(Deno.env.get("LAVALINK_SECURE")!), // true
-			password: Deno.env.get("LAVALINK_PASSWORD")!, // ImGay69
+			host: process.env.LAVALINK_HOST!, // lavalink.clowdertech.com
+			port: parseInt(process.env.LAVALINK_PORT!, 10), // 443
+			secure: Boolean(process.env.LAVALINK_SECURE!), // true
+			password: process.env.LAVALINK_PASSWORD!, // ImGay69
 			retryDelay: 5000,
 			retryAmount: 65535,
-			identifier: "main",
 		},
 	],
 	options: {
@@ -84,29 +83,16 @@ client.moonlink.on("nodeError", (node, error) => {
 	console.error(`Node ${node.host} emitted an error: ${error}`);
 });
 
-client.moonlink.on("trackEnd", async (player) => {
-	const channel = client.channels.cache.get(player.voiceChannelId) ||
-		(await client.channels.fetch(player.voiceChannelId));
-	if (
-		channel &&
-		channel.isVoiceBased() &&
-		channel.members.size === 1 &&
-		channel.members.has(client.user!.id)
-	) {
-		player.disconnect();
-	}
-});
-
 const headers = {
-	"Authorization": `Bearer ${Deno.env.get("OPENAI_API_KEY")}`,
+	Authorization: `Bearer ${process.env.OPENAI_API_KEY!}`,
 } as HeadersInit;
 
 client.commands = new Collection();
 client.ollama = new Ollama({
-	host: Deno.env.get("OPENAI_BASE_URL"),
+	host: process.env.OPENAI_BASE_URL!,
 	headers: headers,
 });
-client.mongoclient = new MongoClient(Deno.env.get("MONGODB_URI")!);
+client.mongoclient = new MongoClient(process.env.MONGODB_URI!);
 client.mongoclient.connect();
 
 // Check if file is valid JS or TS file
@@ -122,13 +108,13 @@ async function getAllFiles(dirPath: string): Promise<string[]> {
 		entries.map((entry) => {
 			const fullPath = join(dirPath, entry.name);
 			return entry.isDirectory() ? getAllFiles(fullPath) : [fullPath];
-		}),
+		})
 	);
 	return files.flat();
 }
 
 async function loadCommands(
-	commandsPath: string,
+	commandsPath: string
 ): Promise<Record<string, Command>> {
 	// Step 1: Retrieve all command files
 	const commandFiles = await getAllFiles(commandsPath);
@@ -147,7 +133,7 @@ async function loadCommands(
 				commands[command.data.name] = command; // Add command to the commands object
 			} else {
 				console.warn(
-					`Warn: ${file} does not have the proper structure.`,
+					`Warn: ${file} does not have the proper structure.`
 				);
 			}
 		}
@@ -173,7 +159,7 @@ async function loadEvents(eventsPath: string): Promise<void> {
 				} else {
 					console.error(
 						"Expected args to be an array, but received:",
-						args,
+						args
 					);
 				}
 			});
@@ -188,7 +174,7 @@ async function loadEvents(eventsPath: string): Promise<void> {
 				} else {
 					console.error(
 						"Expected args to be an array, but received:",
-						args,
+						args
 					);
 				}
 			});
@@ -230,19 +216,19 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
 		if (error instanceof Error) {
 			embed = new EmbedBuilder()
 				.setTitle(`${error.name}: ${error.message}`.substring(0, 255))
-				.setColor(0x9A2D7D);
+				.setColor(0x9a2d7d);
 			if (
 				interaction.guild &&
 				interaction.guild.id === "1185316093078802552"
 			) {
 				embed = embed.setDescription(
-					`\`\`\`${error.stack?.substring(0, 4085)}\`\`\``,
+					`\`\`\`${error.stack?.substring(0, 4085)}\`\`\``
 				);
 			}
 		} else {
 			embed = new EmbedBuilder()
 				.setTitle(`Error: ${error}`.substring(0, 255))
-				.setColor(0x9A2D7D);
+				.setColor(0x9a2d7d);
 		}
 
 		if (interaction.replied || interaction.deferred) {
@@ -261,7 +247,7 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
 
 function areCommandsRegistered(
 	allCommands: SlashCommandBuilder[],
-	registeredCommands: APIApplicationCommand[],
+	registeredCommands: APIApplicationCommand[]
 ): boolean {
 	// Check if the lengths match
 	if (allCommands.length !== registeredCommands.length) {
@@ -274,20 +260,18 @@ function areCommandsRegistered(
 
 		// Find the corresponding registered command by name
 		const registeredCommand = registeredCommands.find(
-			(registered) => registered.name === actualCommand.name,
+			(registered) => registered.name === actualCommand.name
 		);
 
 		if (!registeredCommand) {
-			console.log(
-				`Command ${actualCommand.name} not registered`,
-			);
+			console.log(`Command ${actualCommand.name} not registered`);
 			return true; // Command doesn't exist in registered
 		}
 
 		// Compare descriptions
 		if (registeredCommand.description !== actualCommand.description) {
 			console.log(
-				`Command description mismatch for command ${actualCommand.name}: expected "${actualCommand.name}", got "${registeredCommand.name}"`,
+				`Command description mismatch for command ${actualCommand.name}: expected "${actualCommand.name}", got "${registeredCommand.name}"`
 			);
 			return true; // Mismatch on description
 		}
@@ -299,7 +283,7 @@ function areCommandsRegistered(
 		// Compare number of options
 		if (actualOptions.length !== registeredOptions.length) {
 			console.log(
-				`Options length mismatch for command ${actualCommand.name}: expected "${actualOptions.length}", got "${registeredOptions.length}"`,
+				`Options length mismatch for command ${actualCommand.name}: expected "${actualOptions.length}", got "${registeredOptions.length}"`
 			);
 			return true; // Mismatch on number of options
 		}
@@ -308,47 +292,49 @@ function areCommandsRegistered(
 		for (const option of actualOptions) {
 			const actualOption = option.toJSON(); // Assuming the structure matches directly
 			const registeredOption = registeredOptions.find(
-				(regOpt) => regOpt.name === actualOption.name,
+				(regOpt) => regOpt.name === actualOption.name
 			);
 
 			if (!registeredOption) {
 				console.log(
-					`Option ${actualOption.name} not registered for command ${actualCommand.name}`,
+					`Option ${actualOption.name} not registered for command ${actualCommand.name}`
 				);
 				return true; // Mismatch because option doesn't exist in registered
 			}
 
 			// Check each property of the option, with default for required
-			const actualRequired = actualOption.required !== undefined
-				? actualOption.required
-				: false; // Get actual required value (true or false)
-			const registeredRequired = registeredOption.required !== undefined
-				? registeredOption.required
-				: false; // Assume false if undefined
+			const actualRequired =
+				actualOption.required !== undefined
+					? actualOption.required
+					: false; // Get actual required value (true or false)
+			const registeredRequired =
+				registeredOption.required !== undefined
+					? registeredOption.required
+					: false; // Assume false if undefined
 
 			if (actualOption.name !== registeredOption.name) {
 				console.log(
-					`Option name mismatch for command ${actualCommand.name}: expected "${actualOption.name}", got "${registeredOption.name}"`,
+					`Option name mismatch for command ${actualCommand.name}: expected "${actualOption.name}", got "${registeredOption.name}"`
 				);
 				return true;
 			}
 			if (actualOption.description !== registeredOption.description) {
 				console.log(
-					`Option ${actualOption.name} description mismatch for command ${actualCommand.name}: expected "${actualOption.description}", got "${registeredOption.description}"`,
+					`Option ${actualOption.name} description mismatch for command ${actualCommand.name}: expected "${actualOption.description}", got "${registeredOption.description}"`
 				);
 				return true;
 			}
 
 			if (actualOption.type !== registeredOption.type) {
 				console.log(
-					`Option ${actualOption.name} type mismatch for command ${actualCommand.name}: expected "${actualOption.type}", got "${registeredOption.type}"`,
+					`Option ${actualOption.name} type mismatch for command ${actualCommand.name}: expected "${actualOption.type}", got "${registeredOption.type}"`
 				);
 				return true;
 			}
 
 			if (actualRequired !== registeredRequired) {
 				console.log(
-					`Option ${actualOption.name} required mismatch for command ${actualCommand.name}: expected "${actualRequired}", got "${registeredRequired}"`,
+					`Option ${actualOption.name} required mismatch for command ${actualCommand.name}: expected "${actualRequired}", got "${registeredRequired}"`
 				);
 				return true;
 			}
@@ -361,18 +347,18 @@ function areCommandsRegistered(
 
 // Function to fetch all registered commands including guild commands
 async function fetchRegisteredCommands(
-	userId: string,
+	userId: string
 ): Promise<APIApplicationCommand[]> {
 	const rest = new REST().setToken(client.token!);
 
 	// fetch global commands
 	const globalCommands = (await rest.get(
-		Routes.applicationCommands(userId),
+		Routes.applicationCommands(userId)
 	)) as APIApplicationCommand[];
 
 	// fetch guild commands
 	const guildCommands = (await rest.get(
-		Routes.applicationGuildCommands(userId, "1185316093078802552"),
+		Routes.applicationGuildCommands(userId, "1185316093078802552")
 	)) as APIApplicationCommand[];
 
 	// Combine both global and guild commands
@@ -392,19 +378,19 @@ client.once(Events.ClientReady, async (readyClient: Client) => {
 
 	// Convert the allCommands object to an array of its values
 	const allCommandsData = Object.values(allCommands).map(
-		(command) => command.data,
+		(command) => command.data
 	);
 
 	// Fetch all registered commands
 	const registeredCommands = await fetchRegisteredCommands(
-		readyClient.user!.id,
+		readyClient.user!.id
 	);
 
 	// Proceed to use registeredCommands as needed...
 	if (areCommandsRegistered(allCommandsData, registeredCommands)) {
 		try {
 			console.log(
-				"Detected mismatches in command definitions. Refreshing application (/) commands.",
+				"Detected mismatches in command definitions. Refreshing application (/) commands."
 			);
 
 			const rest = new REST().setToken(client.token!);
@@ -418,13 +404,13 @@ client.once(Events.ClientReady, async (readyClient: Client) => {
 			await rest.put(
 				Routes.applicationGuildCommands(
 					client.user!.id,
-					"1185316093078802552",
+					"1185316093078802552"
 				),
 				{
 					body: Object.values(devCommands).map((command) =>
 						command.data.toJSON()
 					),
-				},
+				}
 			);
 
 			console.log("Successfully reloaded application (/) commands.");
@@ -445,7 +431,7 @@ async function getVoiceChannelMembers(guild: Guild) {
 	const voiceChannels = guild.channels.cache.filter(
 		(channel) =>
 			channel.type === ChannelType.GuildVoice ||
-			channel.type === ChannelType.GuildStageVoice,
+			channel.type === ChannelType.GuildStageVoice
 	);
 
 	for (const channelArray of voiceChannels) {
@@ -488,15 +474,15 @@ function gracefulShutdown() {
 		.destroy()
 		.then(() => {
 			console.log("Discord client closed.");
-			Deno.exit(0);
+			process.exit(0);
 		})
 		.catch((err) => {
 			console.error("Error closing Discord client:", err);
-			Deno.exit(1);
+			process.exit(1);
 		});
 }
 
-Deno.addSignalListener("SIGINT", gracefulShutdown);
-Deno.addSignalListener("SIGTERM", gracefulShutdown);
+process.on("SIGINT", gracefulShutdown);
+process.on("SIGTERM", gracefulShutdown);
 
-client.login(Deno.env.get("DISCORD_TOKEN"));
+client.login(process.env.DISCORD_TOKEN!);

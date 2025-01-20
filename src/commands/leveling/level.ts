@@ -23,8 +23,8 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction: ChatInputCommandInteraction) {
 	// Get the user option; if not provided, default to the command executor
-	const user = interaction.options.get("user", false)?.user ||
-		interaction.user;
+	const user =
+		interaction.options.get("user", false)?.user || interaction.user;
 	const guildId = interaction.guildId;
 
 	if (!guildId) {
@@ -37,23 +37,23 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	const memberExperience = await getMemberExperience(
 		interaction.client as ClientExtended,
 		userId,
-		guildId,
+		guildId
 	);
 	const memberLevel = await getMemberLevel(
 		interaction.client as ClientExtended,
 		userId,
-		guildId,
+		guildId
 	);
 
 	// Calculate how much experience is needed for the next level
 	const expNeededForNextLevel = calculateExpToNextLevel(
 		memberLevel,
-		memberExperience,
+		memberExperience
 	);
 
 	// Build the embed
 	const embed: EmbedBuilder = new EmbedBuilder()
-		.setColor(0x9A2D7D)
+		.setColor(0x9a2d7d)
 		.setTitle("Level Information")
 		.setDescription(`Here is <@${userId}>'s level info!`) // Ping the user
 		.addFields(
@@ -67,7 +67,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 				name: "EXP Needed for Next Level",
 				value: `${expNeededForNextLevel}`,
 				inline: true,
-			},
+			}
 		)
 		.setTimestamp();
 

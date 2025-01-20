@@ -38,7 +38,7 @@ export function setNestedKey(obj: Config, path: string, value: Config): Config {
 			current = current[key] as Config;
 		} else {
 			throw new Error(
-				`Invalid path: ${path}. Encountered non-object at key ${key}`,
+				`Invalid path: ${path}. Encountered non-object at key ${key}`
 			);
 		}
 	}
@@ -48,7 +48,7 @@ export function setNestedKey(obj: Config, path: string, value: Config): Config {
 		const index = parseInt(lastKey, 10);
 		if (isNaN(index)) {
 			throw new Error(
-				`Array index expected but found a non-numeric key: ${lastKey}`,
+				`Array index expected but found a non-numeric key: ${lastKey}`
 			);
 		}
 		current[index] = value;
@@ -56,7 +56,7 @@ export function setNestedKey(obj: Config, path: string, value: Config): Config {
 		current[lastKey] = value;
 	} else {
 		throw new Error(
-			`Invalid path: ${path}. Encountered non-object at key ${lastKey}`,
+			`Invalid path: ${path}. Encountered non-object at key ${lastKey}`
 		);
 	}
 

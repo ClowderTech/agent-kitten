@@ -9,7 +9,7 @@ import { ObjectId } from "mongodb";
 import { getData, setData } from "../../utils/mongohelper.ts"; // Adjust the import path as necessary
 import {
 	getNestedKey,
-	ServerConfig,
+	type ServerConfig,
 	setNestedKey,
 } from "../../utils/config.ts";
 
@@ -105,7 +105,7 @@ export const data = new SlashCommandBuilder()
 				option
 					.setName("value")
 					.setDescription(
-						"The raw configuration value as a JSON string",
+						"The raw configuration value as a JSON string"
 					)
 					.setRequired(true)
 			)
@@ -125,9 +125,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	const serverId = interaction.guild.id; // Get the ID of the server executing the command
 	const client = interaction.client as ClientExtended;
 
-	const serverData = await getData(client, "config", {
+	const serverData = (await getData(client, "config", {
 		serverid: serverId,
-	}) as ServerConfig[];
+	})) as ServerConfig[];
 	let serverConf: ServerConfig;
 	if (serverData.length > 0) {
 		serverConf = serverData[0];
@@ -156,19 +156,15 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		serverConf.config = setNestedKey(serverConf.config, key, parsedValue);
 
 		try {
-			await setData(
-				client,
-				"config",
-				serverConf,
-			);
+			await setData(client, "config", serverConf);
 
 			const embed = new EmbedBuilder()
 				.setTitle("Server Configuration Updated")
-				.setColor(0x9A2D7D)
+				.setColor(0x9a2d7d)
 				.setTimestamp()
 				.addFields(
 					{ name: "Your Key", value: key, inline: true },
-					{ name: "New Value", value: value },
+					{ name: "New Value", value: value }
 				);
 
 			await interaction.reply({ embeds: [embed] });
@@ -210,11 +206,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		serverConf.config = parsedData;
 
 		try {
-			await setData(
-				client,
-				"config",
-				serverConf,
-			);
+			await setData(client, "config", serverConf);
 
 			await interaction.reply({
 				content: "Raw configuration has been updated successfully.",
@@ -228,13 +220,11 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	} else if (subcommand === "getraw") {
 		// Handling the 'getraw' subcommand
 		await interaction.reply({
-			content: `Raw configuration: \n\`\`\`json\n${
-				JSON.stringify(
-					serverConf.config,
-					null,
-					2,
-				)
-			}\n\`\`\``,
+			content: `Raw configuration: \n\`\`\`json\n${JSON.stringify(
+				serverConf.config,
+				null,
+				2
+			)}\n\`\`\``,
 		});
 	}
 }

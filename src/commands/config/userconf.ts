@@ -7,7 +7,11 @@ import {
 import type { ClientExtended } from "../../utils/classes.ts";
 import { ObjectId } from "mongodb";
 import { getData, setData } from "../../utils/mongohelper.ts"; // Adjust the import path as necessary
-import { getNestedKey, setNestedKey, UserConfig } from "../../utils/config.ts";
+import {
+	getNestedKey,
+	setNestedKey,
+	type UserConfig,
+} from "../../utils/config.ts";
 
 export const data = new SlashCommandBuilder()
 	.setName("userconf")
@@ -60,7 +64,7 @@ export const data = new SlashCommandBuilder()
 				option
 					.setName("value")
 					.setDescription(
-						"The raw configuration value as a JSON string",
+						"The raw configuration value as a JSON string"
 					)
 					.setRequired(true)
 			)
@@ -75,9 +79,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	const userId = interaction.user.id; // Get the ID of the user executing the command
 	const client = interaction.client as ClientExtended;
 
-	const serverData = await getData(client, "config", {
+	const serverData = (await getData(client, "config", {
 		userid: userId,
-	}) as UserConfig[];
+	})) as UserConfig[];
 	let userConf: UserConfig;
 	if (serverData.length > 0) {
 		userConf = serverData[0];
@@ -106,19 +110,15 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		userConf.config = setNestedKey(userConf.config, key, parsedValue);
 
 		try {
-			await setData(
-				client,
-				"config",
-				userConf,
-			);
+			await setData(client, "config", userConf);
 
 			const embed = new EmbedBuilder()
 				.setTitle("User Configuration Updated")
-				.setColor(0x9A2D7D)
+				.setColor(0x9a2d7d)
 				.setTimestamp()
 				.addFields(
 					{ name: "Your Key", value: key, inline: true },
-					{ name: "New Value", value: value },
+					{ name: "New Value", value: value }
 				);
 
 			await interaction.reply({ embeds: [embed], ephemeral: true });
@@ -165,11 +165,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		userConf.config = parsedData;
 
 		try {
-			await setData(
-				client,
-				"config",
-				userConf,
-			); // Update existing raw config
+			await setData(client, "config", userConf); // Update existing raw config
 
 			await interaction.reply({
 				content: "Raw configuration has been updated successfully.",
@@ -185,13 +181,11 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	} else if (subcommand === "getraw") {
 		// Handling the 'getraw' subcommand
 		await interaction.reply({
-			content: `Raw configuration: \n\`\`\`json\n${
-				JSON.stringify(
-					userConf.config,
-					null,
-					2,
-				)
-			}\n\`\`\``,
+			content: `Raw configuration: \n\`\`\`json\n${JSON.stringify(
+				userConf.config,
+				null,
+				2
+			)}\n\`\`\``,
 			flags: [MessageFlags.Ephemeral],
 		});
 	}

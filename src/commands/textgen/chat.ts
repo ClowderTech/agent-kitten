@@ -10,14 +10,16 @@ import type { ClientExtended } from "../../utils/classes.ts";
 import { ObjectId } from "mongodb";
 import { connect } from "puppeteer";
 import {
-	ChatData,
+	type ChatData,
 	chatWithFuncs,
 	convertBlobToUint8Array,
 } from "../../utils/textgen.ts";
-import { ChatRequest } from "ollama";
+import type { ChatRequest } from "ollama";
 import { getData, setData } from "../../utils/mongohelper.ts";
-import { deadline } from "@std/async";
 import { EmbedBuilder } from "@discordjs/builders";
+import fs from "fs/promises";
+import { spawn } from "child_process";
+import path from "path";
 
 export const data = new SlashCommandBuilder()
 	.setName("chat")
@@ -123,62 +125,65 @@ function splitText(text: string, maxLength: number = 2000): string[] {
 }
 
 async function executeEval(code: string): Promise<string> {
-	const evalTempFile = `${Deno.cwd()}/evalTempFile.ts`;
+	const evalTempFile = path.join(process.cwd(), "evalTempFile.js");
 
 	// Write the code to a temporary file
-	await Deno.writeTextFile(evalTempFile, code);
+	await fs.writeFile(evalTempFile, code);
 
-	const command = new Deno.Command(Deno.execPath(), {
-		args: [
-			"run",
-			"--quiet",
-			evalTempFile,
-		],
-		stdout: "piped",
-		stderr: "piped",
+	// Return the result of the child process execution (stdout or stderr)
+	return new Promise<string>((resolve, reject) => {
+		const child = spawn("node", [evalTempFile], { stdio: "pipe" });
+
+		let stdout = "";
+		let stderr = "";
+
+		child.stdout.on("data", (data) => {
+			stdout += data.toString();
+		});
+
+		child.stderr.on("data", (data) => {
+			stderr += data.toString();
+		});
+
+		child.on("close", (code) => {
+			// Clean up by removing the temporary file
+			fs.unlink(evalTempFile).catch((err) => {
+				console.error(
+					`Failed to delete temporary file: ${err.message}`
+				);
+			});
+
+			// Resolve with the stdout if exit code is 0, otherwise stderr
+			if (code === 0) {
+				resolve(stdout.trim()); // Return stdout as string
+			} else {
+				resolve(stderr.trim()); // Return stderr as string
+			}
+		});
+
+		child.on("error", (err) => {
+			// Clean up by removing the temporary file in case of error
+			fs.unlink(evalTempFile).catch((err) => {
+				console.error(
+					`Failed to delete temporary file: ${err.message}`
+				);
+			});
+
+			reject(err); // Reject with the error
+		});
 	});
-
-	const child = command.spawn();
-
-	try {
-		// Attempt to get the output with a timeout
-		const { stdout, stderr } = await deadline(child.output(), 10000);
-
-		// Decode the output
-		const output = new TextDecoder().decode(stdout);
-		const errorOutput = new TextDecoder().decode(stderr);
-
-		// Return error output if present, otherwise return standard output
-		return errorOutput
-			? errorOutput.normalize().trim()
-			: output.normalize().trim();
-	} catch (error) {
-		if (error instanceof DOMException) {
-			// Kill the subprocess if a timeout occurs
-			child.kill("SIGTERM");
-			return "Execution timed out. Scripts may run for only 3 seconds or longer.";
-		} else if (error instanceof Error) {
-			return `${error.name}: ${error.message}`;
-		} else {
-			return "An unknown error occurred";
-		}
-	} finally {
-		// Clean up by removing the temporary file
-		await Deno.remove(evalTempFile);
-	}
 }
 
 async function searchGoogle(query: string): Promise<string> {
 	const searchResultsAmount = 3;
 	const escapedTerm = encodeURIComponent(query);
-	const url =
-		`https://searx.clowdertech.com/search?q=${escapedTerm}&language=auto&time_range=&safesearch=0&categories=general&format=json`;
+	const url = `https://searx.clowdertech.com/search?q=${escapedTerm}&language=auto&time_range=&safesearch=0&categories=general&format=json`;
 
 	let searchResults = "";
 	let start = 0;
 
 	const browser = await connect({
-		browserWSEndpoint: Deno.env.get("BROWSER_WS_URL")!,
+		browserWSEndpoint: process.env.BROWSER_WS_URL!,
 	});
 	const page = await browser.newPage();
 
@@ -193,9 +198,7 @@ async function searchGoogle(query: string): Promise<string> {
 		const data = await response.json();
 		const results = data.results;
 		for (const result of results) {
-			searchResults += `[${
-				start + 1
-			}] ${result.url} || ${result.content}\n`;
+			searchResults += `[${start + 1}] ${result.url} || ${result.content}\n`;
 			start += 1;
 			if (start === searchResultsAmount) {
 				break;
@@ -212,7 +215,7 @@ async function searchGoogle(query: string): Promise<string> {
 
 async function scrapeWebsite(url: string): Promise<string> {
 	const browser = await connect({
-		browserWSEndpoint: Deno.env.get("BROWSER_WS_URL")!,
+		browserWSEndpoint: process.env.BROWSER_WS_URL!,
 	});
 
 	const page = await browser.newPage();
@@ -244,7 +247,7 @@ async function scrapeWebsite(url: string): Promise<string> {
 
 			// Remove non-visible elements that might interfere with text extraction
 			const elementsToRemove = document.querySelectorAll(
-				"script, style, header, footer, nav, .ad, .popup, .hidden",
+				"script, style, header, footer, nav, .ad, .popup, .hidden"
 			);
 			elementsToRemove.forEach((el) => el.remove());
 
@@ -252,7 +255,7 @@ async function scrapeWebsite(url: string): Promise<string> {
 			const walker = document.createTreeWalker(
 				document.body,
 				NodeFilter.SHOW_TEXT,
-				null,
+				null
 			);
 			let node: Text | null;
 			const textWithLinks: string[] = [];
@@ -294,11 +297,13 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	const message = interaction.options.getString("message", true); // Get the message content
 
-	const attachments = interaction.options.data
-		.filter(
-			(option) => option.type === ApplicationCommandOptionType.Attachment,
-		)
-		.map((option) => option.attachment!) || []; // Get the attachment objects
+	const attachments =
+		interaction.options.data
+			.filter(
+				(option) =>
+					option.type === ApplicationCommandOptionType.Attachment
+			)
+			.map((option) => option.attachment!) || []; // Get the attachment objects
 
 	// Loop through each attachment and process it
 	const attachmentContents: string[] = [];
@@ -310,7 +315,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 			if (!response.ok) {
 				console.error(
-					`Failed to fetch attachment: ${response.status} ${response.statusText}`,
+					`Failed to fetch attachment: ${response.status} ${response.statusText}`
 				);
 				continue;
 			}
@@ -330,7 +335,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 				(contentType.includes("image") || contentType.includes("video"))
 			) {
 				const image = await convertBlobToUint8Array(
-					await response.blob(),
+					await response.blob()
 				);
 
 				const { chat_response } = await chatWithFuncs(ollama, {
@@ -346,7 +351,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 				});
 
 				attachmentURLs.push(
-					chat_response.message.content.normalize().trim(),
+					chat_response.message.content.normalize().trim()
 				);
 			}
 		} catch (error) {
@@ -372,9 +377,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		newMessage += imagePrefix + attachmentsString;
 	}
 
-	const chatData = await getData(client, "textgen", {
+	const chatData = (await getData(client, "textgen", {
 		userid: interaction.user.id,
-	}) as ChatData[];
+	})) as ChatData[];
 
 	let user_data: ChatData;
 
@@ -402,17 +407,20 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	user_data.messages.push(newMessageJson);
 
-	const sku_id = Deno.env.get("AIPLUS_SKU_ID") || "";
+	const sku_id = process.env.AIPLUS_SKU_ID! || "";
 
-	const subscribed = client.application!.subscriptions.cache.some((
-		subscription,
-	) => subscription.userId === interaction.user.id &&
-		subscription.skuIds.includes(sku_id)
-	) ||
-		(await client.application!.subscriptions.fetch({
+	const subscribed =
+		client.application!.subscriptions.cache.some(
+			(subscription) =>
+				subscription.userId === interaction.user.id &&
+				subscription.skuIds.includes(sku_id)
+		) ||
+		(
+			await client.application!.subscriptions.fetch({
 				sku: sku_id,
 				user: interaction.user.id,
-			})).size > 0;
+			})
+		).size > 0;
 
 	const request: ChatRequest = {
 		model: subscribed
@@ -488,7 +496,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	const { full_response, chat_response } = await chatWithFuncs(
 		ollama,
 		request,
-		functions,
+		functions
 	);
 
 	user_data.messages = full_response;
@@ -500,9 +508,12 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			embeds: [
 				new EmbedBuilder()
 					.setAuthor({
-						name: client.application!.name ||
-							client.user!.globalName || client.user!.username,
-						iconURL: client.application!.iconURL() ||
+						name:
+							client.application!.name ||
+							client.user!.globalName ||
+							client.user!.username,
+						iconURL:
+							client.application!.iconURL() ||
 							client.application!.coverURL() ||
 							client.user!.avatarURL() ||
 							client.user!.defaultAvatarURL,
@@ -512,12 +523,14 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 					.setDescription(chunk)
 					.setTimestamp(Date.now())
 					.setFooter({
-						iconURL: interaction.user.avatarURL() ||
+						iconURL:
+							interaction.user.avatarURL() ||
 							interaction.user.defaultAvatarURL,
-						text: interaction.user.globalName ||
+						text:
+							interaction.user.globalName ||
 							interaction.user.username,
 					})
-					.setColor(0x9A2D7D),
+					.setColor(0x9a2d7d),
 			],
 			allowedMentions: { parse: [] },
 		});

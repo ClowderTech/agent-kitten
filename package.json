@@ -1,0 +1,37 @@
+{
+	"name": "agent-kitten",
+	"version": "0.1.0",
+	"description": "W Discord Bot",
+	"type": "module",
+	"main": "src/index.ts",
+	"scripts": {
+		"start": "node --env-file-if-exists=.env --experimental-strip-types --experimental-transform-types src/index.ts",
+		"test": "node --env-file-if-exists=.env --experimental-strip-types --experimental-transform-types --test",
+		"lint": "eslint . && prettier . && tsc --noEmit",
+		"fixlint": "eslint --fix . && prettier --write . && tsc --noEmit",
+		"updateall": "ncu -u && npm install"
+	},
+	"dependencies": {
+		"@discordjs/builders": "^1.10.0",
+		"@discordjs/voice": "^0.18.0",
+		"discord-api-types": "^0.37.116",
+		"discord.js": "^14.17.3",
+		"jsdom": "^26.0.0",
+		"mongodb": "^6.12.0",
+		"moonlink.js": "^4.4.7",
+		"ollama": "^0.5.12",
+		"puppeteer": "^24.1.0"
+	},
+	"devDependencies": {
+		"@eslint/js": "^9.18.0",
+		"eslint": "^9.18.0",
+		"globals": "^15.14.0",
+		"jiti": "^2.4.2",
+		"prettier": "^3.4.2",
+		"typescript": "^5.7.3",
+		"typescript-eslint": "^8.20.0"
+	},
+	"engines": {
+		"node": ">=16.0.0"
+	}
+}

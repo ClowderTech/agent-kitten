@@ -1,8 +1,14 @@
 import { ObjectId } from "mongodb";
 import type { ClientExtended } from "./classes.ts";
 import { getData, listData, setData } from "./mongohelper.ts"; // Import mongoHelpers functions
-import { Channel, EmbedBuilder, Guild, MessageFlags, User } from "discord.js";
-import { getNestedKey, UserConfig } from "./config.ts";
+import {
+	type Channel,
+	EmbedBuilder,
+	Guild,
+	MessageFlags,
+	User,
+} from "discord.js";
+import { getNestedKey, type UserConfig } from "./config.ts";
 
 interface UserLeveling {
 	userid: string;
@@ -33,7 +39,7 @@ export function calculateExpGain(multiplier: number = 1): number {
 // Function to calculate experience required to reach the next level based on a quadratic equation
 export function calculateExpToNextLevel(
 	currentLevel: number,
-	currentExperience: number = 0,
+	currentExperience: number = 0
 ): number {
 	// Coefficients for the quadratic function
 	const a = 2;
@@ -50,7 +56,7 @@ export function calculateExpToNextLevel(
 export async function getMemberExperience(
 	client: ClientExtended,
 	memberId: string,
-	serverId: string,
+	serverId: string
 ) {
 	const users = await getData(client, "leveling", {
 		userid: memberId,
@@ -62,7 +68,7 @@ export async function getMemberExperience(
 export async function getMemberLevel(
 	client: ClientExtended,
 	memberId: string,
-	serverId: string,
+	serverId: string
 ) {
 	const users = await getData(client, "leveling", {
 		userid: memberId,
@@ -77,13 +83,13 @@ export async function updateMemberStats(
 	memberId: string,
 	serverId: string,
 	newExperience: number,
-	newLevel: number,
+	newLevel: number
 ) {
 	// Step 1: Fetch existing user data
-	const users = await getData(client, "leveling", {
+	const users = (await getData(client, "leveling", {
 		userid: memberId,
 		serverid: serverId,
-	}) as UserLeveling[];
+	})) as UserLeveling[];
 
 	if (users[0]) {
 		const userobj = users[0]._id; // Retrieve the _id of the first user found
@@ -97,20 +103,16 @@ export async function updateMemberStats(
 				level: newLevel,
 				_id: userobj,
 			},
-			userobj,
+			userobj
 		);
 	} else {
-		await setData(
-			client,
-			"leveling",
-			{
-				userid: memberId,
-				serverid: serverId,
-				experience: newExperience,
-				level: newLevel,
-				_id: new ObjectId(),
-			},
-		);
+		await setData(client, "leveling", {
+			userid: memberId,
+			serverid: serverId,
+			experience: newExperience,
+			level: newLevel,
+			_id: new ObjectId(),
+		});
 	}
 }
 
@@ -119,16 +121,16 @@ export async function getUsersByExperienceRange(
 	client: ClientExtended,
 	serverId: string,
 	x: number,
-	y: number,
+	y: number
 ): Promise<UserLeveling[]> {
 	if (x < 0 || y < x) {
 		throw new Error("Invalid indices: x must be >= 0 and y must be >= x.");
 	}
 
 	// Fetch all users and their experience from the "leveling" collection
-	const users = await listData(client, "leveling", {
+	const users = (await listData(client, "leveling", {
 		serverid: serverId,
-	}) as UserLeveling[]; // Use the listData function
+	})) as UserLeveling[]; // Use the listData function
 
 	// Sort and slice users
 	const sortedUsers = users.sort((a, b) =>
@@ -144,21 +146,22 @@ export async function prettyExpGain(
 	user: User,
 	guild: Guild,
 	channel: Channel,
-	multiplier: number = 1,
+	multiplier: number = 1
 ): Promise<void> {
 	const userId = user.id; // Get user ID
 	const guildId = guild.id;
 	const currentExperience = await getMemberExperience(
 		client,
 		userId,
-		guildId,
+		guildId
 	); // Fetch current experience
 	const currentLevel = await getMemberLevel(client, userId, guildId);
 	const expGain = calculateExpGain(multiplier); // Calculate new experience gain
 	const newExperience = currentExperience + expGain; // Update total experience
-	const newLevel = calculateExpToNextLevel(currentLevel, newExperience) <= 0
-		? currentLevel + 1
-		: currentLevel;
+	const newLevel =
+		calculateExpToNextLevel(currentLevel, newExperience) <= 0
+			? currentLevel + 1
+			: currentLevel;
 
 	// Update experience in the database
 	await updateMemberStats(
@@ -166,30 +169,30 @@ export async function prettyExpGain(
 		userId,
 		guildId,
 		newLevel > currentLevel ? 0 : newExperience,
-		newLevel,
+		newLevel
 	);
 
 	// Check if the user leveled up
 	if (newLevel > currentLevel) {
 		const embed = new EmbedBuilder()
-			.setColor(0x9A2D7D) // Changed color to a more vibrant green
+			.setColor(0x9a2d7d) // Changed color to a more vibrant green
 			.setTitle("🎉 Congratulations! 🎉") // Added icons to the title
 			.setDescription(
 				`<@!${userId}>, you leveled up to level ${newLevel} in ${channel.url}! 🎊\n\n-# If you don't want these messages, execute </userconf set:${
-					client.application!.commands.cache.find((command) =>
-						command.name === "userconf"
+					client.application!.commands.cache.find(
+						(command) => command.name === "userconf"
 					)?.id ||
-					(await client.application!.commands.fetch()).find((
-						command,
-					) => command.name === "userconf")?.id
-				}> and set \`leveling.levelupmessaging\` to \`false\``,
+					(await client.application!.commands.fetch()).find(
+						(command) => command.name === "userconf"
+					)?.id
+				}> and set \`leveling.levelupmessaging\` to \`false\``
 			);
 
 		// Send the embed message as a DM to the user
 
-		const serverData = await getData(client, "config", {
+		const serverData = (await getData(client, "config", {
 			userid: userId,
-		}) as UserConfig[];
+		})) as UserConfig[];
 		let userConf: UserConfig;
 		let levelUpMessagingSetting;
 		if (serverData.length > 0) {
@@ -197,7 +200,7 @@ export async function prettyExpGain(
 
 			levelUpMessagingSetting = getNestedKey(
 				userConf.config,
-				"leveling.levelupmessaging",
+				"leveling.levelupmessaging"
 			);
 
 			if (levelUpMessagingSetting === null) {
@@ -216,7 +219,7 @@ export async function prettyExpGain(
 			} catch (error) {
 				console.error(
 					`Could not send DM to ${user.displayName}:`,
-					error,
+					error
 				);
 			}
 		}

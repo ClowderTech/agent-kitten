@@ -1,17 +1,17 @@
-# Use the latest Deno image.
-FROM denoland/deno:alpine
+# Use the latest Node.js image.
+FROM node:current-slim
 
 # Set the working directory inside the Docker container.
 WORKDIR /app
 
-# Copy deno.json to Docker image.
-COPY deno.json ./
+# Copy package.json to Docker image.
+COPY package.json ./
 
-# Install Deno dependencies.
-RUN deno install --allow-scripts=npm:puppeteer
+# Install Npm dependencies.
+RUN npm install 
 
 # Add user so we don't need --no-sandbox.
-RUN addgroup -S clowdertech && adduser -S -G clowdertech clowdertech \
+RUN groupadd clowdertech && useradd -g clowdertech clowdertech \
     && mkdir -p /home/clowdertech/Downloads /app \
     && chown -R clowdertech:clowdertech /home/clowdertech \
     && chown -R clowdertech:clowdertech /app
@@ -23,4 +23,4 @@ USER clowdertech
 COPY . .
 
 # Command to run the application.
-CMD ["deno", "task", "start"]
+CMD ["npm", "run", "start"]
