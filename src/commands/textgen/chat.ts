@@ -424,12 +424,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	const request: ChatRequest = {
 		model: subscribed
-			? "qwen2.5:32b-instruct-q3_K_M"
-			: "qwen2.5:14b-instruct-q4_K_M",
+			? "qwen2.5:32b"
+			: "qwen2.5:14b",
 		messages: user_data.messages,
-		options: {
-			num_ctx: 16384,
-		},
 		tools: [
 			{
 				type: "function",
