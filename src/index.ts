@@ -67,7 +67,7 @@ client.moonlink = new Manager({
 			secure: Boolean(process.env.LAVALINK_SECURE!), // true
 			password: process.env.LAVALINK_PASSWORD!, // ImGay69
 			retryDelay: 5000,
-			retryAmount: 65535,
+			retryAmount: 4294967295,
 		},
 	],
 	options: {
