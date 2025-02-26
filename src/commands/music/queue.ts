@@ -54,7 +54,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		.setDescription(
 			`**Now Playing:**\n[${player.current.title || "Unknown Track"}](${
 				player.current.url || "https://www.google.com/"
-			}) (requested by <@!${player.current.requestedBy?.userData}>) (duration: ${Math.floor(
+			}) (requested by <@!${player.current.requestedBy}>) (duration: ${Math.floor(
 				calculatedPosition / 1000
 			)}/${Math.floor(player.current.duration / 1000)}s)`
 		);
