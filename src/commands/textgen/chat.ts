@@ -14,7 +14,7 @@ import {
 	chatWithFuncs,
 	convertBlobToUint8Array,
 } from "../../utils/textgen.ts";
-import type { ChatRequest } from "ollama";
+import type { ChatRequest, Message } from "ollama";
 import { getData, setData } from "../../utils/mongohelper.ts";
 import { EmbedBuilder } from "@discordjs/builders";
 import fs from "fs/promises";
@@ -307,7 +307,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	// Loop through each attachment and process it
 	const attachmentContents: string[] = [];
-	const attachmentURLs: string[] = [];
+	const attachmentURLs: Uint8Array[] = [];
 
 	for (const attachment of attachments) {
 		try {
@@ -332,26 +332,14 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 				attachmentContents.push(text.normalize().trim()); // Add the text content to the array
 			} else if (
 				contentType &&
-				(contentType.includes("image") || contentType.includes("video"))
+				(contentType.includes("image") /*|| contentType.includes("video")*/ )
 			) {
 				const image = await convertBlobToUint8Array(
 					await response.blob()
 				);
 
-				const { chat_response } = await chatWithFuncs(ollama, {
-					model: "minicpm-v:8b",
-					messages: [
-						{
-							role: "user",
-							content:
-								"Describe this image or video in as much detail as you possibly can.",
-							images: [image],
-						},
-					],
-				});
-
 				attachmentURLs.push(
-					chat_response.message.content.normalize().trim()
+					image
 				);
 			}
 		} catch (error) {
@@ -361,7 +349,6 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	// Step 3: Create the prefix string
 	const textPrefix: string = "\n\nText Attachments:\n\n";
-	const imagePrefix: string = "\n\nImage Attachments:\n\n";
 
 	// Step 4: Initialize newMessage with the original message
 	let newMessage: string = message;
@@ -371,10 +358,6 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		// If there are attachments
 		const attachmentsString: string = attachmentContents.join("\n\n"); // Join the attachment contents
 		newMessage += textPrefix + attachmentsString; // Append prefix and attachments to the message
-	}
-	if (attachmentURLs.length > 0) {
-		const attachmentsString: string = attachmentURLs.join("\n\n");
-		newMessage += imagePrefix + attachmentsString;
 	}
 
 	const chatData = (await getData(client, "textgen", {
@@ -400,9 +383,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	}
 
 	// Step 4: Push structuredContent into user_data.messages
-	const newMessageJson = {
+	const newMessageJson: Message = {
 		role: "user",
 		content: newMessage,
+		images: attachmentURLs,
 	};
 
 	user_data.messages.push(newMessageJson);
