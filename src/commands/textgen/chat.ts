@@ -408,8 +408,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	const request: ChatRequest = {
 		model: subscribed
-			? "PetrosStav/gemma3-tools:27b"
-			: "PetrosStav/gemma3-tools:12b",
+			? "MrScarySpaceCat/gemma3-tools:27b"
+			: "MrScarySpaceCat/gemma3-tools:12b",
 		messages: user_data.messages,
 		tools: [
 			{
