@@ -424,8 +424,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	const request: ChatRequest = {
 		model: subscribed
-			? "qwen2.5:32b"
-			: "qwen2.5:14b",
+			? "PetrosStav/gemma3-tools:27b"
+			: "PetrosStav/gemma3-tools:12b",
 		messages: user_data.messages,
 		tools: [
 			{
