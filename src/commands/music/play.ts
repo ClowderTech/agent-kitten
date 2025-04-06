@@ -61,10 +61,21 @@ export async function execute(
 		} catch (error) {
 			if (error instanceof TypeError) {
 				for (const node in client.moonlink.nodes.cache.keys()) {
-					client.moonlink.nodes.check(client.moonlink.nodes.get(node))
+					client.moonlink.nodes.check(
+						client.moonlink.nodes.get(node)
+					);
 				}
 
-				setTimeout(function(){}, 3000)
+				setTimeout(function () {}, 3000);
+
+				player = client.moonlink.players.create({
+					guildId,
+					voiceChannelId: voiceChannel.id,
+					textChannelId: interaction.channel.id,
+					volume: 100,
+					autoPlay: false,
+					autoLeave: true,
+				});
 			}
 		}
 	}

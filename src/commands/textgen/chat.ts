@@ -332,15 +332,15 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 				attachmentContents.push(text.normalize().trim()); // Add the text content to the array
 			} else if (
 				contentType &&
-				(contentType.includes("image") /*|| contentType.includes("video")*/ )
+				contentType.includes(
+					"image"
+				) /*|| contentType.includes("video")*/
 			) {
 				const image = await convertBlobToUint8Array(
 					await response.blob()
 				);
 
-				attachmentURLs.push(
-					image
-				);
+				attachmentURLs.push(image);
 			}
 		} catch (error) {
 			console.error("Error processing attachment:", error);
