@@ -51,6 +51,10 @@ export const data = new SlashCommandBuilder()
 							name: "moderation.automod.disabledcategories",
 							value: "moderation.automod.disabledcategories",
 						},
+						{
+							name: "leveling.expmultiplier",
+							value: "leveling.expmultiplier",
+						},
 					])
 			)
 			.addStringOption((option) =>
@@ -93,6 +97,10 @@ export const data = new SlashCommandBuilder()
 						{
 							name: "moderation.automod.disabledcategories",
 							value: "moderation.automod.disabledcategories",
+						},
+						{
+							name: "leveling.expmultiplier",
+							value: "leveling.expmultiplier",
 						},
 					])
 			)

@@ -31,6 +31,8 @@ import { Ollama } from "ollama";
 
 import { join } from "node:path";
 import { prettyExpGain } from "./utils/leveling.ts";
+import { getData } from "./utils/mongohelper.ts";
+import { getNestedKey, type Config } from "./utils/config.ts";
 
 const client: ClientExtended = new Client({
 	intents: [
@@ -448,7 +450,25 @@ async function getVoiceChannelMembers(guild: Guild) {
 					!member.voice.mute &&
 					!(member.voice.channelId === member.guild.afkChannelId)
 				) {
-					await prettyExpGain(client, member.user, guild, channel);
+					const serverData = await getData(client, "config", {
+						serverid: channel.guildId,
+					});
+
+					const configData: Config = serverData[0]?.config || {};
+
+					await prettyExpGain(
+						client,
+						member.user,
+						guild,
+						channel,
+						1 *
+							Number(
+								getNestedKey(
+									configData,
+									"leveling.expmultiplier"
+								)
+							) || 1
+					);
 				}
 			}
 		}

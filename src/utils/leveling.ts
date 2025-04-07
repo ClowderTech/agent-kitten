@@ -20,20 +20,10 @@ interface UserLeveling {
 
 // Function to calculate experience gain
 export function calculateExpGain(multiplier: number = 1): number {
-	const randomChance = Math.random() * 100; // Get a random number from 0 to 99.99
-
-	// If the random chance is less than or equal to 2, calculate a random amount around 15
-	if (randomChance <= 2) {
-		// Add a small random variation between -5 and +5
-		const variation = Math.floor(Math.random() * 11 * multiplier) - 5; // Random number between -5 and 5
-		const expGain = 15 + variation; // Calculate XP gain
-
-		// Ensure the value does not fall below 1
-		return Math.max(expGain, 1);
-	} else {
-		// Otherwise, generate a random number between 1 and 3
-		return Math.floor(Math.random() * 3 * multiplier) + 1; // Returns 1, 2, or 3
-	}
+	return (
+		Math.floor(Math.abs(Math.sqrt(Math.random() * 100) - 10) * multiplier) +
+		1
+	);
 }
 
 // Function to calculate experience required to reach the next level based on a quadratic equation
