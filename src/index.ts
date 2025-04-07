@@ -446,9 +446,12 @@ async function getVoiceChannelMembers(guild: Guild) {
 		) {
 			for (const member of channel.members.values()) {
 				if (
-					!member.voice.selfDeaf &&
-					!member.voice.mute &&
-					!(member.voice.channelId === member.guild.afkChannelId)
+					(!member.voice.deaf &&
+						!member.voice.mute &&
+						!(
+							member.voice.channelId === member.guild.afkChannelId
+						)) ||
+					member.voice.streaming
 				) {
 					const serverData = await getData(client, "config", {
 						serverid: channel.guildId,
@@ -467,7 +470,12 @@ async function getVoiceChannelMembers(guild: Guild) {
 									configData,
 									"leveling.expmultiplier"
 								)
-							) || 1
+							) ||
+							1 *
+								(member.voice.streaming ||
+								(!member.voice.deaf && !member.voice.mute)
+									? 2
+									: 1)
 					);
 				}
 			}
