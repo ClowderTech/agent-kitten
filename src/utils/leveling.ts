@@ -20,9 +20,8 @@ interface UserLeveling {
 
 // Function to calculate experience gain
 export function calculateExpGain(multiplier: number = 1): number {
-	return (
-		Math.floor(Math.abs(Math.sqrt(Math.random() * 100) - 10) * multiplier) +
-		1
+	return Math.floor(
+		(Math.abs(Math.sqrt(Math.random() * 100) - 10) + 1) * multiplier
 	);
 }
 

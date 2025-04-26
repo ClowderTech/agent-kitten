@@ -23,8 +23,7 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction: ChatInputCommandInteraction) {
 	// Get the user option; if not provided, default to the command executor
-	const user =
-		interaction.options.get("user", false)?.user || interaction.user;
+	const user = interaction.options.getUser("user", false) || interaction.user;
 	const guildId = interaction.guildId;
 
 	if (!guildId) {

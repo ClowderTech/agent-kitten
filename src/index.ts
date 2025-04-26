@@ -465,17 +465,16 @@ async function getVoiceChannelMembers(guild: Guild) {
 						guild,
 						channel,
 						1 *
+							(member.voice.streaming ||
+							(!member.voice.deaf && !member.voice.mute)
+								? 2
+								: 1) *
 							Number(
 								getNestedKey(
 									configData,
 									"leveling.expmultiplier"
 								)
-							) ||
-							1 *
-								(member.voice.streaming ||
-								(!member.voice.deaf && !member.voice.mute)
-									? 2
-									: 1)
+							)
 					);
 				}
 			}

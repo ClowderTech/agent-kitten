@@ -60,11 +60,12 @@ export async function execute(
 			});
 		} catch (error) {
 			if (error instanceof TypeError) {
-				for (const node in client.moonlink.nodes.cache.keys()) {
-					client.moonlink.nodes.check(
-						client.moonlink.nodes.get(node)
-					);
-				}
+				client.moonlink.nodes.cache.forEach(async (node) => {
+					const responding = await node.checkHealth();
+					if (!responding.responding || node.needsRestart()) {
+						node.reconnect();
+					}
+				});
 
 				setTimeout(function () {}, 3000);
 
