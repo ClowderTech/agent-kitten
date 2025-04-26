@@ -64,16 +64,18 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 				inline: true,
 			},
 			{
-				name: "Bot Developers",
-				value: "<@!1250923829761675336>",
+				name: "Bot Administrators",
+				value: "<@!1208479777900470344>",
 				inline: true,
 			},
 			{
-				name: "Server Count",
-				value: `${
-					client.application.approximateGuildCount ||
-					client.guilds.cache.size
-				}`,
+				name: "Bot Developers",
+				value: "<@!1250923829761675336>, <@!1045011641940574208>, <@!750805129116123157>, <@!801384603704623115>",
+				inline: true,
+			},
+			{
+				name: "Bot Contributers",
+				value: "<@!1139185365597573180>, <@!879313965790920764>",
 				inline: true,
 			},
 			{
