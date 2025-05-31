@@ -407,10 +407,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		).size > 0;
 
 	const request: ChatRequest = {
-		model: subscribed
-			? "MrScarySpaceCat/gemma3-tools:27b"
-			: "MrScarySpaceCat/gemma3-tools:12b",
+		model: subscribed ? "qwen3:30b-a3b" : "qwen3:30b-a3b",
 		messages: user_data.messages,
+		think: true,
 		tools: [
 			{
 				type: "function",
