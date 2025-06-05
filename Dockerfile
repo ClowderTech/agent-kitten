@@ -1,11 +1,12 @@
-FROM node:current-alpine
+FROM node:current-slim
 
 WORKDIR /app
 
 # Create a non-root user and set permissions
-RUN addgroup -S clowdertech && adduser -S -G clowdertech clowdertech \
-    && mkdir -p /home/clowdertech/Downloads \
-    && chown -R clowdertech:clowdertech /home/clowdertech
+RUN groupadd clowdertech && useradd -g clowdertech clowdertech \
+    && mkdir -p /home/clowdertech/Downloads /app \
+    && chown -R clowdertech:clowdertech /home/clowdertech \
+    && chown -R clowdertech:clowdertech /app
 
 # Copy only package files first (for caching)
 COPY package.json package-lock.json* ./
