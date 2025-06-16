@@ -15,7 +15,7 @@
 		"@discordjs/builders": "^1.11.2",
 		"@discordjs/voice": "^0.18.0",
 		"discord-api-types": "^0.38.11",
-		"discord.js": "^14.19.3",
+		"discord.js": "^14.20.0",
 		"jsdom": "^26.1.0",
 		"mongodb": "^6.17.0",
 		"moonlink.js": "^4.6.18",
