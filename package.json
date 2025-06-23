@@ -20,7 +20,7 @@
 		"mongodb": "^6.17.0",
 		"moonlink.js": "^4.6.18",
 		"ollama": "^0.5.16",
-		"puppeteer": "^24.10.1"
+		"puppeteer": "^24.10.2"
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.28.0",
