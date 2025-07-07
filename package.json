@@ -14,7 +14,7 @@
 	"dependencies": {
 		"@discordjs/builders": "^1.11.2",
 		"@discordjs/voice": "^0.18.0",
-		"discord-api-types": "^0.38.11",
+		"discord-api-types": "^0.38.15",
 		"discord.js": "^14.19.3",
 		"jsdom": "^26.1.0",
 		"mongodb": "^6.17.0",
