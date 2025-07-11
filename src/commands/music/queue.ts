@@ -23,11 +23,13 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	const queue = player.queue;
 
-	const calculatedPosition = player.current.position;
+	const current = player.current;
+
+	const calculatedPosition = current.position;
 
 	let addon_title = "";
 
-	if (player.current.isStream) {
+	if (current.isStream) {
 		addon_title += " (Live)";
 	}
 
@@ -42,21 +44,21 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	const embed = new EmbedBuilder()
 		.setTitle(
 			`Queue${addon_title} (${
-				player.queue.size + (player.playing ? 1 : 0)
+				queue.size + (player.playing ? 1 : 0)
 			} song(s))`
 		)
 		.setColor(0x9a2d7d)
 		.setTimestamp()
 		.setThumbnail(
-			player.current.artworkUrl ||
+			current.artworkUrl ||
 				"https://www.solidbackgrounds.com/images/3840x2160/3840x2160-black-solid-color-background.jpg"
 		)
 		.setDescription(
-			`**Now Playing:**\n[${player.current.title || "Unknown Track"}](${
-				player.current.url || "https://www.google.com/"
-			}) (requested by <@!${player.current.requestedBy}>) (duration: ${Math.floor(
+			`**Now Playing:**\n[${current.title || "Unknown Track"}](${
+				current.url || "https://www.google.com/"
+			}) (requested by <@!${current.requestedBy}>) (duration: ${Math.floor(
 				calculatedPosition / 1000
-			)}/${Math.floor(player.current.duration / 1000)}s)`
+			)}/${Math.floor(current.duration / 1000)}s)`
 		);
 
 	if (queue.size > 0) {
