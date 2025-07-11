@@ -4,7 +4,7 @@ import {
 	SlashCommandBuilder,
 	SlashCommandStringOption,
 } from "@discordjs/builders";
-import { Collection, CommandInteraction } from "discord.js";
+import { ChatInputCommandInteraction, Collection } from "discord.js";
 import type { ClientExtended } from "../utils/classes.ts";
 
 const checkForValidFile = (file: string): boolean => {
@@ -33,7 +33,7 @@ export const data = new SlashCommandBuilder()
 			.setRequired(true)
 	);
 
-export async function execute(interaction: CommandInteraction) {
+export async function execute(interaction: ChatInputCommandInteraction) {
 	if (!("commands" in interaction.client)) {
 		await interaction.reply({
 			content: "The bot is not ready to reload commands.",
@@ -50,8 +50,7 @@ export async function execute(interaction: CommandInteraction) {
 
 	const client = interaction.client as ClientExtended;
 
-	const commandName = interaction.options.get("command", true)
-		.value as string;
+	const commandName = interaction.options.getString("command", true);
 	const command = client.commands.get(commandName);
 
 	if (!command) {
