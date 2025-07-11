@@ -64,6 +64,7 @@ client.usersMessaged = [];
 client.moonlink = new Manager({
 	nodes: [
 		{
+			identifier: "main",
 			host: process.env.LAVALINK_HOST!, // lavalink.clowdertech.com
 			port: parseInt(process.env.LAVALINK_PORT!, 10), // 443
 			secure: Boolean(process.env.LAVALINK_SECURE!), // true

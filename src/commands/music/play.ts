@@ -57,6 +57,15 @@ export async function execute(
 			autoLeave: true,
 		});
 
+	if (!player) {
+		client.moonlink.nodes.cache.forEach((node) =>
+			client.moonlink.nodes.check(node)
+		);
+		throw new UserMadeError(
+			"There was an issue completing this command. Please send the command again and it should work."
+		);
+	}
+
 	if (!player.connected) {
 		player.connect({ setDeaf: true, setMute: false });
 	}
