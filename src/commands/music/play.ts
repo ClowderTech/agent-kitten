@@ -46,10 +46,9 @@ export async function execute(
 		throw new UserMadeError("I am in another voice channel.");
 	}
 
-	let player = client.moonlink.players.get(guildId);
-
-	if (!player) {
-		player = client.moonlink.players.create({
+	const player =
+		client.moonlink.players.get(guildId) ||
+		client.moonlink.players.create({
 			guildId,
 			voiceChannelId: voiceChannel.id,
 			textChannelId: interaction.channel.id,
@@ -57,7 +56,6 @@ export async function execute(
 			autoPlay: false,
 			autoLeave: true,
 		});
-	}
 
 	if (!player.connected) {
 		player.connect({ setDeaf: true, setMute: false });
