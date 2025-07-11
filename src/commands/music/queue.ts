@@ -10,6 +10,20 @@ export const data = new SlashCommandBuilder()
 	.setName("queue")
 	.setDescription("Show the current and next up songs.");
 
+function getRequesterID(track: Track): string {
+	const requester = track.requestedBy;
+
+	if (typeof requester === "string") {
+		return requester
+	}
+	else if (typeof requester === "object" && "id" in requester) {
+		return String(requester.id)
+	}
+	else {
+		return "643945264868098049";
+	}
+}
+
 export async function execute(interaction: ChatInputCommandInteraction) {
 	const client: ClientExtended = interaction.client as ClientExtended;
 	if (!interaction.guild) {
@@ -56,7 +70,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		.setDescription(
 			`**Now Playing:**\n[${current.title || "Unknown Track"}](${
 				current.url || "https://www.google.com/"
-			}) (requested by <@!${current.requestedBy}>) (duration: ${Math.floor(
+			}) (requested by <@!${getRequesterID(current)}>) (duration: ${Math.floor(
 				calculatedPosition / 1000
 			)}/${Math.floor(current.duration / 1000)}s)`
 		);
@@ -68,7 +82,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 				(song: Track, index: number) =>
 					`${index + 1}. [${song.title || "Unknown Track"}](${
 						song.url || "https://www.google.com/"
-					}) (requested by <@!${song.requestedBy}>)`
+					}) (requested by <@!${getRequesterID(song)}>)`
 			)
 			.join("\n");
 		embed.addFields({
