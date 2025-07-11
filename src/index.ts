@@ -76,6 +76,7 @@ client.moonlink = new Manager({
 	options: {
 		defaultPlatformSearch: "youtubemusic",
 		autoResume: true,
+		disableNativeSources: true,
 		movePlayersOnReconnect: true,
 		nodeHealthCheckInterval: 60,
 	},
