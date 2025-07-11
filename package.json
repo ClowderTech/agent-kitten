@@ -18,7 +18,7 @@
 		"discord.js": "^14.21.0",
 		"jsdom": "^26.1.0",
 		"mongodb": "^6.17.0",
-		"moonlink.js": "^4.28.32",
+		"moonlink.js": "^4.28.34",
 		"ollama": "^0.5.16",
 		"puppeteer": "^24.12.1"
 	},

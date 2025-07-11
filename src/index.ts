@@ -77,7 +77,7 @@ client.moonlink = new Manager({
 		autoResume: true,
 		disableNativeSources: true,
 		movePlayersOnReconnect: true,
-		nodeHealthCheckInterval: 60
+		nodeHealthCheckInterval: 60,
 	},
 	sendPayload: (guildId: string, payload: string) => {
 		const guild = client.guilds.cache.get(guildId);
