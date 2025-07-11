@@ -14,12 +14,10 @@ function getRequesterID(track: Track): string {
 	const requester = track.requestedBy;
 
 	if (typeof requester === "string") {
-		return requester
-	}
-	else if (typeof requester === "object" && "id" in requester) {
-		return String(requester.id)
-	}
-	else {
+		return requester;
+	} else if (typeof requester === "object" && "id" in requester) {
+		return String(requester.id);
+	} else {
 		return "643945264868098049";
 	}
 }
