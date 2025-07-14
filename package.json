@@ -14,17 +14,17 @@
 	"dependencies": {
 		"@discordjs/builders": "^1.11.2",
 		"@discordjs/voice": "^0.18.0",
-		"discord-api-types": "^0.38.15",
+		"discord-api-types": "^0.38.16",
 		"discord.js": "^14.21.0",
 		"jsdom": "^26.1.0",
 		"mongodb": "^6.17.0",
-		"moonlink.js": "^4.28.34",
+		"moonlink.js": "^4.44.4",
 		"ollama": "^0.5.16",
 		"puppeteer": "^24.12.1"
 	},
 	"devDependencies": {
-		"@eslint/js": "^9.30.1",
-		"eslint": "^9.30.1",
+		"@eslint/js": "^9.31.0",
+		"eslint": "^9.31.0",
 		"globals": "^16.3.0",
 		"jiti": "^2.4.2",
 		"prettier": "^3.6.2",
