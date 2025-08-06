@@ -18,9 +18,9 @@
 		"discord.js": "^14.21.0",
 		"jsdom": "^26.1.0",
 		"mongodb": "^6.18.0",
-		"moonlink.js": "^4.52.2",
+		"moonlink.js": "^4.60.4",
 		"ollama": "^0.5.16",
-		"puppeteer": "^24.15.0"
+		"puppeteer": "^24.16.0"
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.32.0",
