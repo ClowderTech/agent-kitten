@@ -452,9 +452,7 @@ async function getVoiceChannelMembers(guild: Guild) {
 				if (
 					(!member.voice.deaf &&
 						!member.voice.mute &&
-						!(
-							member.voice.channelId === member.guild.afkChannelId
-						)) ||
+						member.voice.channelId !== member.guild.afkChannelId) ||
 					member.voice.streaming
 				) {
 					const serverData = await getData(client, "config", {
@@ -468,17 +466,25 @@ async function getVoiceChannelMembers(guild: Guild) {
 						member.user,
 						guild,
 						channel,
-						1 *
-							(member.voice.streaming ||
-							(!member.voice.deaf && !member.voice.mute)
-								? 2
-								: 1) *
-							Number(
-								getNestedKey(
-									configData,
-									"leveling.expmultiplier"
-								)
+						(!member.voice.deaf && !member.voice.mute ? 1 : 0) +
+						(member.voice.streaming ? 1 : 0) *
+						Number(
+							getNestedKey(
+								configData,
+								"leveling.expmultiplier"
 							)
+						)
+					);
+
+					console.log(
+						(!member.voice.deaf && !member.voice.mute ? 1 : 0) +
+						(member.voice.streaming ? 1 : 0) *
+						Number(
+							getNestedKey(
+								configData,
+								"leveling.expmultiplier"
+							)
+						)
 					);
 				}
 			}
