@@ -475,17 +475,6 @@ async function getVoiceChannelMembers(guild: Guild) {
 							)
 						)
 					);
-
-					console.log(
-						(!member.voice.deaf && !member.voice.mute ? 1 : 0) +
-						(member.voice.streaming ? 1 : 0) *
-						Number(
-							getNestedKey(
-								configData,
-								"leveling.expmultiplier"
-							)
-						)
-					);
 				}
 			}
 		}
