@@ -19,7 +19,9 @@ import { getData, setData } from "../../utils/mongohelper.ts";
 import { EmbedBuilder } from "@discordjs/builders";
 import fs from "fs/promises";
 import { spawn } from "child_process";
-import path from "path";
+import * as path from "path";
+import * as os from "os";
+import crypto from "crypto";
 
 export const data = new SlashCommandBuilder()
 	.setName("chat")
@@ -124,54 +126,73 @@ function splitText(text: string, maxLength: number = 2000): string[] {
 	return chunks;
 }
 
-async function executeEval(code: string): Promise<string> {
-	const evalTempFile = path.join(process.cwd(), "evalTempFile.js");
+export async function executeEval(code: string): Promise<string> {
+	const tmpBase = path.join(os.tmpdir(), "eval-");
+	const tmpDir = await fs.mkdtemp(tmpBase);
+	const filename = `${crypto.randomUUID()}.js`;
+	const filePath = path.join(tmpDir, filename);
 
-	// Write the code to a temporary file
-	await fs.writeFile(evalTempFile, code);
+	// write file with restrictive permissions
+	await fs.writeFile(filePath, code, { mode: 0o600 });
 
-	// Return the result of the child process execution (stdout or stderr)
-	return new Promise<string>((resolve, reject) => {
-		const child = spawn("node", [evalTempFile], { stdio: "pipe" });
+	return await new Promise<string>((resolve, reject) => {
+		const child = spawn(process.execPath, [filePath], {
+			stdio: ["ignore", "pipe", "pipe"],
+		});
 
 		let stdout = "";
 		let stderr = "";
+		let timedOut = false;
+		let timer: NodeJS.Timeout | null = null;
 
-		child.stdout.on("data", (data) => {
-			stdout += data.toString();
+		timer = setTimeout(() => {
+			timedOut = true;
+			// force kill
+			child.kill("SIGKILL");
+		}, 10000);
+
+		child.stdout.on("data", (d) => (stdout += d.toString()));
+		child.stderr.on("data", (d) => (stderr += d.toString()));
+
+		child.on("error", async (err) => {
+			if (timer) clearTimeout(timer);
+			await cleanup(tmpDir);
+			reject(err);
 		});
 
-		child.stderr.on("data", (data) => {
-			stderr += data.toString();
-		});
+		child.on("close", async (exitCode) => {
+			if (timer) clearTimeout(timer);
+			await cleanup(tmpDir);
 
-		child.on("close", (code) => {
-			// Clean up by removing the temporary file
-			fs.unlink(evalTempFile).catch((err) => {
-				console.error(
-					`Failed to delete temporary file: ${err.message}`
+			if (timedOut) {
+				return reject(
+					new Error(`Execution timed out after 10 seconds`)
 				);
-			});
+			}
 
-			// Resolve with the stdout if exit code is 0, otherwise stderr
-			if (code === 0) {
-				resolve(stdout.trim()); // Return stdout as string
+			if (exitCode === 0) {
+				return resolve(stdout.trim());
 			} else {
-				resolve(stderr.trim()); // Return stderr as string
+				// include stderr (or a generic message) in the rejection
+				return reject(
+					new Error(
+						stderr.trim() ||
+						`Node process exited with code ${exitCode}`
+					)
+				);
 			}
 		});
-
-		child.on("error", (err) => {
-			// Clean up by removing the temporary file in case of error
-			fs.unlink(evalTempFile).catch((err) => {
-				console.error(
-					`Failed to delete temporary file: ${err.message}`
-				);
-			});
-
-			reject(err); // Reject with the error
-		});
 	});
+}
+
+async function cleanup(dir: string) {
+	try {
+		// Node >=14.14 supports rm; use recursive true to remove file and dir
+		await fs.rm(dir, { recursive: true, force: true });
+	} catch (err) {
+		// best effort cleanup; log but don't throw
+		console.error("Failed to remove temp dir:", err);
+	}
 }
 
 async function searchGoogle(query: string): Promise<string> {
