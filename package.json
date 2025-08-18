@@ -13,7 +13,7 @@
 	},
 	"dependencies": {
 		"@discordjs/builders": "^1.11.3",
-		"@discordjs/voice": "^0.18.0",
+		"@discordjs/voice": "^0.19.0",
 		"discord-api-types": "^0.38.20",
 		"discord.js": "^14.21.0",
 		"jsdom": "^26.1.0",
