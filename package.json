@@ -20,7 +20,7 @@
 		"mongodb": "^6.18.0",
 		"moonlink.js": "^4.60.4",
 		"ollama": "^0.5.17",
-		"openai": "^5.13.1",
+		"openai": "^5.15.0",
 		"puppeteer": "^24.16.2"
 	},
 	"devDependencies": {
