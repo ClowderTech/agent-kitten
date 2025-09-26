@@ -14,23 +14,23 @@
 	"dependencies": {
 		"@discordjs/builders": "^1.11.3",
 		"@discordjs/voice": "^0.19.0",
-		"discord-api-types": "^0.38.23",
+		"discord-api-types": "^0.38.26",
 		"discord.js": "^14.22.1",
-		"jsdom": "^26.1.0",
-		"mongodb": "^6.19.0",
-		"moonlink.js": "^4.60.4",
-		"ollama": "^0.5.17",
-		"openai": "^5.19.1",
-		"puppeteer": "^24.19.0"
+		"jsdom": "^27.0.0",
+		"mongodb": "^6.20.0",
+		"moonlink.js": "^4.60.18",
+		"ollama": "^0.6.0",
+		"openai": "^5.23.1",
+		"puppeteer": "^24.22.3"
 	},
 	"devDependencies": {
-		"@eslint/js": "^9.35.0",
-		"eslint": "^9.35.0",
-		"globals": "^16.3.0",
-		"jiti": "^2.5.1",
+		"@eslint/js": "^9.36.0",
+		"eslint": "^9.36.0",
+		"globals": "^16.4.0",
+		"jiti": "^2.6.0",
 		"prettier": "^3.6.2",
 		"typescript": "^5.9.2",
-		"typescript-eslint": "^8.43.0"
+		"typescript-eslint": "^8.44.1"
 	},
 	"engines": {
 		"node": ">=22.7.0"
