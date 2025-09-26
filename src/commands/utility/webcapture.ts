@@ -40,7 +40,7 @@ async function screenshotWebsite(url: string): Promise<string> {
 	try {
 		const response = await page.goto(url, {
 			timeout: 30000,
-			waitUntil: "load",
+			waitUntil: "networkidle2",
 		});
 
 		if (!response?.ok()) {
