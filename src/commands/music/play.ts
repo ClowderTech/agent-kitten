@@ -6,6 +6,7 @@ import {
 	SlashCommandStringOption,
 } from "discord.js";
 import { type ClientExtended, UserMadeError } from "../../utils/classes.ts";
+import { setTimeout } from "timers/promises";
 
 export const data = new SlashCommandBuilder()
 	.setName("play")
@@ -46,7 +47,7 @@ export async function execute(
 		throw new UserMadeError("I am in another voice channel.");
 	}
 
-	const player =
+	let player =
 		client.moonlink.players.get(guildId) ||
 		client.moonlink.players.create({
 			guildId,
@@ -55,7 +56,26 @@ export async function execute(
 			volume: 100,
 			autoPlay: false,
 			autoLeave: true,
-		});	
+		});
+
+	if (!player) {
+		client.moonlink.nodes.cache.forEach((node) => {
+			client.moonlink.nodes.check(node);
+		});
+
+		await setTimeout(3000);
+
+		player =
+			client.moonlink.players.get(guildId) ||
+			client.moonlink.players.create({
+				guildId,
+				voiceChannelId: voiceChannel.id,
+				textChannelId: interaction.channel.id,
+				volume: 100,
+				autoPlay: false,
+				autoLeave: true,
+			});
+	};
 
 	if (!player.connected) {
 		player.connect({ setDeaf: true, setMute: false });

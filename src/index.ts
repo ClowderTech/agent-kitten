@@ -238,16 +238,21 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
 				.setColor(0x9a2d7d);
 		}
 
-		if (interaction.replied || interaction.deferred) {
-			await interaction.followUp({
-				embeds: [embed],
-				flags: [MessageFlags.Ephemeral],
-			});
-		} else {
-			await interaction.reply({
-				embeds: [embed],
-				flags: [MessageFlags.Ephemeral],
-			});
+		try {
+			if (interaction.replied || interaction.deferred) {
+				await interaction.followUp({
+					embeds: [embed],
+					flags: [MessageFlags.Ephemeral],
+				});
+			} else {
+				await interaction.reply({
+					embeds: [embed],
+					flags: [MessageFlags.Ephemeral],
+				});
+			}
+		} catch (sendError: unknown) {
+			console.error(error);
+			console.error(sendError);
 		}
 	}
 });
@@ -467,13 +472,13 @@ async function getVoiceChannelMembers(guild: Guild) {
 						guild,
 						channel,
 						(!member.voice.deaf && !member.voice.mute ? 1 : 0) +
-							(member.voice.streaming ? 1 : 0) *
-								Number(
-									getNestedKey(
-										configData,
-										"leveling.expmultiplier"
-									)
-								)
+						(member.voice.streaming ? 1 : 0) *
+						Number(
+							getNestedKey(
+								configData,
+								"leveling.expmultiplier"
+							)
+						)
 					);
 				}
 			}

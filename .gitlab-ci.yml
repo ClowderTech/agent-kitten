@@ -1,0 +1,33 @@
+stages:
+  - container-build
+  - container-combine
+
+container-build:
+  stage: container-build
+  # run parallel builds for the desired architectures
+  parallel:
+    matrix:
+      - ARCH: amd64
+      - ARCH: arm64
+  image:
+    name: ghcr.io/kaniko-build/dist/chainguard-dev-kaniko/executor:latest-debug
+    entrypoint: [""]
+  script:
+    # build the container image for the current arch using kaniko
+    - >-
+      /kaniko/executor --context "${CI_PROJECT_DIR}" --dockerfile "${CI_PROJECT_DIR}/Dockerfile" --destination "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}-${ARCH}"
+
+# define a job for creating and pushing a merged manifest
+container-combine:
+  stage: container-combine
+  # all containers must be build before merging them
+  # alternatively the job may be configured to run in a later stage
+  needs:
+    - job: container-build
+      artifacts: false
+  image:
+    name: mplatform/manifest-tool:alpine
+    entrypoint: [""]
+  script:
+    - >-
+      /manifest-tool --username=${CI_REGISTRY_USER} --password=${CI_REGISTRY_PASSWORD} push from-args --platforms linux/amd64,linux/arm64 --template "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}-ARCH" --target "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}"
