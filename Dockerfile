@@ -4,7 +4,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 COPY . .
-RUN npm run build || true   # only if you have a build step
+# RUN npm run build || true   # only if you have a build step
 
 FROM node:${NODE_VERSION}-slim AS runtime
 ENV NODE_ENV=production
@@ -18,5 +18,5 @@ RUN groupadd -r app && useradd -r -g app app \
 COPY --from=builder --chown=app:app /app /app
 
 USER app
-EXPOSE 3000
+# EXPOSE 3000
 CMD ["npm", "run", "start"]
