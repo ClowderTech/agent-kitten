@@ -1,22 +1,69 @@
-ARG NODE_VERSION=lts
-FROM node:${NODE_VERSION}-slim AS builder
+# syntax=docker/dockerfile:1
+
+ARG RUST_VERSION=1.90.0
+ARG APP_NAME=agent-kitten-rust
+ARG UID=10001
+
+################################################################################
+# Build stage: compile the Rust application on Debian slim
+
+FROM rust:${RUST_VERSION}-slim AS build
+ARG APP_NAME
+
+# Set working directory
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+
+# Install build dependencies
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+    clang \
+    lld \
+    git \
+    ca-certificates \
+    cmake \
+    make \
+    autoconf \
+    automake \
+    libtool \
+    m4 \
+    build-essential \
+    libopus-dev \
+    libssl-dev \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy manifest and source via bind mounts / cache mounts for fast rebuilds.
+# (Use docker build --mount for optimal caching.)
+# Compile in release mode, then copy the resulting binary to /bin/server.
 COPY . .
-# RUN npm run build || true   # only if you have a build step
 
-FROM node:${NODE_VERSION}-slim AS runtime
-ENV NODE_ENV=production
-WORKDIR /app
+RUN cargo build --locked --release && cp target/release/${APP_NAME} /bin/server
 
-# create non-root user (optional)
-RUN groupadd -r app && useradd -r -g app app \
-  && mkdir -p /home/app /app
+################################################################################
+# Runtime stage: minimal Debian slim environment
 
-# copy app + node_modules and set ownership
-COPY --from=builder --chown=app:app /app /app
+FROM debian:stable-slim AS final
+ARG UID
 
-USER app
-# EXPOSE 3000
-CMD ["npm", "run", "start"]
+# Install only what's needed to run the binary
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create system user using useradd/usergroup
+RUN groupadd -r appuser -g "${UID}" \
+    && useradd -l -r -u "${UID}" -g appuser \
+    -d /nonexistent -s /usr/sbin/nologin appuser
+
+# Switch to unprivileged user
+USER appuser
+
+# Copy the compiled binary from the build stage
+COPY --from=build /bin/server /bin/server
+
+# Expose application port
+EXPOSE 3000
+
+# Start the server
+CMD ["/bin/server"]
