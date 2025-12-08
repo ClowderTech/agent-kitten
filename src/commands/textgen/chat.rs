@@ -3,7 +3,7 @@ use crate::{
     textgen_helpers::{Funcs, TextgenDoc, chat_with_funcs},
 };
 use ::serenity::all::{CreateEmbedAuthor, CreateEmbedFooter};
-use async_openai::types::{
+use async_openai::types::chat::{
     ChatCompletionRequestMessage, ChatCompletionRequestSystemMessageArgs,
     ChatCompletionRequestUserMessageArgs,
 };

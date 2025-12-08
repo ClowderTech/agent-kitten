@@ -1,8 +1,10 @@
-use async_openai::Client as OpenAIClient;
-use async_openai::config::OpenAIConfig;
-use async_openai::types::{
-    ChatCompletionRequestMessage, ChatCompletionRequestToolMessageArgs,
-    CreateChatCompletionRequest, CreateChatCompletionResponse,
+use async_openai::{
+    Client as OpenAIClient,
+    types::chat::{
+        ChatCompletionMessageToolCalls, ChatCompletionRequestMessage,
+        ChatCompletionRequestToolMessageArgs, CreateChatCompletionRequest,
+        CreateChatCompletionResponse,
+    },
 };
 use serde_json::Value;
 use std::collections::HashMap;
@@ -62,13 +64,7 @@ pub async fn chat_with_funcs(
         ..Default::default()
     };
 
-    let api_key = std::env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY must be set");
-    let base_url = std::env::var("OPENAI_BASE_URL").expect("OPENAI_BASE_URL must be set");
-
-    let config = OpenAIConfig::new()
-        .with_api_key(api_key)
-        .with_api_base(base_url);
-    let client = OpenAIClient::with_config(config);
+    let client = OpenAIClient::new();
 
     let chat_response = client.chat().create(request).await?;
     let mut response: CreateChatCompletionResponse = chat_response.clone();
@@ -76,18 +72,27 @@ pub async fn chat_with_funcs(
     let deserialized: ChatCompletionRequestMessage = serde_json::from_str(&serialized).unwrap();
     full_response.push(deserialized);
 
-    while let Some(tool_calls) = chat_response.choices[0].message.tool_calls.clone() {
-        for tool_call in tool_calls {
-            let func = &functions[&tool_call.function.name];
-            let func_args: serde_json::Value = tool_call.function.arguments.parse().unwrap();
-            let tool_call_response: String = func.call(func_args).await?;
-            let tool_message = ChatCompletionRequestToolMessageArgs::default()
-                .content(tool_call_response)
-                .tool_call_id(tool_call.id.clone())
-                .build()
-                .unwrap()
-                .into();
-            full_response.push(tool_message);
+    while let Some(tool_calls) = chat_response
+        .choices
+        .first()
+        .ok_or("No choices")?
+        .message
+        .tool_calls
+        .clone()
+    {
+        for tool_call_enum in tool_calls {
+            if let ChatCompletionMessageToolCalls::Function(tool_call) = tool_call_enum {
+                let func = &functions[&tool_call.function.name];
+                let func_args: serde_json::Value = tool_call.function.arguments.parse().unwrap();
+                let tool_call_response: String = func.call(func_args).await?;
+                let tool_message = ChatCompletionRequestToolMessageArgs::default()
+                    .content(tool_call_response)
+                    .tool_call_id(tool_call.id.clone())
+                    .build()
+                    .unwrap()
+                    .into();
+                full_response.push(tool_message);
+            }
         }
 
         let request = CreateChatCompletionRequest {
