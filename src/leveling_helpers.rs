@@ -15,16 +15,6 @@ pub struct UserLeveling {
     pub serverid: String,
 }
 
-/// Minimal embed-like struct returned when a level-up message should be sent.
-/// You can map this to your Discord library's embed builder.
-#[derive(Debug, Clone)]
-pub struct EmbedData {
-    pub title: String,
-    pub description: String,
-    /// RGB integer (same shape you used in TS e.g. 0x9a2d7d)
-    pub color: i32,
-}
-
 /// Calculate experience gain (mirror of the TS function).
 /// Default multiplier = 1.0
 pub fn calculate_exp_gain(multiplier: f64) -> i64 {
@@ -55,7 +45,7 @@ pub async fn get_member_experience(
 ) -> Result<i64, DynError> {
     let filter = doc! { "userid": member_id, "serverid": server_id };
     let users: Vec<UserLeveling> = client.get_data("leveling", Some(filter)).await?;
-    Ok(users.get(0).map(|u| u.experience).unwrap_or(0))
+    Ok(users.first().map(|u| u.experience).unwrap_or(0))
 }
 
 /// Get a member's level (returns 0 if not found)
@@ -66,7 +56,7 @@ pub async fn get_member_level(
 ) -> Result<i64, DynError> {
     let filter = doc! { "userid": member_id, "serverid": server_id };
     let users: Vec<UserLeveling> = client.get_data("leveling", Some(filter)).await?;
-    Ok(users.get(0).map(|u| u.level).unwrap_or(0))
+    Ok(users.first().map(|u| u.level).unwrap_or(0))
 }
 
 /// Update member stats (insert or upsert)
@@ -81,14 +71,14 @@ pub async fn update_member_stats(
     let filter = doc! { "userid": member_id, "serverid": server_id };
     let users: Vec<UserLeveling> = client.get_data("leveling", Some(filter.clone())).await?;
 
-    if let Some(existing) = users.get(0) {
+    if let Some(existing) = users.first() {
         // use existing _id and upsert (replace semantics)
         let user_doc = UserLeveling {
             userid: member_id.to_string(),
             serverid: server_id.to_string(),
             experience: new_experience,
             level: new_level,
-            _id: existing._id.clone(),
+            _id: existing._id,
         };
 
         // set_data expects the typed data and an optional id filter.
@@ -188,18 +178,13 @@ pub async fn pretty_exp_gain(
         let server_data: Vec<UserConfig> = client.get_data("config", Some(conf_filter)).await?;
 
         // default to true if not present
-        let mut level_up_messaging_enabled = true;
+        let mut level_up_messaging_enabled: bool = true;
 
-        if let Some(first) = server_data.get(0) {
+        if let Some(first) = server_data.first() {
             // get_nested_key returns Option<Config>
             match get_nested_key(&first.config, "leveling.levelupmessaging") {
-                Some(cfg) => {
-                    match cfg {
-                        Config::Bool(b) => level_up_messaging_enabled = b,
-                        // if it's present but not a bool, default to true
-                        _ => level_up_messaging_enabled = true,
-                    }
-                }
+                Some(Config::Bool(boolean)) => level_up_messaging_enabled = boolean,
+                Some(_) => level_up_messaging_enabled = true,
                 None => level_up_messaging_enabled = true,
             }
         }

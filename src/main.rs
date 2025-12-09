@@ -79,16 +79,22 @@ async fn main() {
                 };
 
                 let node = NodeBuilder {
-                    hostname: "lavalink.clowdertech.com".to_string(),
+                    hostname: format!(
+                        "{}:{}",
+                        std::env::var("LAVALINK_HOST").expect("Missing LAVALINK_HOST"),
+                        std::env::var("LAVALINK_PORT").expect("Missing LAVALINK_PORT")
+                    ),
                     password: std::env::var("LAVALINK_PASSWORD")
                         .expect("Missing LAVALINK_PASSWORD"),
                     user_id: ctx.cache.current_user().id.get().into(),
-                    is_ssl: true,
-                    session_id: None,
+                    is_ssl: std::env::var("LAVALINK_SECURE")
+                        .expect("Missing LAVALINK_SECURE")
+                        .contains("true"),
+                    session_id: Some("oC1Q4hgcC4r5TGks".to_string()),
                     events: events::Events::default(),
                 };
 
-                let lavalink = LavalinkClient::new(
+                let lavalink_client = LavalinkClient::new(
                     events,
                     vec![node],
                     lavalink_rs::prelude::NodeDistributionStrategy::round_robin(),
@@ -101,7 +107,7 @@ async fn main() {
                         raw_client,
                         _ready.user.display_name().to_string(),
                     ),
-                    lavalink: lavalink,
+                    lavalink: lavalink_client,
                 })
             })
         })
@@ -124,7 +130,7 @@ async fn event_handler(
         serenity::FullEvent::Ready { data_about_bot, .. } => {
             println!("Client is ready! Logged in as {}", data_about_bot.user.name);
         }
-        serenity::FullEvent::CacheReady { guilds } => {
+        serenity::FullEvent::CacheReady { guilds: _ } => {
             println!("Cache built successfully!");
             if !LOOPS_RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
                 tokio::spawn(async move {
@@ -142,7 +148,7 @@ async fn event_handler(
                 LOOPS_RUNNING.swap(true, std::sync::atomic::Ordering::Relaxed);
             }
         }
-        serenity::FullEvent::VoiceStateUpdate { old, new } => {
+        serenity::FullEvent::VoiceStateUpdate { old: _, new } => {
             let mut voice_states = USER_VOICE_STATES.lock().await;
             if new.guild_id.is_some() && new.channel_id.is_some() {
                 voice_states.insert(new.user_id.get(), new);
@@ -194,7 +200,6 @@ async fn event_handler(
                 None => 1.0,
             };
             let multiplier = 2.0 * base_multiplier;
-            let multiplier = if multiplier == 0.0 { 1.0 } else { multiplier };
 
             // Prevent repeated triggering for the same user in memory
             let author_id_u64 = new_message.author.id.get();
@@ -254,7 +259,7 @@ async fn level_speakers_in_voice_chats(http: &serenity::Http, mongo_client: &Mon
 
         let guild_id = voice_state.guild_id.unwrap();
         let channel_id = voice_state.channel_id.unwrap();
-        let user_id = voice_state.user_id;
+        let user_id_obj = voice_state.user_id;
 
         // Mirror your TS condition:
         // ((!deaf && !mute && channelId !== guild.afkChannelId) || streaming)
@@ -319,7 +324,7 @@ async fn level_speakers_in_voice_chats(http: &serenity::Http, mongo_client: &Mon
                 Ok(Some(embed)) => {
                     // If you want to send the DM from here using serenity, do it now.
                     // Example (send an embed to the user as DM):
-                    user_id
+                    user_id_obj
                         .direct_message(&http, serenity::CreateMessage::new().embed(embed))
                         .await
                         .ok();

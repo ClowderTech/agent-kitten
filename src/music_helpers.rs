@@ -1,9 +1,5 @@
-use std::ops::Deref;
-
-use lavalink_rs::model::player::ConnectionInfo as LavalinkConnectionInfo;
-
 use poise::serenity_prelude as serenity;
-use serenity::{Http, Mentionable, model::id::ChannelId};
+use serenity::Mentionable;
 
 use crate::{Context, Error};
 
