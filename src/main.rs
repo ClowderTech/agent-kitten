@@ -199,7 +199,7 @@ async fn event_handler(
                 },
                 None => 1.0,
             };
-            let multiplier = 2.0 * base_multiplier;
+            let multiplier = 1.0 * base_multiplier;
 
             // Prevent repeated triggering for the same user in memory
             let author_id_u64 = new_message.author.id.get();
@@ -299,13 +299,9 @@ async fn level_speakers_in_voice_chats(http: &serenity::Http, mongo_client: &Mon
 
             // Compute multiplier like the TS expression:
             // ( !deaf && !mute ? 1 : 0 ) + ( streaming ? 1 : 0 ) * Number(getNestedKey(...))
-            let voice_presence_part = if !is_deaf && !is_mute { 1.0 } else { 0.0 };
-            let streaming_part = if is_streaming {
-                1.0 * base_multiplier
-            } else {
-                0.0
-            };
-            let multiplier = voice_presence_part + streaming_part;
+            let voice_presence_part = if !is_deaf && !is_mute { 0.5 } else { 0.0 };
+            let streaming_part = if is_streaming { 0.5 } else { 0.0 };
+            let multiplier = (voice_presence_part + streaming_part) * base_multiplier;
 
             // Build a channel URL similar to the TS code
             let channel_url = format!("https://discord.com/channels/{}/{}", guild_id, channel_id);
