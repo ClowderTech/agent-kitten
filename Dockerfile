@@ -1,13 +1,13 @@
 # syntax=docker/dockerfile:1
 
-ARG RUST_VERSION=1.90.0
+ARG RUST_VERSION=1.91.1
 ARG APP_NAME=agent-kitten-rust
 ARG UID=10001
 
 ################################################################################
 # Build stage: compile the Rust application on Debian slim
 
-FROM rust:${RUST_VERSION}-slim AS build
+FROM rust:${RUST_VERSION} AS build
 ARG APP_NAME
 
 # Set working directory
@@ -37,7 +37,10 @@ RUN apt-get update \
 # Compile in release mode, then copy the resulting binary to /bin/server.
 COPY . .
 
-RUN cargo build --locked --release && cp target/release/${APP_NAME} /bin/server
+RUN --mount=type=cache,target=/app/target/ \
+    --mount=type=cache,target=/usr/local/cargo/git/db \
+    --mount=type=cache,target=/usr/local/cargo/registry/ \
+    cargo build --locked --release && cp target/release/${APP_NAME} /bin/server
 
 ################################################################################
 # Runtime stage: minimal Debian slim environment
