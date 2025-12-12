@@ -78,7 +78,7 @@ pub async fn debug(ctx: Context<'_>) -> Result<(), Error> {
         //     true
         // )
         .field("Memory Usage", memory_usage, true)
-        .field("CPU Usage", format!("{cpu_usage} Cores"), true);
+        .field("CPU Usage", format!("{cpu_usage:.4} Cores"), true);
 
     ctx.send(poise::CreateReply::default().embed(embed)).await?;
 
