@@ -60,7 +60,7 @@ pub async fn debug(ctx: Context<'_>) -> Result<(), Error> {
         .timestamp(Utc::now())
         .field("Bot Latency", format!("{latency_ms:#?}"), true)
         .field("Bot Uptime", uptime_str, true)
-        .field("Bot Version", "3.0.0", true)
+        .field("Bot Version", "3.0.1", true)
         .field("Bot Owner", "<@!1208479777900470344>", true)
         .field(
             "Bot Administrators",
@@ -85,7 +85,7 @@ pub async fn debug(ctx: Context<'_>) -> Result<(), Error> {
         //     true
         // )
         .field("Memory Usage", memory_usage, true)
-        .field("CPU Usage", format!("{cpu_usage:.4} Cores"), true);
+        .field("CPU Usage", format!("{cpu_usage} Cores"), true);
 
     ctx.send(poise::CreateReply::default().embed(embed)).await?;
 
