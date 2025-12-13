@@ -42,13 +42,16 @@ pub async fn debug(ctx: Context<'_>) -> Result<(), Error> {
     let uptime_str = convert_millis_to_human_readable(uptime);
 
     use sysinfo::System;
-    let sys = System::new_all();
-    let process = sys
-        .process(sysinfo::get_current_pid().expect("failed to get PID"))
-        .expect("failed to get process");
-    let heap = process.memory();
+    let mut sys = System::new_all();
+    let current_process_id = sysinfo::get_current_pid().expect("Failed to get current process ID");
+    std::thread::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL);
+    sys.refresh_all();
+    let current_process = sys
+        .process(current_process_id)
+        .expect("Failed to get current process");
+    let heap = current_process.memory();
     let memory_usage = format_bytes(heap);
-    let cpu_usage = process.cpu_usage();
+    let cpu_usage = current_process.cpu_usage() / 100.0;
 
     // Build the embed
     let embed = CreateEmbed::default()
@@ -59,7 +62,11 @@ pub async fn debug(ctx: Context<'_>) -> Result<(), Error> {
         .field("Bot Uptime", uptime_str, true)
         .field("Bot Version", "0.1.0", true)
         .field("Bot Owner", "<@!1208479777900470344>", true)
-        .field("Bot Administrators", "<@!1208479777900470344>", true)
+        .field(
+            "Bot Administrators",
+            "<@!1208479777900470344>, <@!1250923829761675336>",
+            true,
+        )
         .field(
             "Bot Developers",
             "<@!1250923829761675336>, <@!1045011641940574208>, \
