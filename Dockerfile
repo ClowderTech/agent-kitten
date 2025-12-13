@@ -7,7 +7,7 @@ ARG UID=10001
 ################################################################################
 # Build stage: compile the Rust application on Debian slim
 
-FROM rust:${RUST_VERSION} AS build
+FROM rust:${RUST_VERSION}-trixie AS build
 ARG APP_NAME
 
 # Set working directory
@@ -45,7 +45,7 @@ RUN --mount=type=cache,target=/app/target/ \
 ################################################################################
 # Runtime stage: minimal Debian slim environment
 
-FROM debian:stable-slim AS final
+FROM debian:trixie AS final
 ARG UID
 
 # Install only what's needed to run the binary

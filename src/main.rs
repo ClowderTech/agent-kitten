@@ -8,6 +8,7 @@ use poise::serenity_prelude as serenity;
 use songbird::SerenityInit;
 use std::collections::HashSet;
 use std::sync::atomic::AtomicBool;
+use tokio::signal::unix::{SignalKind, signal};
 use tokio::sync::Mutex;
 
 use std::collections::HashMap;
@@ -113,11 +114,29 @@ async fn main() {
         })
         .build();
 
-    let client = serenity::ClientBuilder::new(token, intents)
+    let mut client = serenity::ClientBuilder::new(token, intents)
         .register_songbird()
         .framework(framework)
-        .await;
-    client.unwrap().start().await.unwrap();
+        .await
+        .expect("Error creating client");
+
+    let mut sig = signal(SignalKind::terminate()).expect("Not recognizing SIGTERM");
+
+    tokio::select! {
+        result = client.start_autosharded() => {
+            if let Err(err) = result {
+                println!("Client error: {err:?}");
+            }
+        }
+        _ = sig.recv() => {
+            println!("Received SIGTERM, shutting down gracefully...");
+            client.shard_manager.shutdown_all().await;
+        }
+        _ = tokio::signal::ctrl_c() => {
+            println!("Received CTRL + C, shutting down gracefully...");
+            client.shard_manager.shutdown_all().await;
+        }
+    }
 }
 
 async fn event_handler(

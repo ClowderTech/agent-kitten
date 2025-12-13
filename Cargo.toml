@@ -27,7 +27,15 @@ poise = { version = "0.6.1", features = [
   "chrono",
   "handle_panics",
 ], default-features = false }
-tokio = { version = "1.48.0", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1.48.0", features = [
+  "rt-multi-thread",
+  "macros",
+  "signal",
+  "time",
+  "sync",
+  "process",
+  "fs",
+] }
 songbird = { version = "0.5.0", features = [
   "gateway",
   "serenity",
