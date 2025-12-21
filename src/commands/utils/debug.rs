@@ -60,7 +60,7 @@ pub async fn debug(ctx: Context<'_>) -> Result<(), Error> {
         .timestamp(Utc::now())
         .field("Bot Latency", format!("{latency_ms:#?}"), true)
         .field("Bot Uptime", uptime_str, true)
-        .field("Bot Version", "3.0.1", true)
+        .field("Bot Version", "3.0.2", true)
         .field("Bot Owner", "<@!1208479777900470344>", true)
         .field(
             "Bot Administrators",
