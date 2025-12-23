@@ -10,7 +10,7 @@ checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
 
 [[package]]
 name = "agent-kitten-rust"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "async-openai",
  "barexp",
@@ -87,9 +87,9 @@ dependencies = [
 
 [[package]]
 name = "async-openai"
-version = "0.32.1"
+version = "0.32.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0827dbb7b06f98bf01e4aa4a4913adb17b4d1d6d4e82c0e905a84e5dcc95270"
+checksum = "afb7051804e03daf32cd7e45e7a655bb6cea9283309d2253babfb38c09f4ea03"
 dependencies = [
  "async-openai-macros",
  "backoff",
@@ -2775,9 +2775,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.145"
+version = "1.0.146"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "402a6f66d8c709116cf22f558eab210f5a50187f702eb4d7e5ef38d9a7f1c79c"
+checksum = "217ca874ae0207aac254aa02c957ded05585a90892cc8d87f9e5fa49669dadd8"
 dependencies = [
  "indexmap 2.12.1",
  "itoa",

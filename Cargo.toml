@@ -1,6 +1,6 @@
 [package]
 name = "agent-kitten-rust"
-version = "3.0.2"
+version = "3.0.3"
 edition = "2024"
 
 [dependencies]
@@ -53,10 +53,10 @@ sysinfo = { version = "0.37.2" }
 chrono = { version = "0.4.42" }
 mongodb = { version = "3.4.1" }
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = { version = "1.0.145" }
+serde_json = { version = "1.0.146" }
 serde_with = { version = "3.16.1" }
 futures = { version = "0.3.31" }
-async-openai = { version = "0.32.1", features = [
+async-openai = { version = "0.32.2", features = [
   "native-tls",
   "webhook",
   "responses",
@@ -82,11 +82,6 @@ tokio-tungstenite = { version = "0.28.0", features = [
   "native-tls",
   "tokio-native-tls",
 ] }
-
-[patch.crates-io]
-# poise = { git = "https://github.com/serenity-rs/poise", branch = "serenity-next" }
-# serenity = { git = "https://github.com/serenity-rs/serenity", rev = "5ffc96697025b4363995a158eb9f74e68024045c" }
-# songbird = { git = "https://github.com/serenity-rs/songbird", branch = "next" }
 
 [build-dependencies]
 barexp = { version = "1.1.1" }
