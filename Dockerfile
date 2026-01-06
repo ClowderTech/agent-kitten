@@ -45,7 +45,7 @@ RUN --mount=type=cache,target=/app/target/ \
 ################################################################################
 # Runtime stage: minimal Debian slim environment
 
-FROM debian:trixie AS final
+FROM debian:trixie-slim AS final
 ARG UID
 
 # Install only what's needed to run the binary

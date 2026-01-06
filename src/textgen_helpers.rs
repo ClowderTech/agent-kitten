@@ -114,7 +114,7 @@ pub async fn chat_with_funcs(
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TextgenDoc {
     #[serde(rename = "_id")]
-    pub id: Option<bson::oid::ObjectId>,
+    pub id: bson::oid::ObjectId,
     pub userid: String,
     pub messages: Vec<ChatCompletionRequestMessage>,
 }

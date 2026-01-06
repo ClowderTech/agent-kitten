@@ -7,6 +7,7 @@ use async_openai::types::chat::{
     ChatCompletionRequestMessage, ChatCompletionRequestSystemMessageArgs,
     ChatCompletionRequestUserMessageArgs,
 };
+use bson::oid::ObjectId;
 use mongodb::bson::doc;
 use poise::{CreateReply, serenity_prelude as serenity};
 use serenity::builder::CreateEmbed;
@@ -24,7 +25,7 @@ pub async fn chat(ctx: Context<'_>, message: String) -> Result<(), Error> {
 
     let default_messages: Vec<ChatCompletionRequestMessage> = vec![ChatCompletionRequestSystemMessageArgs::default().content("You are Agent Kitten, a helpful AI powered discord bot made by the ClowderTech LLC. You are here to help people with their problems or to interact with the person to help them feel better. Your own website is https://agentkitten.com/. Please make sure to use your tools and function calls whenever useful. You can search the internet, scrape websites, and execute typescript code. Also remember to follow discord's markdown syntax which is somewhat limited. You should ask questions to the user if it is needed to respond to them reasonably.").build()?.into()];
     let default_user_content = TextgenDoc {
-        id: None,
+        id: ObjectId::new(),
         userid: ctx.author().id.get().to_string(),
         messages: default_messages,
     };
