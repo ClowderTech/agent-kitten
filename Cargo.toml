@@ -56,7 +56,7 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.148" }
 serde_with = { version = "3.16.1" }
 futures = { version = "0.3.31" }
-async-openai = { version = "0.32.2", features = [
+async-openai = { version = "0.32.3", features = [
   "native-tls",
   "webhook",
   "responses",
