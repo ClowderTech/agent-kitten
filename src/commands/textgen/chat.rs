@@ -1,11 +1,11 @@
 use crate::{
     Context, Error,
-    textgen_helpers::{Funcs, TextgenDoc, chat_with_funcs},
+    textgen_helpers::{TextgenDoc, chat_with_funcs},
 };
 use ::serenity::all::{CreateEmbedAuthor, CreateEmbedFooter};
-use async_openai::types::chat::{
-    ChatCompletionRequestMessage, ChatCompletionRequestSystemMessageArgs,
-    ChatCompletionRequestUserMessageArgs,
+use async_openai::types::{
+    // mcp::{MCPToolAllowedTools, MCPToolArgs},
+    responses::{EasyInputMessage, EasyInputMessageArgs, Role},
 };
 use bson::oid::ObjectId;
 use mongodb::bson::doc;
@@ -23,7 +23,7 @@ pub async fn chat(ctx: Context<'_>, message: String) -> Result<(), Error> {
         .get_data::<TextgenDoc>("textgen", Some(filter.clone()))
         .await?;
 
-    let default_messages: Vec<ChatCompletionRequestMessage> = vec![ChatCompletionRequestSystemMessageArgs::default().content("You are Agent Kitten, a helpful AI powered discord bot made by the ClowderTech LLC. You are here to help people with their problems or to interact with the person to help them feel better. Your own website is https://agentkitten.com/. Please make sure to use your tools and function calls whenever useful. You can search the internet, scrape websites, and execute typescript code. Also remember to follow discord's markdown syntax which is somewhat limited. You should ask questions to the user if it is needed to respond to them reasonably.").build()?.into()];
+    let default_messages: Vec<EasyInputMessage> = vec![EasyInputMessageArgs::default().role(Role::System).content("You are Agent Kitten, a helpful AI powered discord bot made by the ClowderTech LLC. You are here to help people with their problems or to interact with the person to help them feel better. Your own website is https://agentkitten.com/. Please make sure to use your tools and function calls whenever useful. Also remember to follow discord's markdown syntax which is somewhat limited. You should ask questions to the user if it is needed to respond to them reasonably.").build()?];
     let default_user_content = TextgenDoc {
         id: ObjectId::new(),
         userid: ctx.author().id.get().to_string(),
@@ -33,14 +33,19 @@ pub async fn chat(ctx: Context<'_>, message: String) -> Result<(), Error> {
 
     let mut messages = user_content.messages.clone();
 
-    let user_message: ChatCompletionRequestMessage =
-        ChatCompletionRequestUserMessageArgs::default()
-            .content(message)
-            .build()?
-            .into();
+    let user_message = EasyInputMessageArgs::default()
+        .role(Role::User)
+        .content(message)
+        .build()?;
     messages.push(user_message);
 
-    let (new_messages, response) = chat_with_funcs(messages, Funcs::from([])).await?;
+    //let search_mcp = MCPToolArgs::default()
+    //    .server_label("searxng")
+    //    .server_url("")
+    //    .allowed_tools(MCPToolAllowedTools::from(vec!["*"]))
+    //    .build()?;
+
+    let (new_messages, response) = chat_with_funcs(messages, vec![]).await?;
 
     let new_user_content = TextgenDoc {
         id: user_content.id,
@@ -57,13 +62,7 @@ pub async fn chat(ctx: Context<'_>, message: String) -> Result<(), Error> {
         )
         .await?;
 
-    let new_message = response.choices[0]
-        .message
-        .content
-        .clone()
-        .unwrap_or_default();
-
-    for chunk in split_text(new_message.as_str(), 4000) {
+    for chunk in split_text(response.as_str(), 4000) {
         let embed = CreateEmbed::default()
             .author(
                 CreateEmbedAuthor::new(ctx.http().get_current_user().await?.display_name())
