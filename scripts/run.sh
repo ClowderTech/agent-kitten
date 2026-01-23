@@ -2,4 +2,4 @@
 set -o allexport
 source .env
 set +o allexport
-cargo run
+RUST_BACKTRACE=1 cargo run

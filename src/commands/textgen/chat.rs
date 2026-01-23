@@ -1,15 +1,19 @@
+use std::collections::HashMap;
+
 use crate::{
     Context, Error,
-    textgen_helpers::{TextgenDoc, chat_with_funcs},
+    textgen_helpers::{DynError, TextgenDoc, ToolsHandler, chat_with_funcs},
 };
 use ::serenity::all::{CreateEmbedAuthor, CreateEmbedFooter};
-use async_openai::types::{
-    // mcp::{MCPToolAllowedTools, MCPToolArgs},
-    responses::{EasyInputMessage, EasyInputMessageArgs, Role},
+use async_openai::types::chat::{
+    ChatCompletionRequestMessage, ChatCompletionRequestSystemMessageArgs,
+    ChatCompletionRequestUserMessageArgs, ChatCompletionTool, FunctionObjectArgs,
 };
 use bson::oid::ObjectId;
+use futures::FutureExt;
 use mongodb::bson::doc;
 use poise::{CreateReply, serenity_prelude as serenity};
+use serde_json::{Value, json};
 use serenity::builder::CreateEmbed;
 
 #[poise::command(slash_command, prefix_command)]
@@ -23,7 +27,7 @@ pub async fn chat(ctx: Context<'_>, message: String) -> Result<(), Error> {
         .get_data::<TextgenDoc>("textgen", Some(filter.clone()))
         .await?;
 
-    let default_messages: Vec<EasyInputMessage> = vec![EasyInputMessageArgs::default().role(Role::System).content("You are Agent Kitten, a helpful AI powered discord bot made by the ClowderTech LLC. You are here to help people with their problems or to interact with the person to help them feel better. Your own website is https://agentkitten.com/. Please make sure to use your tools and function calls whenever useful. Also remember to follow discord's markdown syntax which is somewhat limited. You should ask questions to the user if it is needed to respond to them reasonably.").build()?];
+    let default_messages: Vec<ChatCompletionRequestMessage> = vec![ChatCompletionRequestSystemMessageArgs::default().content("You are Agent Kitten, a helpful AI powered discord bot made by the ClowderTech LLC. You are here to help people with their problems or to interact with the person to help them feel better. Your own website is https://agentkitten.com/. Please make sure to use your tools and function calls whenever useful. You can search the internet, scrape websites, and execute typescript code. Also remember to follow discord's markdown syntax which is somewhat limited. You should ask questions to the user if it is needed to respond to them reasonably.").build()?.into()];
     let default_user_content = TextgenDoc {
         id: ObjectId::new(),
         userid: ctx.author().id.get().to_string(),
@@ -33,19 +37,27 @@ pub async fn chat(ctx: Context<'_>, message: String) -> Result<(), Error> {
 
     let mut messages = user_content.messages.clone();
 
-    let user_message = EasyInputMessageArgs::default()
-        .role(Role::User)
+    let user_message = ChatCompletionRequestUserMessageArgs::default()
         .content(message)
         .build()?;
-    messages.push(user_message);
 
-    //let search_mcp = MCPToolArgs::default()
-    //    .server_label("searxng")
-    //    .server_url("")
-    //    .allowed_tools(MCPToolAllowedTools::from(vec!["*"]))
-    //    .build()?;
+    messages.push(user_message.into());
 
-    let (new_messages, response) = chat_with_funcs(messages, vec![]).await?;
+    let mut tool_registry: HashMap<String, ToolsHandler> = HashMap::new();
+
+    let search_tool: std::sync::Arc<ChatCompletionTool> = std::sync::Arc::new(ChatCompletionTool { function: FunctionObjectArgs::default().name("search").description("Use a search engine to find information on the given query.").parameters(json!({"type": "object", "properties": {"query": {"type": "string", "description": "What information to retrieve about on the search engine."}}, "required": ["query"], "additionalProperties": false})).strict(true).build().expect("L rizz")});
+
+    let search_handler = ToolsHandler::new(search_tool, |input: Value| {
+        async move {
+            let result = search_searx(input).await.expect("L rizz");
+            Ok(result)
+        }
+        .boxed()
+    });
+
+    tool_registry.insert("search".to_string(), search_handler);
+
+    let (new_messages, response) = chat_with_funcs(messages, tool_registry).await?;
 
     let new_user_content = TextgenDoc {
         id: user_content.id,
@@ -62,7 +74,13 @@ pub async fn chat(ctx: Context<'_>, message: String) -> Result<(), Error> {
         )
         .await?;
 
-    for chunk in split_text(response.as_str(), 4000) {
+    let new_message = response.choices[0]
+        .message
+        .content
+        .clone()
+        .unwrap_or_default();
+
+    for chunk in split_text(new_message.as_str(), 4000) {
         let embed = CreateEmbed::default()
             .author(
                 CreateEmbedAuthor::new(ctx.http().get_current_user().await?.display_name())
@@ -87,6 +105,38 @@ pub async fn chat(ctx: Context<'_>, message: String) -> Result<(), Error> {
     }
 
     Ok(())
+}
+
+pub async fn search_searx(value: Value) -> Result<String, DynError> {
+    let query = value["query"].as_str().expect("u suhhhh");
+
+    let query_encoded: String = urlencoding::encode(query).into_owned();
+
+    let mut full_url_query: String = "https://searx.clowdertech.com/search?q=".to_owned();
+    full_url_query.push_str(query_encoded.as_str());
+    full_url_query.push_str("&format=json");
+
+    let response = reqwest::get(full_url_query).await.unwrap();
+
+    let response_text = response.text().await.unwrap();
+
+    let response_json: serde_json::Value =
+        serde_json::from_str(response_text.as_str()).expect("JSON was ass bro wtf");
+
+    let mut final_result: String = "".to_owned();
+
+    for result in response_json["results"].as_array().expect("L rizz") {
+        final_result.push_str(" --- ");
+        final_result.push_str(result["url"].as_str().expect("L rizz"));
+        final_result.push_str(" - ");
+        final_result.push_str(result["title"].as_str().expect("L rizz"));
+        final_result.push_str(" - ");
+        final_result.push_str(result["content"].as_str().expect("L rizz"));
+    }
+
+    let final_string = final_result.replacen(" --- ", "", 1);
+
+    Ok(final_string)
 }
 
 pub fn split_text(text: &str, max_length: usize) -> Vec<String> {
