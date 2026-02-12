@@ -1,5 +1,5 @@
 [package]
-name = "agent-kitten-rust"
+name = "agent-kitten"
 version = "3.2.1"
 edition = "2024"
 

@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
-ARG RUST_VERSION=1.93.0
-ARG APP_NAME=agent-kitten-rust
+ARG RUST_VERSION=1.93.1
+ARG APP_NAME=agent-kitten
 ARG UID=10001
 
 ################################################################################
