@@ -110,11 +110,12 @@ pub async fn chat(ctx: Context<'_>, message: String) -> Result<(), Error> {
 pub async fn search_searx(value: Value) -> Result<String, DynError> {
     let query = value["query"].as_str().expect("u suhhhh");
 
-    let query_encoded: String = urlencoding::encode(query).into_owned();
+    let query_encoded: String = urlencoding::encode(query).to_string();
 
-    let mut full_url_query: String = "https://searx.clowdertech.com/search?q=".to_owned();
-    full_url_query.push_str(query_encoded.as_str());
-    full_url_query.push_str("&format=json");
+    let full_url_query = format!(
+        "https://searx.clowdertech.com/search?q={}&format=json",
+        query_encoded.as_str()
+    );
 
     let response = reqwest::get(full_url_query).await.unwrap();
 
@@ -123,15 +124,16 @@ pub async fn search_searx(value: Value) -> Result<String, DynError> {
     let response_json: serde_json::Value =
         serde_json::from_str(response_text.as_str()).expect("JSON was ass bro wtf");
 
-    let mut final_result: String = "".to_owned();
+    let mut final_result = "".to_string();
 
     for result in response_json["results"].as_array().expect("L rizz") {
-        final_result.push_str(" --- ");
-        final_result.push_str(result["url"].as_str().expect("L rizz"));
-        final_result.push_str(" - ");
-        final_result.push_str(result["title"].as_str().expect("L rizz"));
-        final_result.push_str(" - ");
-        final_result.push_str(result["content"].as_str().expect("L rizz"));
+        let result_string = format!(
+            " --- {} - {} - {}",
+            result["url"].as_str().expect("L rizz"),
+            result["title"].as_str().expect("L rizz"),
+            result["content"].as_str().expect("L rizz")
+        );
+        final_result.push_str(result_string.as_str());
     }
 
     let final_string = final_result.replacen(" --- ", "", 1);
