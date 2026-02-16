@@ -50,7 +50,7 @@ lavalink-rs = { version = "0.14.3", features = [
   "macros",
   "tungstenite-native-tls",
 ], default-features = false }
-sysinfo = { version = "0.38.1" }
+sysinfo = { version = "0.38.2" }
 chrono = { version = "0.4.43" }
 mongodb = { version = "3.5.1" }
 serde = { version = "1.0.228", features = ["derive"] }
