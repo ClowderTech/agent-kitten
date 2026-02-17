@@ -50,13 +50,13 @@ lavalink-rs = { version = "0.14.3", features = [
   "macros",
   "tungstenite-native-tls",
 ], default-features = false }
-sysinfo = { version = "0.38.1" }
+sysinfo = { version = "0.38.2" }
 chrono = { version = "0.4.43" }
 mongodb = { version = "3.5.1" }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.149" }
 serde_with = { version = "3.16.1" }
-futures = { version = "0.3.31" }
+futures = { version = "0.3.32" }
 async-openai = { version = "0.32.4", features = [
   "native-tls",
   "webhook",
