@@ -114,7 +114,7 @@ pub async fn chat_with_funcs(
     Ok((full_response, response))
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TextgenDoc {
     #[serde(rename = "_id")]
     pub id: bson::oid::ObjectId,

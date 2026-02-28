@@ -1,7 +1,7 @@
-pub mod debug;
 pub mod help;
+pub mod debug;
 
 pub use self::{
-    debug::*,
     help::*,
+    debug::*,
 };

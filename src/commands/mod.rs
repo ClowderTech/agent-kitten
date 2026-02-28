@@ -1,13 +1,13 @@
-pub mod utils;
-pub mod textgen;
 pub mod leveling;
 pub mod config;
 pub mod music;
+pub mod utils;
+pub mod textgen;
 
 pub use self::{
-    utils::*,
-    textgen::*,
     leveling::*,
     config::*,
     music::*,
+    utils::*,
+    textgen::*,
 };

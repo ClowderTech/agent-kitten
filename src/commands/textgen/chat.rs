@@ -27,13 +27,21 @@ pub async fn chat(ctx: Context<'_>, message: String) -> Result<(), Error> {
         .get_data::<TextgenDoc>("textgen", Some(filter.clone()))
         .await?;
 
-    let default_messages: Vec<ChatCompletionRequestMessage> = vec![ChatCompletionRequestSystemMessageArgs::default().content("You are Agent Kitten, a helpful AI powered discord bot made by the ClowderTech LLC. You are here to help people with their problems or to interact with the person to help them feel better. Your own website is https://agentkitten.com/. Please make sure to use your tools and function calls whenever useful. You can search the internet, scrape websites, and execute typescript code. Also remember to follow discord's markdown syntax which is somewhat limited. You should ask questions to the user if it is needed to respond to them reasonably.").build()?.into()];
-    let default_user_content = TextgenDoc {
-        id: ObjectId::new(),
-        userid: ctx.author().id.get().to_string(),
-        messages: default_messages,
+    let user_content: TextgenDoc = match content.first() {
+        Some(fetched_content) => fetched_content.clone(),
+        None => {
+            let locale = ctx.locale().unwrap_or("en-US");
+
+            let default_messages: Vec<ChatCompletionRequestMessage> = vec![ChatCompletionRequestSystemMessageArgs::default().content(format!("You are Agent Kitten, a helpful AI powered discord bot made by the ClowderTech LLC. You are here to help people with their problems or to interact with the person to help them feel better. Your own website is https://agentkitten.com/. Please make sure to use your tools and function calls whenever useful. You can search the internet, scrape websites, and execute typescript code. Also remember to follow discord's markdown syntax which is somewhat limited. You should ask questions to the user if it is needed to respond to them reasonably. The user's specified locale is {}", locale)).build().expect("L rizz").into()];
+            let default_content = TextgenDoc {
+                id: ObjectId::new(),
+                userid: ctx.author().id.get().to_string(),
+                messages: default_messages,
+            };
+
+            default_content
+        }
     };
-    let user_content = content.first().unwrap_or(&default_user_content);
 
     let mut messages = user_content.messages.clone();
 
@@ -117,18 +125,19 @@ pub async fn search_searx(value: Value) -> Result<String, DynError> {
         query_encoded.as_str()
     );
 
-    let response = reqwest::get(full_url_query).await.unwrap();
-
-    let response_text = response.text().await.unwrap();
-
-    let response_json: serde_json::Value =
-        serde_json::from_str(response_text.as_str()).expect("JSON was ass bro wtf");
+    let response = reqwest::get(full_url_query)
+        .await?
+        .json::<serde_json::Value>()
+        .await?;
 
     let mut final_result = "".to_string();
+    let mut iteration: u8 = 0;
 
-    for result in response_json["results"].as_array().expect("L rizz") {
+    for result in response["results"].as_array().expect("L rizz") {
+        iteration += 1;
         let result_string = format!(
-            " --- {} - {} - {}",
+            "{}. {} - {} - {}\n",
+            iteration,
             result["url"].as_str().expect("L rizz"),
             result["title"].as_str().expect("L rizz"),
             result["content"].as_str().expect("L rizz")
@@ -136,7 +145,7 @@ pub async fn search_searx(value: Value) -> Result<String, DynError> {
         final_result.push_str(result_string.as_str());
     }
 
-    let final_string = final_result.replacen(" --- ", "", 1);
+    let final_string = final_result.trim().to_string();
 
     Ok(final_string)
 }
