@@ -43,13 +43,9 @@ pub async fn _join(
 
         match handler {
             Ok((connection_info, _)) => {
-                let info = lavalink_rs::model::player::ConnectionInfo {
-                    token: connection_info.token,
-                    endpoint: connection_info.endpoint,
-                    session_id: connection_info.session_id,
-                };
-
-                lava_client.create_player_context(guild_id, info).await?;
+                lava_client
+                    .create_player_context(guild_id, connection_info)
+                    .await?;
 
                 ctx.say(format!("Joined {}", connect_to.mention())).await?;
 
