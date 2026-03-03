@@ -53,7 +53,7 @@ pub async fn chat(ctx: Context<'_>, message: String) -> Result<(), Error> {
 
     let mut tool_registry: HashMap<String, ToolsHandler> = HashMap::new();
 
-    let search_tool: std::sync::Arc<ChatCompletionTool> = std::sync::Arc::new(ChatCompletionTool { function: FunctionObjectArgs::default().name("search").description("Use a search engine to find information on the given query.").parameters(json!({"type": "object", "properties": {"query": {"type": "string", "description": "What information to retrieve about on the search engine."}}, "required": ["query"], "additionalProperties": false})).strict(true).build().expect("L rizz")});
+    let search_tool: std::sync::Arc<ChatCompletionTool> = std::sync::Arc::new(ChatCompletionTool { function: FunctionObjectArgs::default().name("websearch").description("Use a search engine to find information on the given query.").parameters(json!({"type": "object", "properties": {"query": {"type": "string", "description": "What information to retrieve about on the search engine."}}, "required": ["query"], "additionalProperties": false})).strict(true).build().expect("L rizz")});
 
     let search_handler = ToolsHandler::new(search_tool, |input: Value| {
         async move {
@@ -63,7 +63,7 @@ pub async fn chat(ctx: Context<'_>, message: String) -> Result<(), Error> {
         .boxed()
     });
 
-    tool_registry.insert("search".to_string(), search_handler);
+    tool_registry.insert("websearch".to_string(), search_handler);
 
     let (new_messages, response) = chat_with_funcs(messages, tool_registry).await?;
 

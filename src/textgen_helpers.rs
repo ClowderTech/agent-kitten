@@ -53,61 +53,105 @@ pub async fn chat_with_funcs(
 > {
     let mut full_response = messages.clone();
 
+    // convert provided ToolsHandler -> ChatCompletionTools list
     let mut tools: Vec<ChatCompletionTools> = Vec::new();
-
     for tools_handler in functions.values() {
         let tool = (*tools_handler.tools()).clone();
         tools.push(ChatCompletionTools::Function(tool));
     }
 
-    let request = CreateChatCompletionRequest {
+    let client = OpenAIClient::new();
+
+    // send initial request
+    let mut request = CreateChatCompletionRequest {
         model: "qwen3.5:35b".to_string(),
         messages: full_response.clone(),
-        tools: Some(tools),
+        tools: Some(tools.clone()),
         ..Default::default()
     };
 
-    let client = OpenAIClient::new();
-
     let chat_response = client.chat().create(request).await?;
     let mut response: CreateChatCompletionResponse = chat_response.clone();
-    let serialized = serde_json::to_string(&chat_response.choices[0].message).unwrap();
-    let deserialized: ChatCompletionRequestMessage = serde_json::from_str(&serialized).unwrap();
+
+    // convert the model's first message into a request-message and push it
+    // (keep your serialization round-trip since types differ)
+    let serialized = serde_json::to_string(&chat_response.choices[0].message)?;
+    let deserialized: ChatCompletionRequestMessage = serde_json::from_str(&serialized)?;
     full_response.push(deserialized);
 
-    while let Some(tool_calls) = response
-        .choices
-        .first()
-        .ok_or("No choices")?
-        .message
-        .tool_calls
-        .clone()
-    {
+    // loop: while the latest choice contains tool calls, execute them, push tool messages, and re-call model
+    loop {
+        // ensure we have at least one choice
+        if response.choices.is_empty() {
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "No choices in response",
+            )));
+        }
+
+        // examine the first choice's tool_calls
+        let choice = response.choices[0].clone();
+        let tool_calls_opt = choice.message.tool_calls.clone();
+
+        // if no tool calls -> break
+        let tool_calls = match tool_calls_opt {
+            Some(tc) if !tc.is_empty() => tc,
+            _ => break,
+        };
+
+        // execute each tool call
         for tool_call_enum in tool_calls {
             if let ChatCompletionMessageToolCalls::Function(tool_call) = tool_call_enum {
-                let func = &functions[&tool_call.function.name];
-                let func_args: serde_json::Value = tool_call.function.arguments.parse().unwrap();
-                let tool_call_response: String = func.execute(func_args).await?;
-                let tool_message = ChatCompletionRequestToolMessageArgs::default()
-                    .content(tool_call_response)
-                    .tool_call_id(tool_call.id.clone())
-                    .build()
-                    .unwrap()
-                    .into();
-                full_response.push(tool_message);
+                let function_name = &tool_call.function.name;
+
+                // find the handler
+                match functions.get(function_name) {
+                    Some(handler) => {
+                        // parse the arguments as JSON Value (fall back to Null on parse error)
+                        let func_args: Value = serde_json::from_str(&tool_call.function.arguments)
+                            .unwrap_or(Value::Null);
+
+                        // execute handler (handler.execute returns a BoxFuture -> await it)
+                        let tool_call_response: String = handler.execute(func_args).await?;
+
+                        // build a tool message and append to full_response
+                        let tool_message = ChatCompletionRequestToolMessageArgs::default()
+                            .content(tool_call_response)
+                            .tool_call_id(tool_call.id.clone())
+                            .build()?
+                            .into();
+
+                        full_response.push(tool_message);
+                    }
+                    None => {
+                        // unknown function name — push an error-style tool message so the model sees it
+                        let err_text =
+                            format!("No handler registered for function: {}", function_name);
+                        let tool_message = ChatCompletionRequestToolMessageArgs::default()
+                            .content(err_text)
+                            .tool_call_id(tool_call.id.clone())
+                            .build()?
+                            .into();
+                        full_response.push(tool_message);
+                    }
+                }
             }
         }
 
-        let request = CreateChatCompletionRequest {
-            model: "gpt-oss:20b".to_string(),
+        // re-call the model with the updated full_response (which now includes tool replies)
+        request = CreateChatCompletionRequest {
+            model: "qwen3.5:35b".to_string(),
             messages: full_response.clone(),
+            tools: Some(tools.clone()),
             ..Default::default()
         };
 
         let chat_response = client.chat().create(request).await?;
         response = chat_response.clone();
-        let serialized = serde_json::to_string(&chat_response.choices[0].message).unwrap();
-        let deserialized: ChatCompletionRequestMessage = serde_json::from_str(&serialized).unwrap();
+
+        // push the model's produced message into the conversation history (round-trip again)
+        let serialized = serde_json::to_string(&chat_response.choices[0].message)?;
+        let deserialized: ChatCompletionRequestMessage = serde_json::from_str(&serialized)?;
         full_response.push(deserialized);
     }
 
