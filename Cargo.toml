@@ -1,6 +1,6 @@
 [package]
 name = "agent-kitten"
-version = "3.2.7"
+version = "3.2.8"
 edition = "2024"
 
 [dependencies]
@@ -50,7 +50,7 @@ lavalink-rs = { version = "0.15.0", features = [
   "macros",
   "tungstenite-native-tls",
 ], default-features = false }
-sysinfo = { version = "0.38.2" }
+sysinfo = { version = "0.38.3" }
 chrono = { version = "0.4.44" }
 mongodb = { version = "3.5.1" }
 serde = { version = "1.0.228", features = ["derive"] }

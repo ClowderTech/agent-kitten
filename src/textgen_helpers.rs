@@ -61,7 +61,7 @@ pub async fn chat_with_funcs(
     }
 
     let request = CreateChatCompletionRequest {
-        model: "gpt-oss:20b".to_string(),
+        model: "qwen3.5:35b".to_string(),
         messages: full_response.clone(),
         tools: Some(tools),
         ..Default::default()
