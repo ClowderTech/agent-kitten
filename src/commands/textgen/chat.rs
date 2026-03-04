@@ -17,7 +17,7 @@ use serde_json::{Value, json};
 use serenity::builder::CreateEmbed;
 
 /// Chat with Agent Kitten using Qwen 3.5
-#[poise::command(slash_command, user_cooldown = 10)]
+#[poise::command(slash_command, user_cooldown = 15)]
 pub async fn chat(ctx: Context<'_>, message: String) -> Result<(), Error> {
     ctx.defer().await?;
 
@@ -33,7 +33,7 @@ pub async fn chat(ctx: Context<'_>, message: String) -> Result<(), Error> {
         None => {
             let locale = ctx.locale().unwrap_or("en-US");
 
-            let default_messages: Vec<ChatCompletionRequestMessage> = vec![ChatCompletionRequestSystemMessageArgs::default().content(format!("You are Agent Kitten, a helpful AI powered discord bot made by the ClowderTech LLC. You are here to help people with their problems or to interact with the person to help them feel better. Your own website is https://agentkitten.com/. Please make sure to use your tools and function calls whenever useful. You can search the internet, scrape websites, and execute typescript code. Also remember to follow discord's markdown syntax which is somewhat limited. You should ask questions to the user if it is needed to respond to them reasonably. The user's specified locale is {}. There is no need to overthink the question.", locale)).build().expect("L rizz").into()];
+            let default_messages: Vec<ChatCompletionRequestMessage> = vec![ChatCompletionRequestSystemMessageArgs::default().content(format!("You are Agent Kitten, a helpful AI powered discord bot made by the ClowderTech LLC. You are here to help people with their problems or to interact with the person to help them feel better. Your own website is https://agentkitten.com/. Please make sure to use your tools and function calls whenever useful. Also remember to follow discord's markdown syntax which is somewhat limited. You should ask questions to the user if it is needed to respond to them reasonably. The user's specified locale is {}. There is no need to overthink the question.", locale)).build().expect("L rizz").into()];
             let default_content = TextgenDoc {
                 id: ObjectId::new(),
                 userid: ctx.author().id.get().to_string(),

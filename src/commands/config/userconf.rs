@@ -17,15 +17,13 @@ fn config_to_pretty(cfg: &Config) -> String {
 }
 
 /// Root slash command with subcommands: set, get, setraw, getraw
-#[poise::command(
-    slash_command,
-    subcommands("set", "get", "setraw", "getraw")
-)]
+#[poise::command(slash_command, subcommands("set", "get", "setraw", "getraw"))]
 pub async fn userconf(_ctx: Context<'_, Data, Error>) -> Result<(), Error> {
     // Root is just a grouping for subcommands; do nothing here.
     Ok(())
 }
 
+/// Set a configuration option for yourself
 #[poise::command(slash_command)]
 pub async fn set(
     ctx: Context<'_, Data, Error>,
@@ -96,6 +94,7 @@ pub async fn set(
     Ok(())
 }
 
+/// View a configuration option for yourself
 #[poise::command(slash_command)]
 pub async fn get(
     ctx: Context<'_, Data, Error>,
@@ -135,6 +134,7 @@ pub async fn get(
     Ok(())
 }
 
+/// Set the raw json configuration options for the server
 #[poise::command(slash_command)]
 pub async fn setraw(
     ctx: Context<'_, Data, Error>,
@@ -198,6 +198,7 @@ pub async fn setraw(
     Ok(())
 }
 
+/// View the raw json configuration options for the server
 #[poise::command(slash_command)]
 pub async fn getraw(ctx: Context<'_, Data, Error>) -> Result<(), Error> {
     let user_id = ctx.author().id.to_string();

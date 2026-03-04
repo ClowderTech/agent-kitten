@@ -53,6 +53,9 @@ pub async fn debug(ctx: Context<'_>) -> Result<(), Error> {
     let heap = current_process.memory();
     let memory_usage = format_bytes(heap);
     let cpu_usage = current_process.cpu_usage() / 100.0;
+    let shard_id = ctx.serenity_context().shard_id;
+    let amount_users = ctx.serenity_context().cache.user_count();
+    let amount_guilds = ctx.serenity_context().cache.guild_count();
 
     // Build the embed
     let embed = CreateEmbed::default()
@@ -79,12 +82,9 @@ pub async fn debug(ctx: Context<'_>) -> Result<(), Error> {
             "<@!1139185365597573180>, <@!879313965790920764>",
             true,
         )
-        // .field(
-        //     "User Count",
-        //     // approximate user installs or fallback to cache size
-        //     format!("{}", ctx.serenity_context().cache.user_count()),
-        //     true
-        // )
+        .field("User Count", amount_users.to_string(), true)
+        .field("Guild Count", amount_guilds.to_string(), true)
+        .field("Current Shard ID", shard_id.to_string(), true)
         .field("Memory Usage", memory_usage, true)
         .field("CPU Usage", format!("{cpu_usage} Cores"), true);
 

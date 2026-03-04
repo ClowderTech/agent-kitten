@@ -33,6 +33,7 @@ pub async fn serverconf(_ctx: Context<'_, Data, Error>) -> Result<(), Error> {
     Ok(())
 }
 
+/// Set a configuration option for the server
 #[poise::command(slash_command)]
 pub async fn set(
     ctx: Context<'_, Data, Error>,
@@ -101,6 +102,7 @@ pub async fn set(
     Ok(())
 }
 
+/// View a configuration option for the server
 #[poise::command(slash_command)]
 pub async fn get(
     ctx: Context<'_, Data, Error>,
@@ -141,6 +143,7 @@ pub async fn get(
     Ok(())
 }
 
+/// Set the raw json configuration options for the server
 #[poise::command(slash_command)]
 pub async fn setraw(
     ctx: Context<'_, Data, Error>,
@@ -205,6 +208,7 @@ pub async fn setraw(
     Ok(())
 }
 
+/// View the raw json configuration options for the server
 #[poise::command(slash_command)]
 pub async fn getraw(ctx: Context<'_, Data, Error>) -> Result<(), Error> {
     let guild_id = match ctx.guild_id() {

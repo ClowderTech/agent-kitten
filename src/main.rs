@@ -148,6 +148,10 @@ async fn event_handler(
     match event {
         serenity::FullEvent::Ready { data_about_bot, .. } => {
             println!("Client is ready! Logged in as {}", data_about_bot.user.name);
+            ctx.set_presence(
+                Some(serenity::ActivityData::watching("My pizza in the oven")),
+                serenity::OnlineStatus::Online,
+            );
         }
         serenity::FullEvent::CacheReady { guilds: _ } => {
             println!("Cache built successfully!");
