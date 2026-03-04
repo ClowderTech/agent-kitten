@@ -2,7 +2,7 @@ use crate::{Context, Error};
 use std::time::Duration;
 
 /// Jump to a specific time in the song, in seconds.
-#[poise::command(slash_command, prefix_command)]
+#[poise::command(slash_command, guild_only)]
 pub async fn seek(
     ctx: Context<'_>,
     #[description = "Time to jump to (in seconds)"] time: u64,
@@ -27,4 +27,3 @@ pub async fn seek(
 
     Ok(())
 }
-

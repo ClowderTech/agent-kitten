@@ -3,7 +3,8 @@ use mongodb::bson::doc;
 
 use poise::CreateReply;
 
-#[poise::command(slash_command, prefix_command)]
+/// Reset your chat logs for Agent Kitten
+#[poise::command(slash_command)]
 pub async fn chatreset(ctx: Context<'_>) -> Result<(), Error> {
     let mongoclient = ctx.data().mongoclient.clone();
 

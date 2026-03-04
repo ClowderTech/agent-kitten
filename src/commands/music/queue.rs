@@ -3,7 +3,7 @@ use futures::StreamExt;
 use crate::{Context, Error};
 
 /// Add a song to the queue
-#[poise::command(slash_command, prefix_command)]
+#[poise::command(slash_command, guild_only)]
 pub async fn queue(ctx: Context<'_>) -> Result<(), Error> {
     let guild_id = ctx.guild_id().unwrap();
 

@@ -20,10 +20,10 @@ fn config_to_pretty(cfg: &Config) -> String {
 #[poise::command(
     slash_command,
     subcommands(
-        "serverconf_set",
-        "serverconf_get",
-        "serverconf_setraw",
-        "serverconf_getraw"
+        "set",
+        "get",
+        "setraw",
+        "getraw"
     ),
     required_permissions = "ADMINISTRATOR",
     default_member_permissions = "ADMINISTRATOR",
@@ -34,7 +34,7 @@ pub async fn serverconf(_ctx: Context<'_, Data, Error>) -> Result<(), Error> {
 }
 
 #[poise::command(slash_command)]
-pub async fn serverconf_set(
+pub async fn set(
     ctx: Context<'_, Data, Error>,
     #[description = "The configuration key you want to set"] key: String,
     #[description = "The configuration value to set (JSON or raw string)"] value: String,
@@ -102,7 +102,7 @@ pub async fn serverconf_set(
 }
 
 #[poise::command(slash_command)]
-pub async fn serverconf_get(
+pub async fn get(
     ctx: Context<'_, Data, Error>,
     #[description = "The configuration key you want to get"] key: String,
 ) -> Result<(), Error> {
@@ -142,7 +142,7 @@ pub async fn serverconf_get(
 }
 
 #[poise::command(slash_command)]
-pub async fn serverconf_setraw(
+pub async fn setraw(
     ctx: Context<'_, Data, Error>,
     #[description = "The raw configuration value as a JSON string"] value: String,
 ) -> Result<(), Error> {
@@ -206,7 +206,7 @@ pub async fn serverconf_setraw(
 }
 
 #[poise::command(slash_command)]
-pub async fn serverconf_getraw(ctx: Context<'_, Data, Error>) -> Result<(), Error> {
+pub async fn getraw(ctx: Context<'_, Data, Error>) -> Result<(), Error> {
     let guild_id = match ctx.guild_id() {
         Some(g) => g.to_string(),
         None => {

@@ -1,7 +1,7 @@
 use crate::{Context, Error};
 
 /// Join the specified voice channel or the one you are currently in.
-#[poise::command(slash_command, prefix_command)]
+#[poise::command(slash_command, guild_only)]
 pub async fn join(
     ctx: Context<'_>,
     #[description = "The channel ID to join to."]

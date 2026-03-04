@@ -1,7 +1,7 @@
 use crate::{Context, Error};
 
 /// Swap between 2 songs in the queue.
-#[poise::command(slash_command, prefix_command)]
+#[poise::command(slash_command, guild_only)]
 pub async fn swap(
     ctx: Context<'_>,
     #[description = "Queue item index to swap"] index1: usize,
@@ -38,4 +38,3 @@ pub async fn swap(
 
     Ok(())
 }
-

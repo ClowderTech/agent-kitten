@@ -4,7 +4,7 @@ use lavalink_rs::model::track::TrackLoadData;
 use lavalink_rs::player_context::TrackInQueue;
 
 /// Play a song in the voice channel you are connected in.
-#[poise::command(slash_command, prefix_command)]
+#[poise::command(slash_command, guild_only)]
 pub async fn play(
     ctx: Context<'_>,
     #[description = "Search term or URL"]

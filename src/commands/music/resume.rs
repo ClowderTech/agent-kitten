@@ -1,7 +1,7 @@
 use crate::{Context, Error};
 
 /// Resume playing the current song.
-#[poise::command(slash_command, prefix_command)]
+#[poise::command(slash_command, guild_only)]
 pub async fn resume(ctx: Context<'_>) -> Result<(), Error> {
     let guild_id = ctx.guild_id().unwrap();
 
@@ -18,4 +18,3 @@ pub async fn resume(ctx: Context<'_>) -> Result<(), Error> {
 
     Ok(())
 }
-

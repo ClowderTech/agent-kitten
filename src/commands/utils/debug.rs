@@ -31,7 +31,8 @@ fn format_bytes(bytes: u64) -> String {
     format!("{:.2} {}", val, sizes[i])
 }
 
-#[poise::command(slash_command, prefix_command)]
+/// Get some information about the bot and how well it is performing
+#[poise::command(slash_command)]
 pub async fn debug(ctx: Context<'_>) -> Result<(), Error> {
     // Compute bot latency
     let latency_ms = ctx.ping().await;

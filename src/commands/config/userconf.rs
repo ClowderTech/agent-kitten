@@ -19,7 +19,7 @@ fn config_to_pretty(cfg: &Config) -> String {
 /// Root slash command with subcommands: set, get, setraw, getraw
 #[poise::command(
     slash_command,
-    subcommands("userconf_set", "userconf_get", "userconf_setraw", "userconf_getraw")
+    subcommands("set", "get", "setraw", "getraw")
 )]
 pub async fn userconf(_ctx: Context<'_, Data, Error>) -> Result<(), Error> {
     // Root is just a grouping for subcommands; do nothing here.
@@ -27,7 +27,7 @@ pub async fn userconf(_ctx: Context<'_, Data, Error>) -> Result<(), Error> {
 }
 
 #[poise::command(slash_command)]
-pub async fn userconf_set(
+pub async fn set(
     ctx: Context<'_, Data, Error>,
     #[description = "The configuration key you want to set"] key: String,
     #[description = "The configuration value to set (JSON or raw string)"] value: String,
@@ -97,7 +97,7 @@ pub async fn userconf_set(
 }
 
 #[poise::command(slash_command)]
-pub async fn userconf_get(
+pub async fn get(
     ctx: Context<'_, Data, Error>,
     #[description = "The configuration key you want to get"] key: String,
 ) -> Result<(), Error> {
@@ -136,7 +136,7 @@ pub async fn userconf_get(
 }
 
 #[poise::command(slash_command)]
-pub async fn userconf_setraw(
+pub async fn setraw(
     ctx: Context<'_, Data, Error>,
     #[description = "The raw configuration value as a JSON string"] value: String,
 ) -> Result<(), Error> {
@@ -199,7 +199,7 @@ pub async fn userconf_setraw(
 }
 
 #[poise::command(slash_command)]
-pub async fn userconf_getraw(ctx: Context<'_, Data, Error>) -> Result<(), Error> {
+pub async fn getraw(ctx: Context<'_, Data, Error>) -> Result<(), Error> {
     let user_id = ctx.author().id.to_string();
     let mongoclient = &ctx.data().mongoclient;
 

@@ -1,7 +1,7 @@
 use crate::{Context, Error};
 
 /// Remove a specific song from the queue.
-#[poise::command(slash_command, prefix_command)]
+#[poise::command(slash_command, guild_only)]
 pub async fn remove(
     ctx: Context<'_>,
     #[description = "Queue item index to remove"] index: usize,
@@ -21,4 +21,3 @@ pub async fn remove(
 
     Ok(())
 }
-

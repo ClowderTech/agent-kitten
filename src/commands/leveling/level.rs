@@ -12,8 +12,8 @@ use crate::leveling_helpers::{
     calculate_exp_to_next_level, get_member_experience, get_member_level,
 };
 
-/// Poise slash command: /level [user]
-#[poise::command(slash_command)]
+/// Check a user's level in the server
+#[poise::command(slash_command, guild_only)]
 pub async fn level(
     ctx: Context<'_, Data, Error>,
     #[description = "Select a user to check their level"] user: Option<serenity::User>,

@@ -10,8 +10,8 @@ use crate::Error;
 
 use crate::leveling_helpers::get_users_by_experience_range;
 
-/// Poise slash command: /leaderboard
-#[poise::command(slash_command)]
+/// Check the top user levels in the server
+#[poise::command(slash_command, guild_only)]
 pub async fn leaderboard(ctx: Context<'_, Data, Error>) -> Result<(), Error> {
     // Ensure this was executed in a guild
     let guild_id = match ctx.guild_id() {
@@ -56,4 +56,3 @@ pub async fn leaderboard(ctx: Context<'_, Data, Error>) -> Result<(), Error> {
 
     Ok(())
 }
-
