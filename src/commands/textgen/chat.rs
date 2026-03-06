@@ -6,9 +6,11 @@ use crate::{
 };
 use ::serenity::all::{CreateEmbedAuthor, CreateEmbedFooter};
 use async_openai::types::chat::{
-    ChatCompletionRequestMessage, ChatCompletionRequestSystemMessageArgs,
-    ChatCompletionRequestUserMessageArgs, ChatCompletionTool, FunctionObjectArgs,
+    ChatCompletionRequestMessage, ChatCompletionRequestMessageContentPartImage,
+    ChatCompletionRequestMessageContentPartText, ChatCompletionRequestSystemMessageArgs,
+    ChatCompletionRequestUserMessageArgs, ChatCompletionTool, FunctionObjectArgs, ImageUrl,
 };
+use base64::{Engine, engine::general_purpose};
 use bson::oid::ObjectId;
 use futures::FutureExt;
 use mongodb::bson::doc;
@@ -17,8 +19,16 @@ use serde_json::{Value, json};
 use serenity::builder::CreateEmbed;
 
 /// Chat with Agent Kitten using Qwen 3.5
-#[poise::command(slash_command, user_cooldown = 15)]
-pub async fn chat(ctx: Context<'_>, message: String) -> Result<(), Error> {
+#[poise::command(slash_command, user_cooldown = 20)]
+pub async fn chat(
+    ctx: Context<'_>,
+    #[description = "Message to send to Agent Kitten"] message: String,
+    #[description = "File to send to Agent Kitten (currently supports image or text files)"] file1: Option<serenity::Attachment>,
+    #[description = "File to send to Agent Kitten (currently supports image or text files)"] file2: Option<serenity::Attachment>,
+    #[description = "File to send to Agent Kitten (currently supports image or text files)"] file3: Option<serenity::Attachment>,
+    #[description = "File to send to Agent Kitten (currently supports image or text files)"] file4: Option<serenity::Attachment>,
+    #[description = "File to send to Agent Kitten (currently supports image or text files)"] file5: Option<serenity::Attachment>,
+) -> Result<(), Error> {
     ctx.defer().await?;
 
     let mongoclient = ctx.data().mongoclient.clone();
@@ -46,8 +56,43 @@ pub async fn chat(ctx: Context<'_>, message: String) -> Result<(), Error> {
 
     let mut messages = user_content.messages.clone();
 
+    let mut sendable_user_message = Vec::new();
+
+    sendable_user_message.push(ChatCompletionRequestMessageContentPartText::from(message).into());
+
+    for maybe_file in vec![file1, file2, file3, file4, file5] {
+        if let Some(some_file) = maybe_file
+            && let Some(some_content_type) = some_file.clone().content_type
+        {
+            if some_content_type.contains("image") {
+                let file = some_file.download().await?;
+
+                let encoding = general_purpose::STANDARD;
+                let encoded = encoding.encode(file);
+
+                let final_url = format!("data:{};base64,{}", some_content_type, encoded);
+
+                sendable_user_message.push(
+                    ChatCompletionRequestMessageContentPartImage::from(ImageUrl {
+                        url: final_url,
+                        ..Default::default()
+                    })
+                    .into(),
+                );
+            } else if some_content_type.contains("text") {
+                let file = some_file.download().await?;
+
+                let text = String::from_utf8(file)?;
+                let final_text = format!("File {}:\n\n{}", some_file.filename, text);
+
+                sendable_user_message
+                    .push(ChatCompletionRequestMessageContentPartText::from(final_text).into());
+            }
+        }
+    }
+
     let user_message = ChatCompletionRequestUserMessageArgs::default()
-        .content(message)
+        .content(sendable_user_message)
         .build()?;
 
     messages.push(user_message.into());
