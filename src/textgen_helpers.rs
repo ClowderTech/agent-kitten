@@ -3,7 +3,7 @@ use async_openai::{
     types::chat::{
         ChatCompletionMessageToolCalls, ChatCompletionRequestMessage,
         ChatCompletionRequestToolMessageArgs, ChatCompletionTool, ChatCompletionTools,
-        CreateChatCompletionRequest, CreateChatCompletionResponse,
+        CreateChatCompletionRequestArgs, CreateChatCompletionResponse,
     },
 };
 use futures::future::BoxFuture;
@@ -63,20 +63,20 @@ pub async fn chat_with_funcs(
     let client = OpenAIClient::new();
 
     // send initial request
-    let mut request = CreateChatCompletionRequest {
-        model: "qwen3.5:35b".to_string(),
-        messages: full_response.clone(),
-        tools: Some(tools.clone()),
-        ..Default::default()
-    };
+    let mut request = CreateChatCompletionRequestArgs::default()
+        .tools(tools.clone())
+        .messages(full_response.clone())
+        .model("qwen3.5:35b")
+        .build()?;
 
     let chat_response = client.chat().create(request).await?;
-    let mut response: CreateChatCompletionResponse = chat_response.clone();
+    let mut response = chat_response.clone();
 
     // convert the model's first message into a request-message and push it
     // (keep your serialization round-trip since types differ)
-    let serialized = serde_json::to_string(&chat_response.choices[0].message)?;
-    let deserialized: ChatCompletionRequestMessage = serde_json::from_str(&serialized)?;
+    let serialized =
+        serde_json::to_string(&chat_response.choices.first().unwrap().message).unwrap();
+    let deserialized: ChatCompletionRequestMessage = serde_json::from_str(&serialized).unwrap();
     full_response.push(deserialized);
 
     // loop: while the latest choice contains tool calls, execute them, push tool messages, and re-call model
@@ -90,7 +90,7 @@ pub async fn chat_with_funcs(
         }
 
         // examine the first choice's tool_calls
-        let choice = response.choices[0].clone();
+        let choice = response.choices.first().unwrap().clone();
         let tool_calls_opt = choice.message.tool_calls.clone();
 
         // if no tool calls -> break
@@ -139,19 +139,19 @@ pub async fn chat_with_funcs(
         }
 
         // re-call the model with the updated full_response (which now includes tool replies)
-        request = CreateChatCompletionRequest {
-            model: "qwen3.5:35b".to_string(),
-            messages: full_response.clone(),
-            tools: Some(tools.clone()),
-            ..Default::default()
-        };
+        request = CreateChatCompletionRequestArgs::default()
+            .tools(tools.clone())
+            .messages(full_response.clone())
+            .model("qwen3.5:35b")
+            .build()?;
 
         let chat_response = client.chat().create(request).await?;
         response = chat_response.clone();
 
         // push the model's produced message into the conversation history (round-trip again)
-        let serialized = serde_json::to_string(&chat_response.choices[0].message)?;
-        let deserialized: ChatCompletionRequestMessage = serde_json::from_str(&serialized)?;
+        let serialized =
+            serde_json::to_string(&chat_response.choices.first().unwrap().message).unwrap();
+        let deserialized: ChatCompletionRequestMessage = serde_json::from_str(&serialized).unwrap();
         full_response.push(deserialized);
     }
 
