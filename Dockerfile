@@ -11,9 +11,14 @@ ARG UID
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /app
 
-COPY Cargo.toml ./Cargo.toml
-COPY Cargo.lock ./Cargo.lock
-COPY build.rs ./build.rs
+RUN apt-get update \
+    && apt-get install -y \
+    cmake \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY Cargo.toml Cargo.lock ./
+COPY build.rs ./
 COPY src/ ./src/
 
 RUN --mount=type=cache,target=/app/target/ \
@@ -44,7 +49,7 @@ RUN groupadd \
 
 # Install only what's needed to run the binary
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
+    && apt-get install -y \
     ca-certificates \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
