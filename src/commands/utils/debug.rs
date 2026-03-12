@@ -1,9 +1,11 @@
 use crate::{Context, Error};
 use chrono::Utc;
+use futures::lock::Mutex;
 use human_bytes::human_bytes;
+use once_cell::sync::Lazy;
 use poise::serenity_prelude as serenity;
 use serenity::builder::CreateEmbed;
-use sysinfo::{ProcessRefreshKind, ProcessesToUpdate};
+use sysinfo::System;
 
 /// Convert milliseconds to the largest appropriate unit
 fn convert_millis_to_human_readable(millis: i64) -> String {
@@ -22,6 +24,8 @@ fn convert_millis_to_human_readable(millis: i64) -> String {
     "less than a second".into()
 }
 
+static SYSTEM: Lazy<Mutex<System>> = Lazy::new(|| Mutex::new(System::new_all()));
+
 /// Get some information about the bot and how well it is performing
 #[poise::command(slash_command)]
 pub async fn debug(ctx: Context<'_>) -> Result<(), Error> {
@@ -33,18 +37,13 @@ pub async fn debug(ctx: Context<'_>) -> Result<(), Error> {
     let uptime = (now - ctx.data().start_time).num_milliseconds();
     let uptime_str = convert_millis_to_human_readable(uptime);
 
-    use sysinfo::System;
-    let mut sys = System::new_all();
-    std::thread::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL);
-    sys.refresh_processes_specifics(
-        ProcessesToUpdate::All,
-        true,
-        ProcessRefreshKind::nothing().with_cpu(),
-    );
+    let mut sys = SYSTEM.lock().await;
+    sys.refresh_all();
+
     let current_process = sys
         .process(sysinfo::get_current_pid()?)
         .expect("Failed to get current process");
-    let heap = current_process.virtual_memory();
+    let heap = current_process.memory();
     let memory_usage = human_bytes(heap as f64);
     let cpu_usage = current_process.cpu_usage();
     let shard_id = ctx.serenity_context().shard_id;
