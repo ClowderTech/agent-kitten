@@ -1,6 +1,6 @@
 [package]
 name = "agent-kitten"
-version = "3.3.5"
+version = "3.3.6"
 edition = "2024"
 
 [dependencies]
@@ -63,7 +63,7 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.149" }
 serde_with = { version = "3.17.0" }
 futures = { version = "0.3.32" }
-async-openai = { version = "0.33.0", features = [
+async-openai = { version = "0.33.1", features = [
   "native-tls",
   "webhook",
   "responses",
