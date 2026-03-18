@@ -17,8 +17,7 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-COPY Cargo.toml Cargo.lock ./
-COPY build.rs ./
+COPY Cargo.toml Cargo.lock build.rs ./
 COPY src/ ./src/
 
 RUN --mount=type=cache,target=/app/target/ \
