@@ -58,7 +58,7 @@ lavalink-rs = { version = "0.15.0", features = [
 ], default-features = false }
 sysinfo = { version = "0.38.4" }
 chrono = { version = "0.4.44" }
-mongodb = { version = "3.5.1" }
+mongodb = { version = "3.5.2" }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.149" }
 serde_with = { version = "3.18.0" }
