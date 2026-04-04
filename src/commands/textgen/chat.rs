@@ -13,7 +13,9 @@ use async_openai::types::chat::{
 use base64::{Engine, engine::general_purpose};
 use bson::oid::ObjectId;
 use futures::FutureExt;
+use html_to_markdown_rs::convert;
 use mongodb::bson::doc;
+use playwright_rs::{Playwright, ScreenshotOptions};
 use poise::{CreateReply, serenity_prelude as serenity};
 use serde_json::{Value, json};
 use serenity::builder::CreateEmbed;
@@ -99,7 +101,7 @@ pub async fn chat(
 
     let mut tool_registry: HashMap<String, ToolsHandler> = HashMap::new();
 
-    let search_tool: std::sync::Arc<ChatCompletionTool> = std::sync::Arc::new(ChatCompletionTool { function: FunctionObjectArgs::default().name("websearch").description("Use a search engine to find information on the given query.").parameters(json!({"type": "object", "properties": {"query": {"type": "string", "description": "What information to retrieve about on the search engine."}}, "required": ["query"], "additionalProperties": false})).strict(true).build().expect("L rizz")});
+    let search_tool: std::sync::Arc<ChatCompletionTool> = std::sync::Arc::new(ChatCompletionTool { function: FunctionObjectArgs::default().name("web_search").description("Use a search engine to find information on the given query.").parameters(json!({"type": "object", "properties": {"query": {"type": "string", "description": "What information to retrieve about on the search engine."}}, "required": ["query"], "additionalProperties": false})).strict(true).build().expect("L rizz")});
 
     let search_handler = ToolsHandler::new(search_tool, |input: Value| {
         async move {
@@ -109,7 +111,19 @@ pub async fn chat(
         .boxed()
     });
 
-    tool_registry.insert("websearch".to_string(), search_handler);
+    tool_registry.insert("web_search".to_string(), search_handler);
+
+    let scrape_tool: std::sync::Arc<ChatCompletionTool> = std::sync::Arc::new(ChatCompletionTool { function: FunctionObjectArgs::default().name("web_scrape").description("Scrapes and generates a markdown representation of a website.").parameters(json!({"type": "object", "properties": {"url": {"type": "string", "description": "The URL to scrape."}}, "required": ["query"], "additionalProperties": false})).strict(true).build().expect("L rizz")});
+
+    let scrape_handler = ToolsHandler::new(scrape_tool, |input: Value| {
+        async move {
+            let result = web_scrape(input).await.expect("L rizz");
+            Ok(result)
+        }
+        .boxed()
+    });
+
+    tool_registry.insert("web_scrape".to_string(), scrape_handler);
 
     let (new_messages, response) = chat_with_funcs(messages, tool_registry).await?;
 
@@ -194,6 +208,24 @@ pub async fn search_searx(value: Value) -> Result<String, DynError> {
     let final_string = final_result.trim().to_string();
 
     Ok(final_string)
+}
+
+pub async fn web_scrape(value: Value) -> Result<String, DynError> {
+    let url = value["url"].as_str().expect("u suhhhh");
+
+    let playwright = Playwright::launch().await?;
+    let ws_url = std::env::var("BROWSER_WS_URL").expect("Missing BROWSER_WS_URL");
+    let browser = playwright.chromium().connect(ws_url.as_str(), None).await?;
+    let page = browser.new_page().await?;
+
+    let _ = page.goto(url, None).await?;
+
+    let content = page.content().await?;
+    let result = convert(content.as_str(), None)?;
+
+    let final_result = result.content.unwrap_or_default().trim().to_string();
+
+    Ok(final_result)
 }
 
 pub fn split_text(text: &str, max_length: usize) -> Vec<String> {
