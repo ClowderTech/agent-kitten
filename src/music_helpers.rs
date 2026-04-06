@@ -1,3 +1,7 @@
+use std::str::FromStr;
+
+use lavalink_rs::model::ChannelId;
+use lavalink_rs::model::player::ConnectionInfo;
 use poise::serenity_prelude as serenity;
 use serenity::Mentionable;
 
@@ -43,8 +47,23 @@ pub async fn _join(
 
         match handler {
             Ok((connection_info, _)) => {
+                let lava_channel_id =
+                    ChannelId::from_str(connection_info.channel_id.to_string().as_str())?;
+
                 lava_client
-                    .create_player_context(guild_id, connection_info)
+                    .create_player_context_with_data(
+                        guild_id,
+                        ConnectionInfo {
+                            endpoint: connection_info.endpoint,
+                            token: connection_info.token,
+                            session_id: connection_info.session_id,
+                            channel_id: Some(lava_channel_id),
+                        },
+                        std::sync::Arc::new((
+                            ctx.channel_id(),
+                            ctx.serenity_context().http.clone(),
+                        )),
+                    )
                     .await?;
 
                 ctx.say(format!("Joined {}", connect_to.mention())).await?;
