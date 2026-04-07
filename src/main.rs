@@ -7,7 +7,9 @@ use once_cell::sync::Lazy;
 use poise::serenity_prelude as serenity;
 use songbird::SerenityInit;
 use std::collections::HashSet;
+use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
+use sysinfo::System;
 use tokio::signal::unix::{SignalKind, signal};
 use tokio::sync::Mutex;
 
@@ -38,6 +40,7 @@ struct Data {
     start_time: DateTime<Utc>,
     mongoclient: MongoClient,
     lavalink: LavalinkClient,
+    system_stats: Arc<Mutex<System>>,
 }
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
@@ -109,6 +112,7 @@ async fn main() {
                         _ready.user.display_name().to_string(),
                     ),
                     lavalink: lavalink_client,
+                    system_stats: Arc::new(Mutex::new(System::new_all())),
                 })
             })
         })

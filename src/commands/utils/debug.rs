@@ -1,11 +1,8 @@
 use crate::{Context, Error};
 use chrono::Utc;
-use futures::lock::Mutex;
 use human_bytes::human_bytes;
-use once_cell::sync::Lazy;
 use poise::serenity_prelude as serenity;
 use serenity::builder::CreateEmbed;
-use sysinfo::System;
 
 /// Convert milliseconds to the largest appropriate unit
 fn convert_millis_to_human_readable(millis: i64) -> String {
@@ -24,8 +21,6 @@ fn convert_millis_to_human_readable(millis: i64) -> String {
     "less than a second".into()
 }
 
-static SYSTEM: Lazy<Mutex<System>> = Lazy::new(|| Mutex::new(System::new_all()));
-
 /// Get some information about the bot and how well it is performing
 #[poise::command(slash_command)]
 pub async fn debug(ctx: Context<'_>) -> Result<(), Error> {
@@ -37,7 +32,7 @@ pub async fn debug(ctx: Context<'_>) -> Result<(), Error> {
     let uptime = (now - ctx.data().start_time).num_milliseconds();
     let uptime_str = convert_millis_to_human_readable(uptime);
 
-    let mut sys = SYSTEM.lock().await;
+    let mut sys = ctx.data().system_stats.lock().await;
     sys.refresh_all();
 
     let current_process = sys

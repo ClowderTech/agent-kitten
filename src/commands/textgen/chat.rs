@@ -18,7 +18,6 @@ use mongodb::bson::doc;
 use poise::{CreateReply, serenity_prelude as serenity};
 use serde_json::{Value, json};
 use serenity::builder::CreateEmbed;
-use tokio::fs::read;
 
 /// Chat with Agent Kitten using Qwen 3.5
 #[poise::command(slash_command, user_cooldown = 20)]
