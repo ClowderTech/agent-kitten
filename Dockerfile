@@ -22,9 +22,9 @@ COPY src/ ./src/
 
 RUN --mount=type=cache,target=/app/target/ \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
-    cargo build --locked --release && cp target/release/${APP_NAME} /bin/server
+    cargo build --locked --release && cp target/release/${APP_NAME} /app/server
 
-FROM debian:trixie-slim AS final
+FROM debian:trixie AS final
 ARG APP_NAME
 ARG UID
 
@@ -38,8 +38,7 @@ RUN groupadd \
     --system \
     appuser \ 
     && useradd \
-    --home-dir "/nonexistent" \
-    --shell "/usr/sbin/nologin" \
+    --create-home \
     --uid "${UID}" \
     --gid "${UID}" \
     --no-log-init \
@@ -54,9 +53,10 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 USER appuser
+WORKDIR /app
 
 # Copy the compiled binary from the build stage
-COPY --from=build /bin/server /bin/server
+COPY --from=build /app/server /app/server
 
 # Start the server
-CMD ["/bin/server"]
+CMD ["/app/server"]

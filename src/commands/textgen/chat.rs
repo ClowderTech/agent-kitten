@@ -15,10 +15,10 @@ use bson::oid::ObjectId;
 use futures::FutureExt;
 use html_to_markdown_rs::convert;
 use mongodb::bson::doc;
-use playwright_rs::Playwright;
 use poise::{CreateReply, serenity_prelude as serenity};
 use serde_json::{Value, json};
 use serenity::builder::CreateEmbed;
+use tokio::fs::read;
 
 /// Chat with Agent Kitten using Qwen 3.5
 #[poise::command(slash_command, user_cooldown = 20)]
@@ -211,23 +211,24 @@ pub async fn search_searx(value: Value) -> Result<String, DynError> {
 }
 
 pub async fn web_scrape(value: Value) -> Result<String, DynError> {
-    let url = value["url"].as_str().expect("u suhhhh");
+    let request_url = value["url"].as_str().expect("u suhhhh");
+    let content_url =
+        std::env::var("BROWSERLESS_CONTENT_URL").expect("Missing BROWSERLESS_CONTENT_URL");
 
-    let playwright = Playwright::launch().await?;
-    let ws_url = std::env::var("BROWSER_WS_URL").expect("Missing BROWSER_WS_URL");
-    let browser = playwright
-        .chromium()
-        .connect_over_cdp(ws_url.as_str(), None)
+    let mut json_map = HashMap::new();
+    json_map.insert("url", request_url);
+
+    let client = reqwest::Client::new();
+    let response = client
+        .post(content_url)
+        .json(&json_map)
+        .send()
+        .await?
+        .text()
         .await?;
-    let page = browser.new_page().await?;
 
-    let _ = page.goto(url, None).await?;
-
-    let content = page.content().await?;
-    let result = convert(content.as_str(), None)?;
+    let result = convert(response.as_str(), None)?;
     let final_result = result.content.unwrap_or_default().trim().to_string();
-
-    browser.close().await?;
 
     Ok(final_result)
 }
