@@ -27,7 +27,7 @@ poise = { version = "0.6.1", features = [
   "chrono",
   "handle_panics",
 ], default-features = false }
-tokio = { version = "1.51.0", features = [
+tokio = { version = "1.51.1", features = [
   "rt-multi-thread",
   "macros",
   "signal",
