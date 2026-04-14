@@ -22,7 +22,7 @@ serenity = { version = "0.12.5", features = [
   "native_tls_backend",
   "default_native_tls",
 ], default-features = false }
-poise = { version = "0.6.1", features = [
+poise = { version = "0.6.2", features = [
   "cache",
   "chrono",
   "handle_panics",
