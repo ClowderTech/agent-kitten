@@ -1,7 +1,7 @@
-pub mod userconf;
 pub mod serverconf;
+pub mod userconf;
 
 pub use self::{
-    userconf::*,
     serverconf::*,
+    userconf::*,
 };

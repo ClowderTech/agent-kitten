@@ -8,10 +8,10 @@ pub async fn help(
     #[autocomplete = "poise::builtins::autocomplete_command"]
     command: Option<String>,
 ) -> Result<(), Error> {
-    poise::builtins::help(
+    poise::builtins::pretty_help(
         ctx,
         command.as_deref(),
-        poise::builtins::HelpConfiguration {
+        poise::builtins::PrettyHelpConfiguration {
             ..Default::default()
         },
     )

@@ -20,7 +20,12 @@ use serde_json::{Value, json};
 use serenity::builder::CreateEmbed;
 
 /// Chat with Agent Kitten using Qwen 3.5
-#[poise::command(slash_command, user_cooldown = 20)]
+#[poise::command(
+    slash_command,
+    user_cooldown = 20,
+    install_context = "Guild|User",
+    interaction_context = "Guild|BotDm|PrivateChannel"
+)]
 pub async fn chat(
     ctx: Context<'_>,
     #[description = "Message to send to Agent Kitten"] message: String,
