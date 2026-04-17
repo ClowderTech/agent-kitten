@@ -17,8 +17,8 @@ pub fn all_commands() -> Vec<poise::Command<crate::Data, crate::Error>> {
         crate::commands::music::stop::stop(),
         crate::commands::music::skip::skip(),
         crate::commands::music::swap::swap(),
-        crate::commands::textgen::chat::chat(),
         crate::commands::textgen::chatreset::chatreset(),
+        crate::commands::textgen::chat::chat(),
         crate::commands::utils::help::help(),
         crate::commands::utils::debug::debug(),
     ]
