@@ -5,10 +5,9 @@ use crate::{
     textgen_helpers::{DynError, TextgenDoc, ToolsHandler, chat_with_funcs},
 };
 use ::serenity::all::{CreateEmbedAuthor, CreateEmbedFooter};
-use async_openai::types::chat::{
-    ChatCompletionRequestMessage, ChatCompletionRequestMessageContentPartImage,
-    ChatCompletionRequestMessageContentPartText, ChatCompletionRequestSystemMessageArgs,
-    ChatCompletionRequestUserMessageArgs, ChatCompletionTool, FunctionObjectArgs, ImageUrl,
+use async_openai::types::responses::{
+    FunctionToolArgs, ImageDetail, InputImageContent, InputItem, InputMessage, InputRole,
+    InputTextContent, Tool,
 };
 use base64::{Engine, engine::general_purpose};
 use bson::oid::ObjectId;
@@ -19,7 +18,7 @@ use poise::{CreateReply, serenity_prelude as serenity};
 use serde_json::{Value, json};
 use serenity::builder::CreateEmbed;
 
-/// Chat with Agent Kitten using Qwen 3.5
+/// Chat with Agent Kitten using Qwen 3.6
 #[poise::command(
     slash_command,
     user_cooldown = 20,
@@ -47,9 +46,7 @@ pub async fn chat(
     let user_content: TextgenDoc = match content.first() {
         Some(fetched_content) => fetched_content.clone(),
         None => {
-            let locale = ctx.locale().unwrap_or("en-US");
-
-            let default_messages: Vec<ChatCompletionRequestMessage> = vec![ChatCompletionRequestSystemMessageArgs::default().content(format!("You are Agent Kitten, a helpful AI powered discord bot made by the ClowderTech LLC. You are here to help people with their problems or to interact with the person to help them feel better. Your own website is https://agentkitten.com/. Please make sure to use your tools and function calls whenever useful. Also remember to follow discord's markdown syntax which is somewhat limited. You should ask questions to the user if it is needed to respond to them reasonably. The user's specified locale is {}. There is no need to overthink the question.", locale)).build().expect("L rizz").into()];
+            let default_messages: Vec<InputItem> = vec![];
             let default_content = TextgenDoc {
                 id: ObjectId::new(),
                 userid: ctx.author().id.get().to_string(),
@@ -64,7 +61,7 @@ pub async fn chat(
 
     let mut sendable_user_message = Vec::new();
 
-    sendable_user_message.push(ChatCompletionRequestMessageContentPartText::from(message).into());
+    sendable_user_message.push(InputTextContent::from(message).into());
 
     for maybe_file in vec![file1, file2, file3, file4, file5] {
         if let Some(some_file) = maybe_file
@@ -79,10 +76,11 @@ pub async fn chat(
                 let final_url = format!("data:{};base64,{}", some_content_type, encoded);
 
                 sendable_user_message.push(
-                    ChatCompletionRequestMessageContentPartImage::from(ImageUrl {
-                        url: final_url,
-                        ..Default::default()
-                    })
+                    InputImageContent {
+                        detail: ImageDetail::Auto,
+                        image_url: Some(final_url),
+                        file_id: None,
+                    }
                     .into(),
                 );
             } else if some_content_type.contains("text") {
@@ -91,21 +89,22 @@ pub async fn chat(
                 let text = String::from_utf8(file)?;
                 let final_text = format!("File {}:\n\n{}", some_file.filename, text);
 
-                sendable_user_message
-                    .push(ChatCompletionRequestMessageContentPartText::from(final_text).into());
+                sendable_user_message.push(InputTextContent::from(final_text).into());
             }
         }
     }
 
-    let user_message = ChatCompletionRequestUserMessageArgs::default()
-        .content(sendable_user_message)
-        .build()?;
+    let user_message = InputMessage {
+        content: sendable_user_message,
+        role: InputRole::User,
+        status: None,
+    };
 
     messages.push(user_message.into());
 
     let mut tool_registry: HashMap<String, ToolsHandler> = HashMap::new();
 
-    let search_tool: std::sync::Arc<ChatCompletionTool> = std::sync::Arc::new(ChatCompletionTool { function: FunctionObjectArgs::default().name("web_search").description("Use a search engine to find information on the given query.").parameters(json!({"type": "object", "properties": {"query": {"type": "string", "description": "What information to retrieve about on the search engine."}}, "required": ["query"], "additionalProperties": false})).strict(true).build().expect("L rizz")});
+    let search_tool: std::sync::Arc<Tool> = std::sync::Arc::new(Tool::from(FunctionToolArgs::default().name("web_search").description("Use a search engine to find information on the given query.").parameters(json!({"type": "object", "properties": {"query": {"type": "string", "description": "What information to retrieve about on the search engine."}}, "required": ["query"], "additionalProperties": false})).strict(true).build().expect("L rizz")));
 
     let search_handler = ToolsHandler::new(search_tool, |input: Value| {
         async move {
@@ -117,7 +116,7 @@ pub async fn chat(
 
     tool_registry.insert("web_search".to_string(), search_handler);
 
-    let scrape_tool: std::sync::Arc<ChatCompletionTool> = std::sync::Arc::new(ChatCompletionTool { function: FunctionObjectArgs::default().name("web_scrape").description("Scrapes and generates a markdown representation of a website.").parameters(json!({"type": "object", "properties": {"url": {"type": "string", "description": "The URL to scrape."}}, "required": ["query"], "additionalProperties": false})).strict(true).build().expect("L rizz")});
+    let scrape_tool: std::sync::Arc<Tool> = std::sync::Arc::new(Tool::from(FunctionToolArgs::default().name("web_scrape").description("Scrapes and generates a markdown representation of a website.").parameters(json!({"type": "object", "properties": {"url": {"type": "string", "description": "The URL to scrape."}}, "required": ["query"], "additionalProperties": false})).strict(true).build().expect("L rizz")));
 
     let scrape_handler = ToolsHandler::new(scrape_tool, |input: Value| {
         async move {
@@ -129,7 +128,7 @@ pub async fn chat(
 
     tool_registry.insert("web_scrape".to_string(), scrape_handler);
 
-    let (new_messages, response) = chat_with_funcs(messages, tool_registry).await?;
+    let (new_messages, new_message) = chat_with_funcs(messages, tool_registry).await?;
 
     let new_user_content = TextgenDoc {
         id: user_content.id,
@@ -145,12 +144,6 @@ pub async fn chat(
             crate::mongo_helpers::SetMode::Replace,
         )
         .await?;
-
-    let new_message = response.choices[0]
-        .message
-        .content
-        .clone()
-        .unwrap_or_default();
 
     for chunk in split_text(new_message.as_str(), 4000) {
         let embed = CreateEmbed::default()

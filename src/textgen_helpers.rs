@@ -1,9 +1,8 @@
 use async_openai::{
     Client as OpenAIClient,
-    types::chat::{
-        ChatCompletionMessageToolCalls, ChatCompletionRequestMessage,
-        ChatCompletionRequestToolMessageArgs, ChatCompletionTool, ChatCompletionTools,
-        CreateChatCompletionRequestArgs, CreateChatCompletionResponse,
+    types::responses::{
+        CreateResponse, FunctionCallOutput, FunctionCallOutputItemParam, InputItem, InputParam,
+        Item, OutputItem, Status, Tool, Truncation,
     },
 };
 use futures::future::BoxFuture;
@@ -14,12 +13,12 @@ use mongodb::bson::doc;
 use serde::{Deserialize, Serialize};
 
 pub struct ToolsHandler {
-    tools: Arc<ChatCompletionTool>,
+    tools: Arc<Tool>,
     handler: Box<dyn Fn(Value) -> BoxFuture<'static, Result<String, DynError>> + Send + Sync>,
 }
 
 impl ToolsHandler {
-    pub fn new<F>(tools: Arc<ChatCompletionTool>, handler: F) -> Self
+    pub fn new<F>(tools: Arc<Tool>, handler: F) -> Self
     where
         F: Fn(Value) -> BoxFuture<'static, Result<String, DynError>> + Send + Sync + 'static,
     {
@@ -33,7 +32,7 @@ impl ToolsHandler {
         (self.handler)(args)
     }
 
-    fn tools(&self) -> Arc<ChatCompletionTool> {
+    fn tools(&self) -> Arc<Tool> {
         Arc::clone(&self.tools)
     }
 }
@@ -42,120 +41,123 @@ impl ToolsHandler {
 pub type DynError = Box<dyn std::error::Error + Send + Sync>;
 
 pub async fn chat_with_funcs(
-    messages: Vec<ChatCompletionRequestMessage>,
+    messages: Vec<InputItem>,
     functions: HashMap<String, ToolsHandler>,
-) -> Result<
-    (
-        Vec<ChatCompletionRequestMessage>,
-        CreateChatCompletionResponse,
-    ),
-    DynError,
-> {
+) -> Result<(Vec<InputItem>, String), DynError> {
     let mut full_response = messages.clone();
 
     // convert provided ToolsHandler -> ChatCompletionTools list
-    let mut tools: Vec<ChatCompletionTools> = Vec::new();
+    let mut tools: Vec<Tool> = Vec::new();
     for tools_handler in functions.values() {
-        let tool = (*tools_handler.tools()).clone();
-        tools.push(ChatCompletionTools::Function(tool));
+        tools.push((*tools_handler.tools()).clone());
     }
 
     let client = OpenAIClient::new();
 
     // send initial request
-    let mut request = CreateChatCompletionRequestArgs::default()
-        .tools(tools.clone())
-        .messages(full_response.clone())
-        .model("qwen3.5:35b")
-        .build()?;
+    let mut request = CreateResponse {
+        model: Some("qwen3.5:35b".to_string()),
+        instructions: Some("You are Agent Kitten, a helpful AI powered discord bot made by the ClowderTech LLC. You are here to help people with their problems or to interact with the person to help them feel better. Your own website is https://agentkitten.com/. Please make sure to use your tools and function calls whenever useful. Also remember to follow discord's markdown syntax which is somewhat limited. You should ask questions to the user if it is needed to respond to them reasonably. There is no need to overthink the question.".to_string()),
+        tools: Some(tools.clone()),
+        input: InputParam::Items(full_response.clone()),
+        truncation: Some(Truncation::Auto),
+        ..Default::default()
+    };
 
-    let chat_response = client.chat().create(request).await?;
+    let chat_response = client.responses().create(request).await?;
     let mut response = chat_response.clone();
 
-    // convert the model's first message into a request-message and push it
-    // (keep your serialization round-trip since types differ)
-    let serialized =
-        serde_json::to_string(&chat_response.choices.first().unwrap().message).unwrap();
-    let deserialized: ChatCompletionRequestMessage = serde_json::from_str(&serialized).unwrap();
-    full_response.push(deserialized);
+    for output in response.output.clone() {
+        full_response.push(InputItem::Item(output.into()));
+    }
 
     // loop: while the latest choice contains tool calls, execute them, push tool messages, and re-call model
     loop {
         // ensure we have at least one choice
-        if response.choices.is_empty() {
+        if response.status != Status::Completed {
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Other,
-                "No choices in response",
+                "Textgen API Error, not completed",
             )));
         }
 
-        // examine the first choice's tool_calls
-        let choice = response.choices.first().unwrap().clone();
-        let tool_calls_opt = choice.message.tool_calls.clone();
+        let mut did_tool_call = false;
 
-        // if no tool calls -> break
-        let tool_calls = match tool_calls_opt {
-            Some(tc) if !tc.is_empty() => tc,
-            _ => break,
-        };
+        for output_item in response.output.clone() {
+            match output_item {
+                OutputItem::FunctionCall(tool_call) => {
+                    let function_name = &tool_call.name;
 
-        // execute each tool call
-        for tool_call_enum in tool_calls {
-            if let ChatCompletionMessageToolCalls::Function(tool_call) = tool_call_enum {
-                let function_name = &tool_call.function.name;
+                    // find the handler
+                    match functions.get(function_name) {
+                        Some(handler) => {
+                            // parse the arguments as JSON Value (fall back to Null on parse error)
+                            let func_args: Value =
+                                serde_json::from_str(&tool_call.arguments).unwrap_or(Value::Null);
 
-                // find the handler
-                match functions.get(function_name) {
-                    Some(handler) => {
-                        // parse the arguments as JSON Value (fall back to Null on parse error)
-                        let func_args: Value = serde_json::from_str(&tool_call.function.arguments)
-                            .unwrap_or(Value::Null);
+                            // execute handler (handler.execute returns a BoxFuture -> await it)
+                            let tool_call_response: String = handler.execute(func_args).await?;
 
-                        // execute handler (handler.execute returns a BoxFuture -> await it)
-                        let tool_call_response: String = handler.execute(func_args).await?;
+                            // build a tool message and append to full_response
+                            let tool_message = FunctionCallOutputItemParam {
+                                call_id: tool_call.call_id,
+                                id: None,
+                                status: None,
+                                output: FunctionCallOutput::Text(tool_call_response),
+                            };
 
-                        // build a tool message and append to full_response
-                        let tool_message = ChatCompletionRequestToolMessageArgs::default()
-                            .content(tool_call_response)
-                            .tool_call_id(tool_call.id.clone())
-                            .build()?
-                            .into();
+                            full_response
+                                .push(InputItem::Item(Item::FunctionCallOutput(tool_message)));
+                        }
+                        None => {
+                            // unknown function name — push an error-style tool message so the model sees it
+                            let err_text =
+                                format!("No handler registered for function: {}", function_name);
 
-                        full_response.push(tool_message);
+                            // build a tool message and append to full_response
+                            let tool_message = FunctionCallOutputItemParam {
+                                call_id: tool_call.call_id,
+                                id: None,
+                                status: None,
+                                output: FunctionCallOutput::Text(err_text),
+                            };
+
+                            full_response
+                                .push(InputItem::Item(Item::FunctionCallOutput(tool_message)));
+                        }
                     }
-                    None => {
-                        // unknown function name — push an error-style tool message so the model sees it
-                        let err_text =
-                            format!("No handler registered for function: {}", function_name);
-                        let tool_message = ChatCompletionRequestToolMessageArgs::default()
-                            .content(err_text)
-                            .tool_call_id(tool_call.id.clone())
-                            .build()?
-                            .into();
-                        full_response.push(tool_message);
-                    }
+
+                    did_tool_call = true;
                 }
+                _ => {}
             }
         }
 
-        // re-call the model with the updated full_response (which now includes tool replies)
-        request = CreateChatCompletionRequestArgs::default()
-            .tools(tools.clone())
-            .messages(full_response.clone())
-            .model("qwen3.5:35b")
-            .build()?;
+        if !(did_tool_call) {
+            break;
+        }
 
-        let chat_response = client.chat().create(request).await?;
+        // re-call the model with the updated full_response (which now includes tool replies)
+        request = CreateResponse {
+            model: Some("qwen3.5:35b".to_string()),
+            instructions: Some("You are Agent Kitten, a helpful AI powered discord bot made by the ClowderTech LLC. You are here to help people with their problems or to interact with the person to help them feel better. Your own website is https://agentkitten.com/. Please make sure to use your tools and function calls whenever useful. Also remember to follow discord's markdown syntax which is somewhat limited. You should ask questions to the user if it is needed to respond to them reasonably. There is no need to overthink the question.".to_string()),
+            tools: Some(tools.clone()),
+            input: InputParam::Items(full_response.clone()),
+            truncation: Some(Truncation::Auto),
+            ..Default::default()
+        };
+
+        let chat_response = client.responses().create(request).await?;
         response = chat_response.clone();
 
-        // push the model's produced message into the conversation history (round-trip again)
-        let serialized =
-            serde_json::to_string(&chat_response.choices.first().unwrap().message).unwrap();
-        let deserialized: ChatCompletionRequestMessage = serde_json::from_str(&serialized).unwrap();
-        full_response.push(deserialized);
+        for output in response.output.clone() {
+            full_response.push(InputItem::Item(output.into()));
+        }
     }
 
-    Ok((full_response, response))
+    let final_output = response.output_text().unwrap_or_default();
+
+    Ok((full_response, final_output))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -163,5 +165,5 @@ pub struct TextgenDoc {
     #[serde(rename = "_id")]
     pub id: bson::oid::ObjectId,
     pub userid: String,
-    pub messages: Vec<ChatCompletionRequestMessage>,
+    pub messages: Vec<InputItem>,
 }
