@@ -172,6 +172,12 @@ async fn event_handler(
                         tokio::time::sleep(Duration::from_secs(60)).await;
                     }
                 });
+                tokio::spawn(async move {
+                    loop {
+                        update_cpu_stats(&data.system_stats).await;
+                        tokio::time::sleep(Duration::from_secs(10)).await;
+                    }
+                });
                 LOOPS_RUNNING.swap(true, std::sync::atomic::Ordering::Relaxed);
             }
         }
@@ -364,4 +370,9 @@ async fn level_speakers_in_voice_chats(http: &serenity::Http, mongo_client: &Mon
 async fn reset_text_chatters_limit() {
     let mut set = USERS_MESSAGED.lock().await;
     set.clear();
+}
+
+async fn update_cpu_stats(system_stats: &Arc<Mutex<System>>) {
+    let mut stats = system_stats.lock().await;
+    stats.refresh_cpu_all();
 }
