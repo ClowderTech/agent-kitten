@@ -54,7 +54,7 @@ jobs:
               with:
                   registry: ${{ env.REGISTRY }}
                   username: ${{ github.actor }}
-                  password: ${{ secrets.GITHUB_TOKEN }}
+                  password: ${{ secrets.PACKAGE_TOKEN }}
 
             # Extract metadata (tags, labels) for Docker
             # https://github.com/docker/metadata-action
@@ -76,10 +76,6 @@ jobs:
                   labels: ${{ steps.meta.outputs.labels }}
                   cache-from: type=gha
                   cache-to: type=gha,mode=max
-                  secrets: |
-                      GIT_AUTH_TOKEN=${{ secrets.MYTOKEN }}
-
-                    
 
             # Sign the resulting Docker image digest except on PRs.
             # This will only write to the public Rekor transparency log when the Docker
