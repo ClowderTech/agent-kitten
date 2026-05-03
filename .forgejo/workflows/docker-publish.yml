@@ -7,21 +7,21 @@ name: Docker
 
 on:
     push:
-        branches: ["master"]
+        branches: [ "master" ]
         # Publish semver tags as releases.
-        tags: ["v*.*.*"]
+        tags: [ "v*.*.*" ]
     pull_request:
-        branches: ["master"]
+        branches: [ "master" ]
 
 env:
     # Use docker.io for Docker Hub if empty
-    REGISTRY: git.clowdertech.com
+    REGISTRY: ${{ forgejo.server_url }}
     # github.repository as <account>/<repo>
-    IMAGE_NAME: ${{ github.repository }}
+    IMAGE_NAME: ${{ forgejo.repository }}
 
 jobs:
     build:
-        runs-on: ubuntu-latest
+        runs-on: runner-main
         permissions:
             contents: read
             packages: write
