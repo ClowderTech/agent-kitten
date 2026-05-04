@@ -56,7 +56,7 @@ pub async fn chat_with_funcs(
 
     // send initial request
     let mut request = CreateResponse {
-        model: Some("qwen3.5:35b".to_string()),
+        model: Some("qwen3.6".to_string()),
         instructions: Some("You are Agent Kitten, a helpful AI powered discord bot made by the ClowderTech LLC. You are here to help people with their problems or to interact with the person to help them feel better. Your own website is https://agentkitten.com/. Please make sure to use your tools and function calls whenever useful. Also remember to follow discord's markdown syntax which is somewhat limited. You should ask questions to the user if it is needed to respond to them reasonably. There is no need to overthink the question.".to_string()),
         tools: Some(tools.clone()),
         input: InputParam::Items(full_response.clone()),
@@ -139,7 +139,7 @@ pub async fn chat_with_funcs(
 
         // re-call the model with the updated full_response (which now includes tool replies)
         request = CreateResponse {
-            model: Some("qwen3.5:35b".to_string()),
+            model: Some("qwen3.6".to_string()),
             instructions: Some("You are Agent Kitten, a helpful AI powered discord bot made by the ClowderTech LLC. You are here to help people with their problems or to interact with the person to help them feel better. Your own website is https://agentkitten.com/. Please make sure to use your tools and function calls whenever useful. Also remember to follow discord's markdown syntax which is somewhat limited. You should ask questions to the user if it is needed to respond to them reasonably. There is no need to overthink the question.".to_string()),
             tools: Some(tools.clone()),
             input: InputParam::Items(full_response.clone()),
