@@ -1,6 +1,6 @@
 [package]
 name = "agent-kitten"
-version = "3.5.4"
+version = "3.5.5"
 edition = "2024"
 
 [dependencies]
@@ -27,7 +27,7 @@ poise = { version = "0.6.2", features = [
   "chrono",
   "handle_panics",
 ], default-features = false }
-tokio = { version = "1.52.1", features = [
+tokio = { version = "1.52.2", features = [
   "rt-multi-thread",
   "macros",
   "signal",

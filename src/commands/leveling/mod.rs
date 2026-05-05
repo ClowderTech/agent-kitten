@@ -1,7 +1,7 @@
-pub mod level;
 pub mod leaderboard;
+pub mod level;
 
 pub use self::{
-    level::*,
     leaderboard::*,
+    level::*,
 };

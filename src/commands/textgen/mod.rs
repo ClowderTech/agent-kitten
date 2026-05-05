@@ -1,7 +1,7 @@
-pub mod chatreset;
 pub mod chat;
+pub mod chatreset;
 
 pub use self::{
-    chatreset::*,
     chat::*,
+    chatreset::*,
 };
