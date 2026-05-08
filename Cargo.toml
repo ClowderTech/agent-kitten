@@ -1,6 +1,6 @@
 [package]
 name = "agent-kitten"
-version = "3.5.5"
+version = "3.5.6"
 edition = "2024"
 
 [dependencies]
@@ -27,7 +27,7 @@ poise = { version = "0.6.2", features = [
   "chrono",
   "handle_panics",
 ], default-features = false }
-tokio = { version = "1.52.2", features = [
+tokio = { version = "1.52.3", features = [
   "rt-multi-thread",
   "macros",
   "signal",
@@ -56,14 +56,14 @@ lavalink-rs = { version = "0.15.0", features = [
   "macros",
   "tungstenite-native-tls",
 ], default-features = false }
-sysinfo = { version = "0.38.4" }
+sysinfo = { version = "0.39.0" }
 chrono = { version = "0.4.44" }
 mongodb = { version = "3.6.0" }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.149" }
 serde_with = { version = "3.19.0" }
 futures = { version = "0.3.32" }
-async-openai = { version = "0.36.1", features = [
+async-openai = { version = "0.38.0", features = [
   "native-tls",
   "webhook",
   "responses",
