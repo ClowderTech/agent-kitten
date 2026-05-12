@@ -52,14 +52,12 @@ static LOOPS_RUNNING: AtomicBool = AtomicBool::new(false);
 
 #[tokio::main]
 async fn main() {
-    let token = std::env::var("DISCORD_TOKEN").expect("Missing DISCORD_TOKEN");
-    let intents = serenity::GatewayIntents::non_privileged();
-
-    let uri = std::env::var("MONGODB_URI").expect("Missing MONGODB_URI");
-    let opts = ClientOptions::parse(uri)
-        .await
-        .expect("MONGODB_URI unparsable");
-    let raw_client = Client::with_options(opts).expect("MongoDB unable to connect");
+    let raw_client = Client::with_options(
+        ClientOptions::parse(std::env::var("MONGODB_URI").expect("Missing MONGODB_URI"))
+            .await
+            .expect("MONGODB_URI unparsable"),
+    )
+    .expect("MongoDB unable to connect");
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
@@ -94,7 +92,7 @@ async fn main() {
                     is_ssl: std::env::var("LAVALINK_SECURE")
                         .expect("Missing LAVALINK_SECURE")
                         .contains("true"),
-                    session_id: Some("oC1Q4hgcC4r5TGks".to_string()),
+                    session_id: None,
                     events: events::Events::default(),
                 };
 
@@ -118,11 +116,14 @@ async fn main() {
         })
         .build();
 
-    let mut client = serenity::ClientBuilder::new(token, intents)
-        .register_songbird()
-        .framework(framework)
-        .await
-        .expect("Error creating client");
+    let mut client = serenity::ClientBuilder::new(
+        std::env::var("DISCORD_TOKEN").expect("Missing DISCORD_TOKEN"),
+        serenity::GatewayIntents::non_privileged(),
+    )
+    .register_songbird()
+    .framework(framework)
+    .await
+    .expect("Error creating client");
 
     let mut sig = signal(SignalKind::terminate()).expect("Not recognizing SIGTERM");
 
