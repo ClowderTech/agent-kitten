@@ -6,5 +6,6 @@ pub async fn track_end(lava_client: LavalinkClient, _session_id: String, event: 
     if player_context.get_queue().get_count().await.unwrap() >= 1 {
         return;
     }
-    let _ = player_context.close();
+
+    let _ = lava_client.delete_player(event.guild_id).await;
 }

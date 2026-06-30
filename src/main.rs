@@ -1,7 +1,7 @@
 use ::serenity::all::VoiceState;
 use chrono::{DateTime, Utc};
 use lavalink_rs::client::LavalinkClient;
-use lavalink_rs::model::events::{self, Events};
+use lavalink_rs::model::events::Events;
 use lavalink_rs::node::NodeBuilder;
 use once_cell::sync::Lazy;
 use poise::serenity_prelude as serenity;
@@ -96,7 +96,7 @@ async fn main() {
                         .expect("Missing LAVALINK_SECURE")
                         .contains("true"),
                     session_id: None,
-                    events: events::Events::default(),
+                    events: Events::default(),
                 };
 
                 let lavalink_client = LavalinkClient::new(
