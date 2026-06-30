@@ -16,8 +16,8 @@ use tokio::sync::Mutex;
 use std::collections::HashMap;
 use std::time::Duration;
 
-mod commands;
-mod commands_gen;
+pub mod commands;
+pub mod commands_gen;
 use commands_gen::all_commands;
 
 mod mongo_helpers;
@@ -25,18 +25,20 @@ use mongo_helpers::MongoClient;
 use mongodb::bson::doc;
 use mongodb::{Client, options::ClientOptions};
 
-mod textgen_helpers;
+pub mod textgen_helpers;
 
-mod config_helpers;
+pub mod config_helpers;
 use config_helpers::{Config, ServerConfig, get_nested_key};
 
-mod leveling_helpers;
+pub mod leveling_helpers;
 use leveling_helpers::pretty_exp_gain;
 
-mod music_helpers;
+pub mod music_helpers;
+
+pub mod music_events;
 
 #[derive(Clone)]
-struct Data {
+pub struct Data {
     start_time: DateTime<Utc>,
     mongoclient: MongoClient,
     lavalink: LavalinkClient,
@@ -77,6 +79,7 @@ async fn main() {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
 
                 let events = Events {
+                    track_end: Some(music_events::track_end),
                     ..Default::default()
                 };
 

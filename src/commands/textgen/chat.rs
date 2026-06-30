@@ -6,8 +6,8 @@ use crate::{
 };
 use ::serenity::all::{CreateEmbedAuthor, CreateEmbedFooter};
 use async_openai::types::responses::{
-    FunctionToolArgs, ImageDetail, InputImageContent, InputItem, InputMessage, InputRole,
-    InputTextContent, Tool,
+    FunctionToolArgs, ImageDetail, InputImageContent, InputMessage, InputRole, InputTextContent,
+    Tool,
 };
 use base64::{Engine, engine::general_purpose};
 use bson::oid::ObjectId;
@@ -45,16 +45,11 @@ pub async fn chat(
 
     let user_content: TextgenDoc = match content.first() {
         Some(fetched_content) => fetched_content.clone(),
-        None => {
-            let default_messages: Vec<InputItem> = vec![];
-            let default_content = TextgenDoc {
-                id: ObjectId::new(),
-                userid: ctx.author().id.get().to_string(),
-                messages: default_messages,
-            };
-
-            default_content
-        }
+        None => TextgenDoc {
+            id: ObjectId::new(),
+            userid: ctx.author().id.get().to_string(),
+            messages: vec![],
+        },
     };
 
     let mut messages = user_content.messages.clone();
@@ -63,7 +58,7 @@ pub async fn chat(
 
     sendable_user_message.push(InputTextContent::from(message).into());
 
-    for maybe_file in vec![file1, file2, file3, file4, file5] {
+    for maybe_file in [file1, file2, file3, file4, file5] {
         if let Some(some_file) = maybe_file
             && let Some(some_content_type) = some_file.clone().content_type
         {

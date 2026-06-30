@@ -75,8 +75,7 @@ pub async fn chat_with_funcs(
     loop {
         // ensure we have at least one choice
         if response.status != Status::Completed {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other,
+            return Err(Box::new(std::io::Error::other(
                 "Textgen API Error, not completed",
             )));
         }
@@ -84,52 +83,47 @@ pub async fn chat_with_funcs(
         let mut did_tool_call = false;
 
         for output_item in response.output.clone() {
-            match output_item {
-                OutputItem::FunctionCall(tool_call) => {
-                    let function_name = &tool_call.name;
+            if let OutputItem::FunctionCall(tool_call) = output_item {
+                let function_name = &tool_call.name;
 
-                    // find the handler
-                    match functions.get(function_name) {
-                        Some(handler) => {
-                            // parse the arguments as JSON Value (fall back to Null on parse error)
-                            let func_args: Value =
-                                serde_json::from_str(&tool_call.arguments).unwrap_or(Value::Null);
+                // find the handler
+                match functions.get(function_name) {
+                    Some(handler) => {
+                        // parse the arguments as JSON Value (fall back to Null on parse error)
+                        let func_args: Value =
+                            serde_json::from_str(&tool_call.arguments).unwrap_or(Value::Null);
 
-                            // execute handler (handler.execute returns a BoxFuture -> await it)
-                            let tool_call_response: String = handler.execute(func_args).await?;
+                        // execute handler (handler.execute returns a BoxFuture -> await it)
+                        let tool_call_response: String = handler.execute(func_args).await?;
 
-                            // build a tool message and append to full_response
-                            let tool_message = FunctionCallOutputItemParam {
-                                call_id: tool_call.call_id,
-                                id: None,
-                                status: None,
-                                output: FunctionCallOutput::Text(tool_call_response),
-                            };
+                        // build a tool message and append to full_response
+                        let tool_message = FunctionCallOutputItemParam {
+                            call_id: tool_call.call_id,
+                            id: None,
+                            status: None,
+                            output: FunctionCallOutput::Text(tool_call_response),
+                        };
 
-                            full_response
-                                .push(InputItem::Item(Item::FunctionCallOutput(tool_message)));
-                        }
-                        None => {
-                            // unknown function name — push an error-style tool message so the model sees it
-                            let err_text =
-                                format!("No handler registered for function: {}", function_name);
-
-                            // build a tool message and append to full_response
-                            let tool_message = FunctionCallOutputItemParam {
-                                call_id: tool_call.call_id,
-                                id: None,
-                                status: None,
-                                output: FunctionCallOutput::Text(err_text),
-                            };
-
-                            full_response
-                                .push(InputItem::Item(Item::FunctionCallOutput(tool_message)));
-                        }
+                        full_response.push(InputItem::Item(Item::FunctionCallOutput(tool_message)));
                     }
+                    None => {
+                        // unknown function name — push an error-style tool message so the model sees it
+                        let err_text =
+                            format!("No handler registered for function: {}", function_name);
 
-                    did_tool_call = true;
+                        // build a tool message and append to full_response
+                        let tool_message = FunctionCallOutputItemParam {
+                            call_id: tool_call.call_id,
+                            id: None,
+                            status: None,
+                            output: FunctionCallOutput::Text(err_text),
+                        };
+
+                        full_response.push(InputItem::Item(Item::FunctionCallOutput(tool_message)));
+                    }
                 }
-                _ => {}
+
+                did_tool_call = true;
             }
         }
 
