@@ -79,7 +79,6 @@ async fn main() {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
 
                 let events = Events {
-                    track_end: Some(music_events::track_end),
                     ..Default::default()
                 };
 

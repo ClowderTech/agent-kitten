@@ -10,7 +10,7 @@ checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
 
 [[package]]
 name = "agent-kitten"
-version = "3.5.12"
+version = "3.5.13"
 dependencies = [
  "async-openai",
  "barexp",
@@ -26,13 +26,13 @@ dependencies = [
  "native-tls",
  "once_cell",
  "poise",
- "rand 0.10.1",
+ "rand 0.10.2",
  "reqwest 0.13.4",
  "serde",
  "serde_json",
  "serde_with",
  "serenity",
- "simd-json 0.17.0",
+ "simd-json 0.17.1",
  "songbird 0.6.0",
  "symphonia",
  "sysinfo",
@@ -1412,7 +1412,7 @@ dependencies = [
  "idna",
  "ipnet",
  "jni",
- "rand 0.10.1",
+ "rand 0.10.2",
  "thiserror 2.0.18",
  "tinyvec",
  "tokio",
@@ -1432,7 +1432,7 @@ dependencies = [
  "jni",
  "once_cell",
  "prefix-trie",
- "rand 0.10.1",
+ "rand 0.10.2",
  "ring",
  "thiserror 2.0.18",
  "tinyvec",
@@ -1457,7 +1457,7 @@ dependencies = [
  "ndk-context",
  "once_cell",
  "parking_lot",
- "rand 0.10.1",
+ "rand 0.10.2",
  "resolv-conf",
  "smallvec",
  "system-configuration",
@@ -1501,9 +1501,9 @@ dependencies = [
 
 [[package]]
 name = "html-to-markdown-rs"
-version = "3.8.0"
+version = "3.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da9935e81a6fee38ebbc5a2ca4e9590f99f650ffb8a08734c4115a3e06c3c5d3"
+checksum = "bfb98086035f41cf7bcdb6bd1dab14b118e53b035e003e268698a6003c413fa0"
 dependencies = [
  "ahash",
  "astral-tl",
@@ -2892,9 +2892,9 @@ dependencies = [
 
 [[package]]
 name = "rand"
-version = "0.10.1"
+version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2e8e8bcc7961af1fdac401278c6a831614941f6164ee3bf4ce61b7edb162207"
+checksum = "c7f5fa3a058cd35567ef9bfa5e75732bee0f9e4c55fa90477bef2dfcdbc4be80"
 dependencies = [
  "chacha20",
  "getrandom 0.4.3",
@@ -3639,9 +3639,9 @@ dependencies = [
 
 [[package]]
 name = "simd-json"
-version = "0.17.0"
+version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4255126f310d2ba20048db6321c81ab376f6a6735608bf11f0785c41f01f64e3"
+checksum = "a06b0b2b365490dff3432ef23606d99e8162d35d0af53a64c41e6af35ad72223"
 dependencies = [
  "halfbrown 0.4.0",
  "ref-cast",

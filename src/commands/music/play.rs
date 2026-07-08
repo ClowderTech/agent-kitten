@@ -80,9 +80,5 @@ pub async fn play(
         player.skip()?;
     }
 
-    if has_joined {
-        return Ok(());
-    }
-
     Ok(())
 }
