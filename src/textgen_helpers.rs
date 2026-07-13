@@ -54,10 +54,13 @@ pub async fn chat_with_funcs(
 
     let client = OpenAIClient::new();
 
+    let textgen_model = std::env::var("TEXTGEN_MODEL").expect("Missing TEXTGEN_MODEL");
+    let textgen_system_instructions = "You are Agent Kitten, a helpful AI powered discord bot made by ClowderTech LLC. You are here to help people with their problems or to interact with the person to help them feel better. Your own website is https://agentkitten.com/. Please make sure to use your tools and function calls whenever useful. Also remember to follow discord's markdown syntax which is somewhat limited. You should ask questions to the user if it is needed to respond to them reasonably. There is no need to overthink the question.".to_string();
+
     // send initial request
     let mut request = CreateResponse {
-        model: Some("qwen3.6".to_string()),
-        instructions: Some("You are Agent Kitten, a helpful AI powered discord bot made by the ClowderTech LLC. You are here to help people with their problems or to interact with the person to help them feel better. Your own website is https://agentkitten.com/. Please make sure to use your tools and function calls whenever useful. Also remember to follow discord's markdown syntax which is somewhat limited. You should ask questions to the user if it is needed to respond to them reasonably. There is no need to overthink the question.".to_string()),
+        model: Some(textgen_model.clone()),
+        instructions: Some(textgen_system_instructions.clone()),
         tools: Some(tools.clone()),
         input: InputParam::Items(full_response.clone()),
         truncation: Some(Truncation::Auto),
@@ -133,8 +136,8 @@ pub async fn chat_with_funcs(
 
         // re-call the model with the updated full_response (which now includes tool replies)
         request = CreateResponse {
-            model: Some("qwen3.6".to_string()),
-            instructions: Some("You are Agent Kitten, a helpful AI powered discord bot made by the ClowderTech LLC. You are here to help people with their problems or to interact with the person to help them feel better. Your own website is https://agentkitten.com/. Please make sure to use your tools and function calls whenever useful. Also remember to follow discord's markdown syntax which is somewhat limited. You should ask questions to the user if it is needed to respond to them reasonably. There is no need to overthink the question.".to_string()),
+            model: Some(textgen_model.clone()),
+            instructions: Some(textgen_system_instructions.clone()),
             tools: Some(tools.clone()),
             input: InputParam::Items(full_response.clone()),
             truncation: Some(Truncation::Auto),
