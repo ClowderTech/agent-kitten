@@ -2,9 +2,9 @@ pub mod clear;
 pub mod join;
 pub mod leave;
 pub mod pause;
-pub mod play;
-pub mod queue;
 pub mod remove;
+pub mod queue;
+pub mod play;
 pub mod resume;
 pub mod seek;
 pub mod skip;
@@ -16,9 +16,9 @@ pub use self::{
     join::*,
     leave::*,
     pause::*,
-    play::*,
-    queue::*,
     remove::*,
+    queue::*,
+    play::*,
     resume::*,
     seek::*,
     skip::*,
