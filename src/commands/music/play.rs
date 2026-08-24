@@ -13,7 +13,7 @@ pub async fn play(
 ) -> Result<(), Error> {
     let guild_id = ctx.guild_id().unwrap();
 
-    let has_joined = crate::music_helpers::_join(&ctx, guild_id, None).await?;
+    // let has_joined = crate::music_helpers::_join(&ctx, guild_id, None).await?;
 
     let lava_client = ctx.data().lavalink.clone();
 

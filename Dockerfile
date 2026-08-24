@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-ARG RUST_VERSION=1.97.1
+ARG RUST_VERSION=1.98.0
 ARG APP_NAME=agent-kitten
 ARG UID=10001
 
@@ -24,7 +24,7 @@ RUN --mount=type=cache,target=/app/target/ \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
     cargo build --locked --release && cp target/release/${APP_NAME} /app/server
 
-FROM debian:trixie AS final
+FROM debian:trixie-slim AS final
 ARG APP_NAME
 ARG UID
 
