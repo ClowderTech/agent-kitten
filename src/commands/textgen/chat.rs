@@ -5,9 +5,10 @@ use crate::{
     textgen_helpers::{DynError, TextgenDoc, ToolsHandler, chat_with_funcs},
 };
 use ::serenity::all::{CreateEmbedAuthor, CreateEmbedFooter};
-use async_openai::types::responses::{
-    FunctionToolArgs, ImageDetail, InputImageContent, InputMessage, InputRole, InputTextContent,
-    Tool,
+use async_openai::types::chat::{
+    ChatCompletionRequestMessageContentPartImageArgs,
+    ChatCompletionRequestMessageContentPartTextArgs, ChatCompletionRequestSystemMessageArgs,
+    ChatCompletionRequestUserMessageArgs, ChatCompletionTool, FunctionObjectArgs,
 };
 use base64::{Engine, engine::general_purpose};
 use bson::oid::ObjectId;
@@ -38,6 +39,8 @@ pub async fn chat(
 
     let mongoclient = ctx.data().mongoclient.clone();
 
+    let textgen_system_instructions = "You are Agent Kitten, a helpful AI powered discord bot made by ClowderTech LLC. You are here to help people with their problems or to interact with the person to help them feel better. Your own website is https://agentkitten.com/. Please make sure to use your tools and function calls whenever useful. Also remember to follow discord's markdown syntax which is somewhat limited. You should ask questions to the user if it is needed to respond to them reasonably. There is no need to overthink the question.".to_string();
+
     let filter = doc! { "userid": ctx.author().id.get().to_string() };
     let content = mongoclient
         .get_data::<TextgenDoc>("textgen", Some(filter.clone()))
@@ -48,7 +51,12 @@ pub async fn chat(
         None => TextgenDoc {
             id: ObjectId::new(),
             userid: ctx.author().id.get().to_string(),
-            messages: vec![],
+            messages: vec![
+                ChatCompletionRequestSystemMessageArgs::default()
+                    .content(textgen_system_instructions)
+                    .build()?
+                    .into(),
+            ],
         },
     };
 
@@ -56,7 +64,12 @@ pub async fn chat(
 
     let mut sendable_user_message = Vec::new();
 
-    sendable_user_message.push(InputTextContent::from(message).into());
+    sendable_user_message.push(
+        ChatCompletionRequestMessageContentPartTextArgs::default()
+            .text(message)
+            .build()?
+            .into(),
+    );
 
     for maybe_file in [file1, file2, file3, file4, file5] {
         if let Some(some_file) = maybe_file
@@ -71,12 +84,10 @@ pub async fn chat(
                 let final_url = format!("data:{};base64,{}", some_content_type, encoded);
 
                 sendable_user_message.push(
-                    InputImageContent {
-                        detail: ImageDetail::Auto,
-                        image_url: Some(final_url),
-                        file_id: None,
-                    }
-                    .into(),
+                    ChatCompletionRequestMessageContentPartImageArgs::default()
+                        .image_url(final_url)
+                        .build()?
+                        .into(),
                 );
             } else if some_content_type.contains("text") {
                 let file = some_file.download().await?;
@@ -84,22 +95,25 @@ pub async fn chat(
                 let text = String::from_utf8(file)?;
                 let final_text = format!("File {}:\n\n{}", some_file.filename, text);
 
-                sendable_user_message.push(InputTextContent::from(final_text).into());
+                sendable_user_message.push(
+                    ChatCompletionRequestMessageContentPartTextArgs::default()
+                        .text(final_text)
+                        .build()?
+                        .into(),
+                );
             }
         }
     }
 
-    let user_message = InputMessage {
-        content: sendable_user_message,
-        role: InputRole::User,
-        status: None,
-    };
+    let user_message = ChatCompletionRequestUserMessageArgs::default()
+        .content(sendable_user_message)
+        .build()?;
 
     messages.push(user_message.into());
 
     let mut tool_registry: HashMap<String, ToolsHandler> = HashMap::new();
 
-    let search_tool: std::sync::Arc<Tool> = std::sync::Arc::new(Tool::from(FunctionToolArgs::default().name("web_search").description("Use a search engine to find information on the given query.").parameters(json!({"type": "object", "properties": {"query": {"type": "string", "description": "What information to retrieve about on the search engine."}}, "required": ["query"], "additionalProperties": false})).strict(true).build().expect("L rizz")));
+    let search_tool: std::sync::Arc<ChatCompletionTool> = std::sync::Arc::new(ChatCompletionTool { function: FunctionObjectArgs::default().name("web_search").description("Use a search engine to find information on the given query.").parameters(json!({"type": "object", "properties": {"query": {"type": "string", "description": "What information to retrieve about on the search engine."}}, "required": ["query"], "additionalProperties": false})).strict(true).build()?});
 
     let search_handler = ToolsHandler::new(search_tool, |input: Value| {
         async move {
@@ -111,7 +125,7 @@ pub async fn chat(
 
     tool_registry.insert("web_search".to_string(), search_handler);
 
-    let scrape_tool: std::sync::Arc<Tool> = std::sync::Arc::new(Tool::from(FunctionToolArgs::default().name("web_scrape").description("Scrapes and generates a markdown representation of a website.").parameters(json!({"type": "object", "properties": {"url": {"type": "string", "description": "The URL to scrape."}}, "required": ["query"], "additionalProperties": false})).strict(true).build().expect("L rizz")));
+    let scrape_tool: std::sync::Arc<ChatCompletionTool> = std::sync::Arc::new(ChatCompletionTool { function: FunctionObjectArgs::default().name("web_scrape").description("Scrapes and generates a markdown representation of a website.").parameters(json!({"type": "object", "properties": {"url": {"type": "string", "description": "The URL to scrape."}}, "required": ["query"], "additionalProperties": false})).build()?});
 
     let scrape_handler = ToolsHandler::new(scrape_tool, |input: Value| {
         async move {

@@ -64,14 +64,7 @@ async fn main() {
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             commands: all_commands(),
-            event_handler: |ctx, event, framework, data| {
-                Box::pin(event_handler(
-                    ctx.clone(),
-                    event.clone(),
-                    framework,
-                    data.clone(),
-                ))
-            },
+            event_handler: |framework, event| Box::pin(event_handler(framework, event)),
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {
@@ -147,11 +140,13 @@ async fn main() {
 }
 
 async fn event_handler(
-    ctx: serenity::Context,
-    event: serenity::FullEvent,
-    _framework: poise::FrameworkContext<'_, Data, Error>,
-    data: Data,
+    framework: poise::FrameworkContext<'_, Data, Error>,
+    event: &serenity::FullEvent,
 ) -> Result<(), Error> {
+    let framework = Arc::new(framework);
+    let ctx = framework.serenity_context;
+    let data = framework.user_data;
+
     match event {
         serenity::FullEvent::Ready { data_about_bot, .. } => {
             println!("Client is ready! Logged in as {}", data_about_bot.user.name);
@@ -163,9 +158,11 @@ async fn event_handler(
         serenity::FullEvent::CacheReady { guilds: _ } => {
             println!("Cache built successfully!");
             if !LOOPS_RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
+                let http_clone = framework.serenity_context.http.clone();
+                let mongoclient_clone = framework.user_data.mongoclient.clone();
                 tokio::spawn(async move {
                     loop {
-                        level_speakers_in_voice_chats(&ctx.http.clone(), &data.mongoclient).await;
+                        level_speakers_in_voice_chats(http_clone.clone(), &mongoclient_clone).await;
                         tokio::time::sleep(Duration::from_secs(60)).await;
                     }
                 });
@@ -175,9 +172,10 @@ async fn event_handler(
                         tokio::time::sleep(Duration::from_secs(60)).await;
                     }
                 });
+                let system_stats_clone = framework.user_data.system_stats.clone();
                 tokio::spawn(async move {
                     loop {
-                        update_cpu_stats(&data.system_stats).await;
+                        update_cpu_stats(&system_stats_clone).await;
                         tokio::time::sleep(Duration::from_secs(10)).await;
                     }
                 });
@@ -187,7 +185,7 @@ async fn event_handler(
         serenity::FullEvent::VoiceStateUpdate { old: _, new } => {
             let mut voice_states = USER_VOICE_STATES.lock().await;
             if new.guild_id.is_some() && new.channel_id.is_some() {
-                voice_states.insert(new.user_id.get(), new);
+                voice_states.insert(new.user_id.get(), new.clone());
             } else {
                 voice_states.remove(&new.user_id.get());
             }
@@ -285,7 +283,7 @@ async fn event_handler(
     Ok(())
 }
 
-async fn level_speakers_in_voice_chats(http: &serenity::Http, mongo_client: &MongoClient) {
+async fn level_speakers_in_voice_chats(http: Arc<serenity::Http>, mongo_client: &MongoClient) {
     let voice_states = USER_VOICE_STATES.lock().await;
     for (user_id, voice_state) in voice_states.iter() {
         // Use voice_state fields (deaf/mute/self_stream) to evaluate conditions
