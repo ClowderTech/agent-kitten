@@ -71,8 +71,8 @@ async fn main() {
     let db = Database::connect(opt)
         .await
         .expect("Postgres unable to connect");
-    db.get_schema_registry("entity::*")
-        .apply(&db)
+    db.get_schema_registry("agent-kitten::*")
+        .sync(&db)
         .await
         .expect("Postgres unable to register schemas");
     let db_clone = db.clone();
