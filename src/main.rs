@@ -72,7 +72,7 @@ async fn main() {
         .await
         .expect("Postgres unable to connect");
     db.get_schema_registry("entity::*")
-        .sync(&db)
+        .apply(&db)
         .await
         .expect("Postgres unable to register schemas");
     let db_clone = db.clone();
