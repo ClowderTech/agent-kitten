@@ -1,6 +1,6 @@
 [package]
 name = "agent-kitten"
-version = "3.5.17"
+version = "4.0.0"
 edition = "2024"
 
 [dependencies]
