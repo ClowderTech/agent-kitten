@@ -27,7 +27,7 @@ pub async fn leaderboard(ctx: Context<'_, Data, Error>) -> Result<(), Error> {
     //     }
     // };
     let guild_id = match ctx.guild_id() {
-        Some(g) => g.get(),
+        Some(g) => g.to_string(),
         None => {
             ctx.say("You didn't execute this in a server!").await?;
             return Ok(());

@@ -36,7 +36,7 @@ pub async fn level(
     //     }
     // };
     let guild_id = match ctx.guild_id() {
-        Some(g) => g.get(),
+        Some(g) => g.to_string(),
         None => {
             ctx.say("You didn't execute this in a server!").await?;
             return Ok(());
@@ -68,21 +68,22 @@ pub async fn level(
     //     }
     // };
 
-    let user_id = target.id.get();
+    let user_id = target.id.to_string();
 
     let psql_client = &ctx.data().psql_client;
 
-    let user_content_search: Option<LevelingModel> = Leveling::find_by_pair((user_id, guild_id))
-        .one(psql_client)
-        .await?;
+    let user_content_search: Option<LevelingModel> =
+        Leveling::find_by_pair((user_id.clone(), guild_id.clone()))
+            .one(psql_client)
+            .await?;
 
     let user_content = match user_content_search {
         Some(content) => content,
         None => {
             let new_active_model = LevelingActiveModel {
                 id: NotSet,
-                user_id: Set(user_id),
-                server_id: Set(guild_id),
+                user_id: Set(user_id.clone()),
+                server_id: Set(guild_id.clone()),
                 level: Set(0),
                 experience: Set(0),
             };

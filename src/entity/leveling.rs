@@ -7,9 +7,9 @@ pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[sea_orm(unique_key = "pair")]
-    pub user_id: u64,
+    pub user_id: String,
     #[sea_orm(unique_key = "pair")]
-    pub server_id: u64,
+    pub server_id: String,
     pub level: i32,
     pub experience: i32,
 }

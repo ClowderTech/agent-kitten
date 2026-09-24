@@ -33,7 +33,7 @@ pub async fn set(
     #[description = "The configuration value to set (JSON or raw string)"] value: String,
 ) -> Result<(), Error> {
     let guild_id = match ctx.guild_id() {
-        Some(g) => g.get(),
+        Some(g) => g.to_string(),
         None => {
             ctx.say("This was not sent in a server.").await?;
             return Ok(());
@@ -42,15 +42,16 @@ pub async fn set(
 
     let psql_client = &ctx.data().psql_client;
 
-    let content_search: Option<ServerModel> =
-        Server::find_by_server_id(guild_id).one(psql_client).await?;
+    let content_search: Option<ServerModel> = Server::find_by_server_id(guild_id.clone())
+        .one(psql_client)
+        .await?;
 
     let content = match content_search {
         Some(content) => content,
         None => {
             let new_active_model = ServerActiveModel {
                 id: NotSet,
-                server_id: Set(guild_id),
+                server_id: Set(guild_id.clone()),
                 config: Set(json!({})),
             };
 
@@ -103,7 +104,7 @@ pub async fn get(
     #[description = "The configuration key you want to get"] key: String,
 ) -> Result<(), Error> {
     let guild_id = match ctx.guild_id() {
-        Some(g) => g.get(),
+        Some(g) => g.to_string(),
         None => {
             ctx.say("This was not sent in a server.").await?;
             return Ok(());
@@ -111,8 +112,9 @@ pub async fn get(
     };
 
     let psql_client = &ctx.data().psql_client;
-    let content_search: Option<ServerModel> =
-        Server::find_by_server_id(guild_id).one(psql_client).await?;
+    let content_search: Option<ServerModel> = Server::find_by_server_id(guild_id.clone())
+        .one(psql_client)
+        .await?;
 
     let config = content_search
         .map(|s| s.config)
@@ -143,7 +145,7 @@ pub async fn setraw(
     #[description = "The raw configuration value as a JSON string"] value: String,
 ) -> Result<(), Error> {
     let guild_id = match ctx.guild_id() {
-        Some(g) => g.get(),
+        Some(g) => g.to_string(),
         None => {
             ctx.say("This was not sent in a server.").await?;
             return Ok(());
@@ -164,8 +166,9 @@ pub async fn setraw(
 
     let psql_client = &ctx.data().psql_client;
 
-    let content_search: Option<ServerModel> =
-        Server::find_by_server_id(guild_id).one(psql_client).await?;
+    let content_search: Option<ServerModel> = Server::find_by_server_id(guild_id.clone())
+        .one(psql_client)
+        .await?;
 
     let content_active = match content_search {
         Some(content) => {
@@ -175,7 +178,7 @@ pub async fn setraw(
         }
         None => ServerActiveModel {
             id: NotSet,
-            server_id: Set(guild_id),
+            server_id: Set(guild_id.clone()),
             config: Set(parsed),
         },
     };
@@ -204,7 +207,7 @@ pub async fn setraw(
 #[poise::command(slash_command)]
 pub async fn getraw(ctx: Context<'_, Data, Error>) -> Result<(), Error> {
     let guild_id = match ctx.guild_id() {
-        Some(g) => g.get(),
+        Some(g) => g.to_string(),
         None => {
             ctx.say("This was not sent in a server.").await?;
             return Ok(());
@@ -212,8 +215,9 @@ pub async fn getraw(ctx: Context<'_, Data, Error>) -> Result<(), Error> {
     };
 
     let psql_client = &ctx.data().psql_client;
-    let content_search: Option<ServerModel> =
-        Server::find_by_server_id(guild_id).one(psql_client).await?;
+    let content_search: Option<ServerModel> = Server::find_by_server_id(guild_id.clone())
+        .one(psql_client)
+        .await?;
 
     let config = content_search
         .map(|s| s.config)
