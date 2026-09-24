@@ -1,11 +1,11 @@
-pub mod user;
+pub mod leveling;
 pub mod server;
 pub mod textgen;
-pub mod leveling;
+pub mod user;
 
 pub use self::{
-    user::*,
+    leveling::*,
     server::*,
     textgen::*,
-    leveling::*,
+    user::*,
 };
