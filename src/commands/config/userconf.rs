@@ -25,17 +25,19 @@ pub async fn set(
     #[description = "The configuration key you want to set"] key: String,
     #[description = "The configuration value to set (JSON or raw string)"] value: String,
 ) -> Result<(), Error> {
-    let user_id = ctx.author().id.get();
+    let user_id = ctx.author().id.to_string();
     let psql_client = &ctx.data().psql_client;
 
-    let content_search: Option<UserModel> = User::find_by_user_id(user_id).one(psql_client).await?;
+    let content_search: Option<UserModel> = User::find_by_user_id(user_id.clone())
+        .one(psql_client)
+        .await?;
 
     let content = match content_search {
         Some(content) => content,
         None => {
             let new_active_model = UserActiveModel {
                 id: NotSet,
-                user_id: Set(user_id),
+                user_id: Set(user_id.clone()),
                 config: Set(json!({})),
             };
 
@@ -94,10 +96,12 @@ pub async fn get(
     ctx: Context<'_, Data, Error>,
     #[description = "The configuration key you want to get"] key: String,
 ) -> Result<(), Error> {
-    let user_id = ctx.author().id.get();
+    let user_id = ctx.author().id.to_string();
     let psql_client = &ctx.data().psql_client;
 
-    let content_search: Option<UserModel> = User::find_by_user_id(user_id).one(psql_client).await?;
+    let content_search: Option<UserModel> = User::find_by_user_id(user_id.clone())
+        .one(psql_client)
+        .await?;
 
     let config = content_search
         .map(|u| u.config)
@@ -132,7 +136,7 @@ pub async fn setraw(
     ctx: Context<'_, Data, Error>,
     #[description = "The raw configuration value as a JSON string"] value: String,
 ) -> Result<(), Error> {
-    let user_id = ctx.author().id.get();
+    let user_id = ctx.author().id.to_string();
 
     let parsed: Value = match serde_json::from_str::<Value>(&value) {
         Ok(cfg) => cfg,
@@ -149,7 +153,9 @@ pub async fn setraw(
 
     let psql_client = &ctx.data().psql_client;
 
-    let content_search: Option<UserModel> = User::find_by_user_id(user_id).one(psql_client).await?;
+    let content_search: Option<UserModel> = User::find_by_user_id(user_id.clone())
+        .one(psql_client)
+        .await?;
 
     let content_active = match content_search {
         Some(content) => {
@@ -190,10 +196,12 @@ pub async fn setraw(
 /// View the raw json configuration options for yourself
 #[poise::command(slash_command)]
 pub async fn getraw(ctx: Context<'_, Data, Error>) -> Result<(), Error> {
-    let user_id = ctx.author().id.get();
+    let user_id = ctx.author().id.to_string();
 
     let psql_client = &ctx.data().psql_client;
-    let content_search: Option<UserModel> = User::find_by_user_id(user_id).one(psql_client).await?;
+    let content_search: Option<UserModel> = User::find_by_user_id(user_id.clone())
+        .one(psql_client)
+        .await?;
 
     let config = content_search
         .map(|u| u.config)

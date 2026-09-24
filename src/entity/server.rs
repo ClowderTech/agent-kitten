@@ -7,7 +7,7 @@ pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[sea_orm(unique)]
-    pub server_id: u64,
+    pub server_id: String,
     pub config: serde_json::Value,
 }
 

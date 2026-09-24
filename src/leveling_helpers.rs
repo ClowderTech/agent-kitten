@@ -242,22 +242,23 @@ pub fn calculate_exp_to_next_level(current_level: i32, current_experience: i32) 
 // }
 pub async fn pretty_exp_gain(
     psql_client: &DatabaseConnection,
-    user_id: u64,
-    guild_id: u64,
+    user_id: String,
+    guild_id: String,
     channel_url: &str,
     multiplier: f64,
 ) -> Result<Option<serenity::builder::CreateEmbed>, Error> {
-    let user_content_search: Option<LevelingModel> = Leveling::find_by_pair((user_id, guild_id))
-        .one(psql_client)
-        .await?;
+    let user_content_search: Option<LevelingModel> =
+        Leveling::find_by_pair((user_id.clone(), guild_id.clone()))
+            .one(psql_client)
+            .await?;
 
     let user_content = match user_content_search {
         Some(content) => content,
         None => {
             let new_active_model = LevelingActiveModel {
                 id: NotSet,
-                user_id: Set(user_id),
-                server_id: Set(guild_id),
+                user_id: Set(user_id.clone()),
+                server_id: Set(guild_id.clone()),
                 level: Set(0),
                 experience: Set(0),
             };
@@ -292,15 +293,16 @@ pub async fn pretty_exp_gain(
 
     // If leveled up: determine whether user wants messages
     if new_level > current_level {
-        let content_search: Option<UserModel> =
-            User::find_by_user_id(user_id).one(psql_client).await?;
+        let content_search: Option<UserModel> = User::find_by_user_id(user_id.clone())
+            .one(psql_client)
+            .await?;
 
         let content = match content_search {
             Some(content) => content,
             None => {
                 let new_active_model = UserActiveModel {
                     id: NotSet,
-                    user_id: Set(user_id),
+                    user_id: Set(user_id.clone()),
                     config: Set(json!({})),
                 };
 

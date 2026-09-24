@@ -219,19 +219,20 @@ async fn event_handler(
 
             // Only handle guild messages
             let guild_id = match new_message.guild_id {
-                Some(g) => g.get(),
+                Some(g) => g.to_string(),
                 None => return Ok(()),
             };
 
-            let content_search: Option<ServerModel> =
-                Server::find_by_server_id(guild_id).one(psql_client).await?;
+            let content_search: Option<ServerModel> = Server::find_by_server_id(guild_id.clone())
+                .one(psql_client)
+                .await?;
 
             let content = match content_search {
                 Some(content) => content,
                 None => {
                     let new_active_model = ServerActiveModel {
                         id: NotSet,
-                        server_id: Set(guild_id),
+                        server_id: Set(guild_id.clone()),
                         config: Set(json!({})),
                     };
 
@@ -275,7 +276,7 @@ async fn event_handler(
             // Call the pretty_exp_gain function (it returns Option<EmbedData> if you want to DM)
             match pretty_exp_gain(
                 &data.psql_client,
-                author_id_u64,
+                author_id_u64.to_string(),
                 guild_id,
                 &channel_url,
                 multiplier,
@@ -321,17 +322,18 @@ async fn level_speakers_in_voice_chats(
         // ((!deaf && !mute && channelId !== guild.afkChannelId) || streaming)
         if (!is_deaf && !is_mute) || is_streaming {
             // Fetch server config from DB. serverid stored as guild id string.
-            let content_search: Option<ServerModel> = Server::find_by_server_id(guild_id)
-                .one(psql_client)
-                .await
-                .unwrap();
+            let content_search: Option<ServerModel> =
+                Server::find_by_server_id(guild_id.to_string())
+                    .one(psql_client)
+                    .await
+                    .unwrap();
 
             let content = match content_search {
                 Some(content) => content,
                 None => {
                     let new_active_model = ServerActiveModel {
                         id: NotSet,
-                        server_id: Set(guild_id.get()),
+                        server_id: Set(guild_id.to_string()),
                         config: Set(json!({})),
                     };
 
@@ -369,8 +371,8 @@ async fn level_speakers_in_voice_chats(
             // Ignore the returned embed here (you could send it as a DM as you do elsewhere).
             match pretty_exp_gain(
                 psql_client,
-                *user_id,
-                guild_id.get(),
+                user_id.to_string(),
+                guild_id.to_string(),
                 &channel_url,
                 multiplier,
             )
