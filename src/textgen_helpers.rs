@@ -10,8 +10,8 @@ use futures::future::BoxFuture;
 use serde_json::Value;
 use std::{collections::HashMap, sync::Arc};
 
-use mongodb::bson::doc;
-use serde::{Deserialize, Serialize};
+// use mongodb::bson::doc;
+// use serde::{Deserialize, Serialize};
 
 pub struct ToolsHandler {
     tools: Arc<ChatCompletionTool>,
@@ -57,7 +57,7 @@ pub async fn chat_with_funcs(
     let client = OpenAIClient::new();
 
     let textgen_model = std::env::var("TEXTGEN_MODEL").expect("Missing TEXTGEN_MODEL");
-    
+
     // send initial request
     let request = CreateChatCompletionRequestArgs::default()
         .model(textgen_model.clone())
@@ -155,10 +155,10 @@ pub async fn chat_with_funcs(
     Ok((full_response, final_output))
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TextgenDoc {
-    #[serde(rename = "_id")]
-    pub id: bson::oid::ObjectId,
-    pub userid: String,
-    pub messages: Vec<ChatCompletionRequestMessage>,
-}
+// #[derive(Debug, Clone, Serialize, Deserialize)]
+// pub struct TextgenDoc {
+//     #[serde(rename = "_id")]
+//     pub id: bson::oid::ObjectId,
+//     pub userid: String,
+//     pub messages: Vec<ChatCompletionRequestMessage>,
+// }

@@ -5,6 +5,8 @@ use lavalink_rs::model::events::Events;
 use lavalink_rs::node::NodeBuilder;
 use once_cell::sync::Lazy;
 use poise::serenity_prelude as serenity;
+use sea_orm::{ActiveModelTrait, ConnectOptions, Database, DatabaseConnection};
+use serde_json::{Value, json};
 use songbird::SerenityInit;
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -20,15 +22,15 @@ pub mod commands;
 pub mod commands_gen;
 use commands_gen::all_commands;
 
-mod mongo_helpers;
-use mongo_helpers::MongoClient;
-use mongodb::bson::doc;
-use mongodb::{Client, options::ClientOptions};
+// mod mongo_helpers;
+// use mongo_helpers::MongoClient;
+// use mongodb::bson::doc;
+// use mongodb::{Client, options::ClientOptions};
 
 pub mod textgen_helpers;
 
 pub mod config_helpers;
-use config_helpers::{Config, ServerConfig, get_nested_key};
+use config_helpers::get_nested_key;
 
 pub mod leveling_helpers;
 use leveling_helpers::pretty_exp_gain;
@@ -37,12 +39,17 @@ pub mod music_helpers;
 
 pub mod music_events;
 
+pub mod entity;
+use entity::server::{ActiveModel as ServerActiveModel, Entity as Server, Model as ServerModel};
+use sea_orm::ActiveValue::{NotSet, Set};
+
 #[derive(Clone)]
 pub struct Data {
     start_time: DateTime<Utc>,
-    mongoclient: MongoClient,
+    // mongoclient: MongoClient,
     lavalink: LavalinkClient,
     system_stats: Arc<Mutex<System>>,
+    psql_client: DatabaseConnection,
 }
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
@@ -54,12 +61,21 @@ static LOOPS_RUNNING: AtomicBool = AtomicBool::new(false);
 
 #[tokio::main]
 async fn main() {
-    let raw_client = Client::with_options(
-        ClientOptions::parse(std::env::var("MONGODB_URI").expect("Missing MONGODB_URI"))
-            .await
-            .expect("MONGODB_URI unparsable"),
-    )
-    .expect("MongoDB unable to connect");
+    // let raw_client = Client::with_options(
+    //     ClientOptions::parse(std::env::var("MONGODB_URI").expect("Missing MONGODB_URI"))
+    //         .await
+    //         .expect("MONGODB_URI unparsable"),
+    // )
+    // .expect("MongoDB unable to connect");
+    let opt = ConnectOptions::new(std::env::var("PSQL_URI").expect("Missing PSQL_URI"));
+    let db = Database::connect(opt)
+        .await
+        .expect("Postgres unable to connect");
+    db.get_schema_registry("entity::*")
+        .sync(&db)
+        .await
+        .expect("Postgres unable to register schemas");
+    let db_clone = db.clone();
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
@@ -100,12 +116,13 @@ async fn main() {
 
                 Ok(Data {
                     start_time: Utc::now(),
-                    mongoclient: MongoClient::new(
-                        raw_client,
-                        _ready.user.display_name().to_string(),
-                    ),
+                    // mongoclient: MongoClient::new(
+                    //     raw_client,
+                    //     _ready.user.display_name().to_string(),
+                    // ),
                     lavalink: lavalink_client,
                     system_stats: Arc::new(Mutex::new(System::new_all())),
+                    psql_client: db_clone,
                 })
             })
         })
@@ -131,10 +148,12 @@ async fn main() {
         _ = sig.recv() => {
             println!("Received SIGTERM, shutting down gracefully...");
             client.shard_manager.shutdown_all().await;
+            let _ = db.close().await;
         }
         _ = tokio::signal::ctrl_c() => {
             println!("Received CTRL + C, shutting down gracefully...");
             client.shard_manager.shutdown_all().await;
+            let _ = db.close().await;
         }
     }
 }
@@ -146,6 +165,8 @@ async fn event_handler(
     let framework = Arc::new(framework);
     let ctx = framework.serenity_context;
     let data = framework.user_data;
+
+    let psql_client = &data.psql_client;
 
     match event {
         serenity::FullEvent::Ready { data_about_bot, .. } => {
@@ -159,10 +180,10 @@ async fn event_handler(
             println!("Cache built successfully!");
             if !LOOPS_RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
                 let http_clone = framework.serenity_context.http.clone();
-                let mongoclient_clone = framework.user_data.mongoclient.clone();
+                let psql_client_clone = framework.user_data.psql_client.clone();
                 tokio::spawn(async move {
                     loop {
-                        level_speakers_in_voice_chats(http_clone.clone(), &mongoclient_clone).await;
+                        level_speakers_in_voice_chats(http_clone.clone(), &psql_client_clone).await;
                         tokio::time::sleep(Duration::from_secs(60)).await;
                     }
                 });
@@ -202,30 +223,28 @@ async fn event_handler(
                 None => return Ok(()),
             };
 
-            // Query config for this server (serverid stored as string)
-            let filter = doc! { "serverid": guild_id.to_string() };
-            // Use your MongoClient from data
-            let server_data: Vec<ServerConfig> =
-                match data.mongoclient.get_data("config", Some(filter)).await {
-                    Ok(v) => v,
-                    Err(err) => {
-                        eprintln!("Failed to fetch server config: {}", err);
-                        return Ok(());
-                    }
-                };
+            let content_search: Option<ServerModel> =
+                Server::find_by_server_id(guild_id).one(psql_client).await?;
 
-            // Extract config payload (default to empty object)
-            let config_data: Config = server_data
-                .first()
-                .map(|c| c.config.clone())
-                .unwrap_or_else(|| Config::Object(std::collections::HashMap::new()));
+            let content = match content_search {
+                Some(content) => content,
+                None => {
+                    let new_active_model = ServerActiveModel {
+                        id: NotSet,
+                        server_id: Set(guild_id),
+                        config: Set(json!({})),
+                    };
+
+                    new_active_model.insert(psql_client).await?
+                }
+            };
 
             // Determine multiplier: 2 * Number(getNestedKey(...)) || 1
-            let base_multiplier = match get_nested_key(&config_data, "leveling.expmultiplier") {
+            let base_multiplier = match get_nested_key(&content.config, "leveling.expmultiplier") {
                 Some(cfg) => match cfg {
-                    Config::Num(n) => n,
-                    Config::Str(s) => s.parse::<f64>().unwrap_or(1.0),
-                    Config::Bool(b) => {
+                    Value::Number(n) => n.as_f64().unwrap_or(1.0),
+                    Value::String(s) => s.parse::<f64>().unwrap_or(1.0),
+                    Value::Bool(b) => {
                         // If someone stored boolean accidentally, treat true as 1.0, false as 0.0
                         if b { 1.0 } else { 0.0 }
                     }
@@ -255,9 +274,9 @@ async fn event_handler(
 
             // Call the pretty_exp_gain function (it returns Option<EmbedData> if you want to DM)
             match pretty_exp_gain(
-                &data.mongoclient,
-                &author_id_u64.to_string(),
-                &guild_id.to_string(),
+                &data.psql_client,
+                author_id_u64,
+                guild_id,
                 &channel_url,
                 multiplier,
             )
@@ -283,7 +302,10 @@ async fn event_handler(
     Ok(())
 }
 
-async fn level_speakers_in_voice_chats(http: Arc<serenity::Http>, mongo_client: &MongoClient) {
+async fn level_speakers_in_voice_chats(
+    http: Arc<serenity::Http>,
+    psql_client: &DatabaseConnection,
+) {
     let voice_states = USER_VOICE_STATES.lock().await;
     for (user_id, voice_state) in voice_states.iter() {
         // Use voice_state fields (deaf/mute/self_stream) to evaluate conditions
@@ -299,27 +321,30 @@ async fn level_speakers_in_voice_chats(http: Arc<serenity::Http>, mongo_client: 
         // ((!deaf && !mute && channelId !== guild.afkChannelId) || streaming)
         if (!is_deaf && !is_mute) || is_streaming {
             // Fetch server config from DB. serverid stored as guild id string.
-            let filter = doc! { "serverid": guild_id.to_string() };
-            let server_data: Vec<ServerConfig> =
-                match mongo_client.get_data("config", Some(filter)).await {
-                    Ok(v) => v,
-                    Err(err) => {
-                        eprintln!("Failed to fetch server config: {}", err);
-                        continue;
-                    }
-                };
+            let content_search: Option<ServerModel> = Server::find_by_server_id(guild_id)
+                .one(psql_client)
+                .await
+                .unwrap();
 
-            let config_data: Config = server_data
-                .first()
-                .map(|c| c.config.clone())
-                .unwrap_or_else(|| Config::Object(HashMap::new()));
+            let content = match content_search {
+                Some(content) => content,
+                None => {
+                    let new_active_model = ServerActiveModel {
+                        id: NotSet,
+                        server_id: Set(guild_id.get()),
+                        config: Set(json!({})),
+                    };
+
+                    new_active_model.insert(psql_client).await.unwrap()
+                }
+            };
 
             // base multiplier from config: try to coerce into a number (f64)
-            let base_multiplier = match get_nested_key(&config_data, "leveling.expmultiplier") {
+            let base_multiplier = match get_nested_key(&content.config, "leveling.expmultiplier") {
                 Some(cfg) => match cfg {
-                    Config::Num(n) => n,
-                    Config::Str(s) => s.parse::<f64>().unwrap_or(1.0),
-                    Config::Bool(b) => {
+                    Value::Number(n) => n.as_f64().unwrap_or(1.0),
+                    Value::String(s) => s.parse::<f64>().unwrap_or(1.0),
+                    Value::Bool(b) => {
                         if b {
                             1.0
                         } else {
@@ -343,9 +368,9 @@ async fn level_speakers_in_voice_chats(http: Arc<serenity::Http>, mongo_client: 
             // Call your leveling function. Pass user id and guild id as strings.
             // Ignore the returned embed here (you could send it as a DM as you do elsewhere).
             match pretty_exp_gain(
-                mongo_client,
-                &user_id.to_string(),
-                &guild_id.to_string(),
+                psql_client,
+                *user_id,
+                guild_id.get(),
                 &channel_url,
                 multiplier,
             )

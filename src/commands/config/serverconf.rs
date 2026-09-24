@@ -1,30 +1,22 @@
 // src/commands/serverconf.rs
-use bson::oid::ObjectId;
-use mongodb::bson::doc;
 use poise::serenity_prelude as serenity;
 use poise::{Context, CreateReply};
-use serde_json;
+use sea_orm::{ActiveModelTrait, IntoActiveModel};
+use serde_json::{self, Value, json};
 use serenity::builder::CreateEmbed;
-use std::collections::HashMap;
 
 use crate::Data;
 use crate::Error;
-use crate::config_helpers::{Config, ServerConfig, get_nested_key, set_nested_key};
-use crate::mongo_helpers::SetMode;
-
-fn config_to_pretty(cfg: &Config) -> String {
-    serde_json::to_string_pretty(cfg).unwrap_or_else(|_| format!("{:?}", cfg))
-}
+use crate::config_helpers::{get_nested_key, set_nested_key};
+use crate::entity::server::{
+    ActiveModel as ServerActiveModel, Entity as Server, Model as ServerModel,
+};
+use sea_orm::ActiveValue::{NotSet, Set};
 
 /// Root slash command with subcommands: set, get, setraw, getraw
 #[poise::command(
     slash_command,
-    subcommands(
-        "set",
-        "get",
-        "setraw",
-        "getraw"
-    ),
+    subcommands("set", "get", "setraw", "getraw"),
     required_permissions = "ADMINISTRATOR",
     default_member_permissions = "ADMINISTRATOR",
     guild_only
@@ -40,46 +32,48 @@ pub async fn set(
     #[description = "The configuration key you want to set"] key: String,
     #[description = "The configuration value to set (JSON or raw string)"] value: String,
 ) -> Result<(), Error> {
-    // Ensure this command is run in a guild
     let guild_id = match ctx.guild_id() {
-        Some(g) => g.to_string(),
+        Some(g) => g.get(),
         None => {
             ctx.say("This was not sent in a server.").await?;
             return Ok(());
         }
     };
 
-    let mongoclient = &ctx.data().mongoclient;
+    let psql_client = &ctx.data().psql_client;
 
-    // Fetch or create ServerConfig
-    let filter = doc! { "serverid": guild_id.clone() };
-    let mut server_data: Vec<ServerConfig> = mongoclient.get_data("config", Some(filter)).await?;
-    let mut server_conf = if let Some(first) = server_data.get_mut(0) {
-        first.clone()
-    } else {
-        ServerConfig {
-            _id: ObjectId::new(),
-            config: Config::Object(HashMap::new()),
-            serverid: guild_id.clone(),
+    let content_search: Option<ServerModel> =
+        Server::find_by_server_id(guild_id).one(psql_client).await?;
+
+    let content = match content_search {
+        Some(content) => content,
+        None => {
+            let new_active_model = ServerActiveModel {
+                id: NotSet,
+                server_id: Set(guild_id),
+                config: Set(json!({})),
+            };
+
+            new_active_model.insert(psql_client).await?
         }
     };
 
-    // Try parse JSON value into Config, else treat as string
-    let parsed_cfg: Config = match serde_json::from_str::<Config>(&value) {
-        Ok(cfg) => cfg,
-        Err(_) => Config::Str(value.clone()),
-    };
+    let mut config = content.config.clone();
 
-    if let Err(err) = set_nested_key(&mut server_conf.config, &key, parsed_cfg) {
+    // Parse value as JSON; fallback to raw JSON string if not valid JSON
+    let parsed_value: Value = serde_json::from_str(&value).unwrap_or(Value::String(value.clone()));
+
+    if let Err(err) = set_nested_key(&mut config, &key, parsed_value) {
         ctx.send(CreateReply::default().content(format!("Invalid path: {} ({})", key, err)))
             .await?;
         return Ok(());
     }
 
-    match mongoclient
-        .set_data::<ServerConfig>("config", &server_conf, None, SetMode::Replace)
-        .await
-    {
+    let mut content_active = content.into_active_model();
+
+    content_active.config.set_ne(config);
+
+    match content_active.save(psql_client).await {
         Ok(_) => {
             let embed = CreateEmbed::default()
                 .title("Server Configuration Updated")
@@ -109,25 +103,24 @@ pub async fn get(
     #[description = "The configuration key you want to get"] key: String,
 ) -> Result<(), Error> {
     let guild_id = match ctx.guild_id() {
-        Some(g) => g.to_string(),
+        Some(g) => g.get(),
         None => {
             ctx.say("This was not sent in a server.").await?;
             return Ok(());
         }
     };
 
-    let mongoclient = &ctx.data().mongoclient;
-    let filter = doc! { "serverid": guild_id.clone() };
-    let server_data: Vec<ServerConfig> = mongoclient.get_data("config", Some(filter)).await?;
-    let server_conf = server_data.first().cloned().unwrap_or(ServerConfig {
-        _id: ObjectId::new(),
-        config: Config::Object(HashMap::new()),
-        serverid: guild_id.clone(),
-    });
+    let psql_client = &ctx.data().psql_client;
+    let content_search: Option<ServerModel> =
+        Server::find_by_server_id(guild_id).one(psql_client).await?;
 
-    match get_nested_key(&server_conf.config, &key) {
+    let config = content_search
+        .map(|s| s.config)
+        .unwrap_or_else(|| json!({}));
+
+    match get_nested_key(&config, &key) {
         Some(cfg) => {
-            let pretty = config_to_pretty(&cfg);
+            let pretty = serde_json::to_string_pretty(&cfg)?;
             ctx.send(
                 CreateReply::default()
                     .content(format!("Value for `{}`:\n```json\n{}\n```", key, pretty)),
@@ -150,16 +143,14 @@ pub async fn setraw(
     #[description = "The raw configuration value as a JSON string"] value: String,
 ) -> Result<(), Error> {
     let guild_id = match ctx.guild_id() {
-        Some(g) => g.to_string(),
+        Some(g) => g.get(),
         None => {
             ctx.say("This was not sent in a server.").await?;
             return Ok(());
         }
     };
 
-    let mongoclient = &ctx.data().mongoclient;
-
-    let parsed: Config = match serde_json::from_str::<Config>(&value) {
+    let parsed: Value = match serde_json::from_str::<Value>(&value) {
         Ok(cfg) => cfg,
         Err(_) => {
             ctx.send(
@@ -171,24 +162,25 @@ pub async fn setraw(
         }
     };
 
-    let filter = doc! { "serverid": guild_id.clone() };
-    let mut server_data: Vec<ServerConfig> = mongoclient.get_data("config", Some(filter)).await?;
-    let mut server_conf = if let Some(first) = server_data.get_mut(0) {
-        first.clone()
-    } else {
-        ServerConfig {
-            _id: ObjectId::new(),
-            config: Config::Object(HashMap::new()),
-            serverid: guild_id.clone(),
+    let psql_client = &ctx.data().psql_client;
+
+    let content_search: Option<ServerModel> =
+        Server::find_by_server_id(guild_id).one(psql_client).await?;
+
+    let content_active = match content_search {
+        Some(content) => {
+            let mut active = content.into_active_model();
+            active.config.set_ne(parsed);
+            active
         }
+        None => ServerActiveModel {
+            id: NotSet,
+            server_id: Set(guild_id),
+            config: Set(parsed),
+        },
     };
 
-    server_conf.config = parsed;
-
-    match mongoclient
-        .set_data::<ServerConfig>("config", &server_conf, None, SetMode::Replace)
-        .await
-    {
+    match content_active.save(psql_client).await {
         Ok(_) => {
             ctx.send(
                 CreateReply::default().content("Raw configuration has been updated successfully."),
@@ -212,23 +204,22 @@ pub async fn setraw(
 #[poise::command(slash_command)]
 pub async fn getraw(ctx: Context<'_, Data, Error>) -> Result<(), Error> {
     let guild_id = match ctx.guild_id() {
-        Some(g) => g.to_string(),
+        Some(g) => g.get(),
         None => {
             ctx.say("This was not sent in a server.").await?;
             return Ok(());
         }
     };
 
-    let mongoclient = &ctx.data().mongoclient;
-    let filter = doc! { "serverid": guild_id.clone() };
-    let server_data: Vec<ServerConfig> = mongoclient.get_data("config", Some(filter)).await?;
-    let server_conf = server_data.first().cloned().unwrap_or(ServerConfig {
-        _id: ObjectId::new(),
-        config: Config::Object(HashMap::new()),
-        serverid: guild_id.clone(),
-    });
+    let psql_client = &ctx.data().psql_client;
+    let content_search: Option<ServerModel> =
+        Server::find_by_server_id(guild_id).one(psql_client).await?;
 
-    let pretty = config_to_pretty(&server_conf.config);
+    let config = content_search
+        .map(|s| s.config)
+        .unwrap_or_else(|| json!({}));
+
+    let pretty = serde_json::to_string_pretty(&config)?;
     ctx.send(
         CreateReply::default().content(format!("Raw configuration:\n```json\n{}\n```", pretty)),
     )

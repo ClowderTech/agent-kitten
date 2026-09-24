@@ -2,20 +2,27 @@ use std::collections::HashMap;
 
 use crate::{
     Context, Error,
-    textgen_helpers::{DynError, TextgenDoc, ToolsHandler, chat_with_funcs},
+    entity::textgen::{
+        ActiveModel as TextgenActiveModel, Entity as Textgen, Model as TextgenModel,
+    },
+    textgen_helpers::{DynError, ToolsHandler, chat_with_funcs},
 };
 use ::serenity::all::{CreateEmbedAuthor, CreateEmbedFooter};
 use async_openai::types::chat::{
-    ChatCompletionRequestMessageContentPartImageArgs,
+    ChatCompletionRequestMessage, ChatCompletionRequestMessageContentPartImageArgs,
     ChatCompletionRequestMessageContentPartTextArgs, ChatCompletionRequestSystemMessageArgs,
     ChatCompletionRequestUserMessageArgs, ChatCompletionTool, FunctionObjectArgs,
 };
 use base64::{Engine, engine::general_purpose};
-use bson::oid::ObjectId;
 use futures::FutureExt;
 use html_to_markdown_rs::convert;
 use mongodb::bson::doc;
 use poise::{CreateReply, serenity_prelude as serenity};
+use sea_orm::{
+    ActiveModelTrait,
+    ActiveValue::{NotSet, Set},
+    IntoActiveModel,
+};
 use serde_json::{Value, json};
 use serenity::builder::CreateEmbed;
 
@@ -37,30 +44,55 @@ pub async fn chat(
 ) -> Result<(), Error> {
     ctx.defer().await?;
 
-    let mongoclient = ctx.data().mongoclient.clone();
+    // let mongoclient = ctx.data().mongoclient.clone();
 
     let textgen_system_instructions = "You are Agent Kitten, a helpful AI powered discord bot made by ClowderTech LLC. You are here to help people with their problems or to interact with the person to help them feel better. Your own website is https://agentkitten.com/. Please make sure to use your tools and function calls whenever useful. Also remember to follow discord's markdown syntax which is somewhat limited. You should ask questions to the user if it is needed to respond to them reasonably. There is no need to overthink the question.".to_string();
 
-    let filter = doc! { "userid": ctx.author().id.get().to_string() };
-    let content = mongoclient
-        .get_data::<TextgenDoc>("textgen", Some(filter.clone()))
-        .await?;
+    let psql_client = &ctx.data().psql_client;
 
-    let user_content: TextgenDoc = match content.first() {
-        Some(fetched_content) => fetched_content.clone(),
-        None => TextgenDoc {
-            id: ObjectId::new(),
-            userid: ctx.author().id.get().to_string(),
-            messages: vec![
-                ChatCompletionRequestSystemMessageArgs::default()
-                    .content(textgen_system_instructions)
-                    .build()?
-                    .into(),
-            ],
-        },
+    // let filter = doc! { "userid": ctx.author().id.get().to_string() };
+    // let content = mongoclient
+    //     .get_data::<TextgenDoc>("textgen", Some(filter.clone()))
+    //     .await?;
+
+    // let user_content: TextgenDoc = match content.first() {
+    //     Some(fetched_content) => fetched_content.clone(),
+    //     None => TextgenDoc {
+    //         id: ObjectId::new(),
+    //         userid: ctx.author().id.get().to_string(),
+    //         messages: vec![
+    //             ChatCompletionRequestSystemMessageArgs::default()
+    //                 .content(textgen_system_instructions)
+    //                 .build()?
+    //                 .into(),
+    //         ],
+    //     },
+    // };
+
+    let user_id = ctx.author().id.get();
+
+    let user_content_search: Option<TextgenModel> =
+        Textgen::find_by_user_id(user_id).one(psql_client).await?;
+    let user_content = match user_content_search {
+        Some(content) => content,
+        None => {
+            let new_active_model = TextgenActiveModel {
+                id: NotSet,
+                user_id: Set(user_id),
+                messages: Set(vec![serde_json::to_value(
+                    ChatCompletionRequestSystemMessageArgs::default()
+                        .content(textgen_system_instructions)
+                        .build()?,
+                )?]
+                .into()),
+            };
+
+            new_active_model.insert(psql_client).await?
+        }
     };
 
-    let mut messages = user_content.messages.clone();
+    let mut messages: Vec<ChatCompletionRequestMessage> =
+        serde_json::from_value(user_content.messages.clone())?;
 
     let mut sendable_user_message = Vec::new();
 
@@ -139,20 +171,13 @@ pub async fn chat(
 
     let (new_messages, new_message) = chat_with_funcs(messages, tool_registry).await?;
 
-    let new_user_content = TextgenDoc {
-        id: user_content.id,
-        userid: user_content.userid.clone(),
-        messages: new_messages.clone(),
-    };
+    let mut user_content_active = user_content.into_active_model();
 
-    mongoclient
-        .set_data::<TextgenDoc>(
-            "textgen",
-            &new_user_content,
-            Some(filter.clone()),
-            crate::mongo_helpers::SetMode::Replace,
-        )
-        .await?;
+    user_content_active
+        .messages
+        .set_ne(serde_json::to_value(new_messages)?);
+
+    user_content_active.save(psql_client).await?;
 
     for chunk in split_text(new_message.as_str(), 4000) {
         let embed = CreateEmbed::default()
