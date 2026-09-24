@@ -1,9 +1,9 @@
 use async_openai::{
     Client as OpenAIClient,
     types::chat::{
-        ChatCompletionMessageToolCalls, ChatCompletionRequestMessage,
-        ChatCompletionRequestToolMessageArgs, ChatCompletionTool, ChatCompletionTools,
-        CreateChatCompletionRequestArgs,
+        ChatCompletionMessageToolCalls, ChatCompletionRequestAssistantMessage,
+        ChatCompletionRequestMessage, ChatCompletionRequestToolMessageArgs, ChatCompletionTool,
+        ChatCompletionTools, CreateChatCompletionRequestArgs,
     },
 };
 use futures::future::BoxFuture;
@@ -74,13 +74,10 @@ pub async fn chat_with_funcs(
         .ok_or("No choices")?
         .message
         .clone();
-    let response_to_request: ChatCompletionRequestMessage = serde_json::from_str(
-        serde_json::to_string(&response_message)
-            .expect("dead")
-            .as_str(),
-    )
-    .expect("dead");
-    full_response.push(response_to_request);
+    let response_to_request: ChatCompletionRequestAssistantMessage =
+        serde_json::from_value(serde_json::to_value(response_message.clone()).expect("dead"))
+            .expect("dead");
+    full_response.push(response_to_request.into());
 
     // loop: while the latest choice contains tool calls, execute them, push tool messages, and re-call model
     loop {
@@ -147,13 +144,10 @@ pub async fn chat_with_funcs(
             .ok_or("No choices")?
             .message
             .clone();
-        let response_to_request: ChatCompletionRequestMessage = serde_json::from_str(
-            serde_json::to_string(&response_message)
-                .expect("dead")
-                .as_str(),
-        )
-        .expect("dead");
-        full_response.push(response_to_request);
+        let response_to_request: ChatCompletionRequestAssistantMessage =
+            serde_json::from_value(serde_json::to_value(response_message.clone()).expect("dead"))
+                .expect("dead");
+        full_response.push(response_to_request.into());
     }
 
     let final_output = response_message.clone().content.unwrap();
