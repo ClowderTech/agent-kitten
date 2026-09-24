@@ -46,8 +46,6 @@ pub async fn chat(
 
     // let mongoclient = ctx.data().mongoclient.clone();
 
-    let textgen_system_instructions = "You are Agent Kitten, a helpful AI powered discord bot made by ClowderTech LLC. You are here to help people with their problems or to interact with the person to help them feel better. Your own website is https://agentkitten.com/. Please make sure to use your tools and function calls whenever useful. Also remember to follow discord's markdown syntax which is somewhat limited. You should ask questions to the user if it is needed to respond to them reasonably. There is no need to overthink the question.".to_string();
-
     let psql_client = &ctx.data().psql_client;
 
     // let filter = doc! { "userid": ctx.author().id.get().to_string() };
@@ -77,15 +75,16 @@ pub async fn chat(
     let user_content = match user_content_search {
         Some(content) => content,
         None => {
+            let default_system_message: ChatCompletionRequestMessage = ChatCompletionRequestSystemMessageArgs::default()
+                .content("You are Agent Kitten, a helpful AI powered discord bot made by ClowderTech LLC. You are here to help people with their problems or to interact with the person to help them feel better. Your own website is https://agentkitten.com/. Please make sure to use your tools and function calls whenever useful. Also remember to follow discord's markdown syntax which is somewhat limited. You should ask questions to the user if it is needed to respond to them reasonably. There is no need to overthink the question.")
+                .build()
+                .expect("bleh")
+                .into();
+
             let new_active_model = TextgenActiveModel {
                 id: NotSet,
                 user_id: Set(user_id),
-                messages: Set(vec![serde_json::to_value(
-                    ChatCompletionRequestSystemMessageArgs::default()
-                        .content(textgen_system_instructions)
-                        .build()?,
-                )?]
-                .into()),
+                messages: Set(json!(vec![default_system_message])),
             };
 
             new_active_model.insert(psql_client).await?
@@ -93,7 +92,7 @@ pub async fn chat(
     };
 
     let mut messages: Vec<ChatCompletionRequestMessage> =
-        serde_json::from_value(user_content.messages.clone())?;
+        serde_json::from_value(user_content.messages.clone()).unwrap();
 
     let mut sendable_user_message = Vec::new();
 
