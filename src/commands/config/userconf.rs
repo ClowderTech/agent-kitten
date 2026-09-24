@@ -1,20 +1,15 @@
 // src/commands/userconf.rs
-use bson::oid::ObjectId;
-use mongodb::bson::doc;
 use poise::serenity_prelude as serenity;
 use poise::{Context, CreateReply};
-use serde_json;
+use sea_orm::{ActiveModelTrait, IntoActiveModel};
+use serde_json::{self, Value, json};
 use serenity::builder::CreateEmbed;
-use std::collections::HashMap;
 
 use crate::Data;
 use crate::Error;
-use crate::config_helpers::{Config, UserConfig, get_nested_key, set_nested_key};
-use crate::mongo_helpers::SetMode;
-
-fn config_to_pretty(cfg: &Config) -> String {
-    serde_json::to_string_pretty(cfg).unwrap_or_else(|_| format!("{:?}", cfg))
-}
+use crate::config_helpers::{get_nested_key, set_nested_key};
+use crate::entity::user::{ActiveModel as UserActiveModel, Entity as User, Model as UserModel};
+use sea_orm::ActiveValue::{NotSet, Set};
 
 /// Root slash command with subcommands: set, get, setraw, getraw
 #[poise::command(slash_command, subcommands("set", "get", "setraw", "getraw"))]
@@ -30,31 +25,30 @@ pub async fn set(
     #[description = "The configuration key you want to set"] key: String,
     #[description = "The configuration value to set (JSON or raw string)"] value: String,
 ) -> Result<(), Error> {
-    let user_id = ctx.author().id.to_string();
-    let mongoclient = &ctx.data().mongoclient;
+    let user_id = ctx.author().id.get();
+    let psql_client = &ctx.data().psql_client;
 
-    // Fetch or create UserConfig
-    let filter = doc! { "userid": user_id.clone() };
-    let mut server_data: Vec<UserConfig> = mongoclient.get_data("config", Some(filter)).await?;
-    let mut user_conf = if let Some(first) = server_data.get_mut(0) {
-        first.clone()
-    } else {
-        UserConfig {
-            _id: ObjectId::new(),
-            config: Config::Object(HashMap::new()),
-            userid: user_id.clone(),
+    let content_search: Option<UserModel> = User::find_by_user_id(user_id).one(psql_client).await?;
+
+    let content = match content_search {
+        Some(content) => content,
+        None => {
+            let new_active_model = UserActiveModel {
+                id: NotSet,
+                user_id: Set(user_id),
+                config: Set(json!({})),
+            };
+
+            new_active_model.insert(psql_client).await?
         }
     };
 
-    // Try parse value as JSON -> Config, else treat as string
-    let parsed_cfg: Config = match serde_json::from_str::<Config>(&value) {
-        Ok(cfg) => cfg,
-        Err(_) => Config::Str(value.clone()),
-    };
+    let mut config = content.config.clone();
 
-    // Set nested key (mutates user_conf.config)
-    if let Err(err) = set_nested_key(&mut user_conf.config, &key, parsed_cfg) {
-        // set_nested_key returns Err(String) on invalid path
+    // Parse value as JSON; fallback to raw JSON string if not valid JSON
+    let parsed_value: Value = serde_json::from_str(&value).unwrap_or(Value::String(value.clone()));
+
+    if let Err(err) = set_nested_key(&mut config, &key, parsed_value) {
         ctx.send(
             CreateReply::default()
                 .ephemeral(true)
@@ -64,11 +58,11 @@ pub async fn set(
         return Ok(());
     }
 
-    // Persist (use Replace upsert semantics). set_data will use _id inside payload if present.
-    match mongoclient
-        .set_data::<UserConfig>("config", &user_conf, None, SetMode::Replace)
-        .await
-    {
+    let mut content_active = content.into_active_model();
+
+    content_active.config.set_ne(config);
+
+    match content_active.save(psql_client).await {
         Ok(_) => {
             let embed = CreateEmbed::default()
                 .title("User Configuration Updated")
@@ -100,20 +94,18 @@ pub async fn get(
     ctx: Context<'_, Data, Error>,
     #[description = "The configuration key you want to get"] key: String,
 ) -> Result<(), Error> {
-    let user_id = ctx.author().id.to_string();
-    let mongoclient = &ctx.data().mongoclient;
+    let user_id = ctx.author().id.get();
+    let psql_client = &ctx.data().psql_client;
 
-    let filter = doc! { "userid": user_id.clone() };
-    let server_data: Vec<UserConfig> = mongoclient.get_data("config", Some(filter)).await?;
-    let user_conf = server_data.first().cloned().unwrap_or(UserConfig {
-        _id: ObjectId::new(),
-        config: Config::Object(HashMap::new()),
-        userid: user_id.clone(),
-    });
+    let content_search: Option<UserModel> = User::find_by_user_id(user_id).one(psql_client).await?;
 
-    match get_nested_key(&user_conf.config, &key) {
+    let config = content_search
+        .map(|u| u.config)
+        .unwrap_or_else(|| json!({}));
+
+    match get_nested_key(&config, &key) {
         Some(cfg) => {
-            let pretty = config_to_pretty(&cfg);
+            let pretty = serde_json::to_string_pretty(&cfg)?;
             ctx.send(
                 CreateReply::default()
                     .ephemeral(true)
@@ -134,17 +126,15 @@ pub async fn get(
     Ok(())
 }
 
-/// Set the raw json configuration options for the server
+/// Set the raw json configuration options for yourself
 #[poise::command(slash_command)]
 pub async fn setraw(
     ctx: Context<'_, Data, Error>,
     #[description = "The raw configuration value as a JSON string"] value: String,
 ) -> Result<(), Error> {
-    let user_id = ctx.author().id.to_string();
-    let mongoclient = &ctx.data().mongoclient;
+    let user_id = ctx.author().id.get();
 
-    // parse raw JSON into Config
-    let parsed: Config = match serde_json::from_str::<Config>(&value) {
+    let parsed: Value = match serde_json::from_str::<Value>(&value) {
         Ok(cfg) => cfg,
         Err(_) => {
             ctx.send(
@@ -157,25 +147,24 @@ pub async fn setraw(
         }
     };
 
-    // Fetch or create existing user config
-    let filter = doc! { "userid": user_id.clone() };
-    let mut server_data: Vec<UserConfig> = mongoclient.get_data("config", Some(filter)).await?;
-    let mut user_conf = if let Some(first) = server_data.get_mut(0) {
-        first.clone()
-    } else {
-        UserConfig {
-            _id: ObjectId::new(),
-            config: Config::Object(HashMap::new()),
-            userid: user_id.clone(),
+    let psql_client = &ctx.data().psql_client;
+
+    let content_search: Option<UserModel> = User::find_by_user_id(user_id).one(psql_client).await?;
+
+    let content_active = match content_search {
+        Some(content) => {
+            let mut active = content.into_active_model();
+            active.config.set_ne(parsed);
+            active
         }
+        None => UserActiveModel {
+            id: NotSet,
+            user_id: Set(user_id),
+            config: Set(parsed),
+        },
     };
 
-    user_conf.config = parsed;
-
-    match mongoclient
-        .set_data::<UserConfig>("config", &user_conf, None, SetMode::Replace)
-        .await
-    {
+    match content_active.save(psql_client).await {
         Ok(_) => {
             ctx.send(
                 CreateReply::default()
@@ -198,21 +187,19 @@ pub async fn setraw(
     Ok(())
 }
 
-/// View the raw json configuration options for the server
+/// View the raw json configuration options for yourself
 #[poise::command(slash_command)]
 pub async fn getraw(ctx: Context<'_, Data, Error>) -> Result<(), Error> {
-    let user_id = ctx.author().id.to_string();
-    let mongoclient = &ctx.data().mongoclient;
+    let user_id = ctx.author().id.get();
 
-    let filter = doc! { "userid": user_id.clone() };
-    let server_data: Vec<UserConfig> = mongoclient.get_data("config", Some(filter)).await?;
-    let user_conf = server_data.first().cloned().unwrap_or(UserConfig {
-        _id: ObjectId::new(),
-        config: Config::Object(HashMap::new()),
-        userid: user_id.clone(),
-    });
+    let psql_client = &ctx.data().psql_client;
+    let content_search: Option<UserModel> = User::find_by_user_id(user_id).one(psql_client).await?;
 
-    let pretty = config_to_pretty(&user_conf.config);
+    let config = content_search
+        .map(|u| u.config)
+        .unwrap_or_else(|| json!({}));
+
+    let pretty = serde_json::to_string_pretty(&config)?;
     ctx.send(
         CreateReply::default()
             .ephemeral(true)

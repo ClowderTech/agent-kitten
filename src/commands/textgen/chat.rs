@@ -2,19 +2,27 @@ use std::collections::HashMap;
 
 use crate::{
     Context, Error,
-    textgen_helpers::{DynError, TextgenDoc, ToolsHandler, chat_with_funcs},
+    entity::textgen::{
+        ActiveModel as TextgenActiveModel, Entity as Textgen, Model as TextgenModel,
+    },
+    textgen_helpers::{DynError, ToolsHandler, chat_with_funcs},
 };
 use ::serenity::all::{CreateEmbedAuthor, CreateEmbedFooter};
-use async_openai::types::responses::{
-    FunctionToolArgs, ImageDetail, InputImageContent, InputMessage, InputRole, InputTextContent,
-    Tool,
+use async_openai::types::chat::{
+    ChatCompletionRequestMessage, ChatCompletionRequestMessageContentPartImageArgs,
+    ChatCompletionRequestMessageContentPartTextArgs, ChatCompletionRequestSystemMessageArgs,
+    ChatCompletionRequestUserMessageArgs, ChatCompletionTool, FunctionObjectArgs,
 };
 use base64::{Engine, engine::general_purpose};
-use bson::oid::ObjectId;
 use futures::FutureExt;
 use html_to_markdown_rs::convert;
 use mongodb::bson::doc;
 use poise::{CreateReply, serenity_prelude as serenity};
+use sea_orm::{
+    ActiveModelTrait,
+    ActiveValue::{NotSet, Set},
+    IntoActiveModel,
+};
 use serde_json::{Value, json};
 use serenity::builder::CreateEmbed;
 
@@ -36,27 +44,64 @@ pub async fn chat(
 ) -> Result<(), Error> {
     ctx.defer().await?;
 
-    let mongoclient = ctx.data().mongoclient.clone();
+    // let mongoclient = ctx.data().mongoclient.clone();
 
-    let filter = doc! { "userid": ctx.author().id.get().to_string() };
-    let content = mongoclient
-        .get_data::<TextgenDoc>("textgen", Some(filter.clone()))
-        .await?;
+    let textgen_system_instructions = "You are Agent Kitten, a helpful AI powered discord bot made by ClowderTech LLC. You are here to help people with their problems or to interact with the person to help them feel better. Your own website is https://agentkitten.com/. Please make sure to use your tools and function calls whenever useful. Also remember to follow discord's markdown syntax which is somewhat limited. You should ask questions to the user if it is needed to respond to them reasonably. There is no need to overthink the question.".to_string();
 
-    let user_content: TextgenDoc = match content.first() {
-        Some(fetched_content) => fetched_content.clone(),
-        None => TextgenDoc {
-            id: ObjectId::new(),
-            userid: ctx.author().id.get().to_string(),
-            messages: vec![],
-        },
+    let psql_client = &ctx.data().psql_client;
+
+    // let filter = doc! { "userid": ctx.author().id.get().to_string() };
+    // let content = mongoclient
+    //     .get_data::<TextgenDoc>("textgen", Some(filter.clone()))
+    //     .await?;
+
+    // let user_content: TextgenDoc = match content.first() {
+    //     Some(fetched_content) => fetched_content.clone(),
+    //     None => TextgenDoc {
+    //         id: ObjectId::new(),
+    //         userid: ctx.author().id.get().to_string(),
+    //         messages: vec![
+    //             ChatCompletionRequestSystemMessageArgs::default()
+    //                 .content(textgen_system_instructions)
+    //                 .build()?
+    //                 .into(),
+    //         ],
+    //     },
+    // };
+
+    let user_id = ctx.author().id.get();
+
+    let user_content_search: Option<TextgenModel> =
+        Textgen::find_by_user_id(user_id).one(psql_client).await?;
+    let user_content = match user_content_search {
+        Some(content) => content,
+        None => {
+            let new_active_model = TextgenActiveModel {
+                id: NotSet,
+                user_id: Set(user_id),
+                messages: Set(vec![serde_json::to_value(
+                    ChatCompletionRequestSystemMessageArgs::default()
+                        .content(textgen_system_instructions)
+                        .build()?,
+                )?]
+                .into()),
+            };
+
+            new_active_model.insert(psql_client).await?
+        }
     };
 
-    let mut messages = user_content.messages.clone();
+    let mut messages: Vec<ChatCompletionRequestMessage> =
+        serde_json::from_value(user_content.messages.clone())?;
 
     let mut sendable_user_message = Vec::new();
 
-    sendable_user_message.push(InputTextContent::from(message).into());
+    sendable_user_message.push(
+        ChatCompletionRequestMessageContentPartTextArgs::default()
+            .text(message)
+            .build()?
+            .into(),
+    );
 
     for maybe_file in [file1, file2, file3, file4, file5] {
         if let Some(some_file) = maybe_file
@@ -71,12 +116,10 @@ pub async fn chat(
                 let final_url = format!("data:{};base64,{}", some_content_type, encoded);
 
                 sendable_user_message.push(
-                    InputImageContent {
-                        detail: ImageDetail::Auto,
-                        image_url: Some(final_url),
-                        file_id: None,
-                    }
-                    .into(),
+                    ChatCompletionRequestMessageContentPartImageArgs::default()
+                        .image_url(final_url)
+                        .build()?
+                        .into(),
                 );
             } else if some_content_type.contains("text") {
                 let file = some_file.download().await?;
@@ -84,22 +127,25 @@ pub async fn chat(
                 let text = String::from_utf8(file)?;
                 let final_text = format!("File {}:\n\n{}", some_file.filename, text);
 
-                sendable_user_message.push(InputTextContent::from(final_text).into());
+                sendable_user_message.push(
+                    ChatCompletionRequestMessageContentPartTextArgs::default()
+                        .text(final_text)
+                        .build()?
+                        .into(),
+                );
             }
         }
     }
 
-    let user_message = InputMessage {
-        content: sendable_user_message,
-        role: InputRole::User,
-        status: None,
-    };
+    let user_message = ChatCompletionRequestUserMessageArgs::default()
+        .content(sendable_user_message)
+        .build()?;
 
     messages.push(user_message.into());
 
     let mut tool_registry: HashMap<String, ToolsHandler> = HashMap::new();
 
-    let search_tool: std::sync::Arc<Tool> = std::sync::Arc::new(Tool::from(FunctionToolArgs::default().name("web_search").description("Use a search engine to find information on the given query.").parameters(json!({"type": "object", "properties": {"query": {"type": "string", "description": "What information to retrieve about on the search engine."}}, "required": ["query"], "additionalProperties": false})).strict(true).build().expect("L rizz")));
+    let search_tool: std::sync::Arc<ChatCompletionTool> = std::sync::Arc::new(ChatCompletionTool { function: FunctionObjectArgs::default().name("web_search").description("Use a search engine to find information on the given query.").parameters(json!({"type": "object", "properties": {"query": {"type": "string", "description": "What information to retrieve about on the search engine."}}, "required": ["query"], "additionalProperties": false})).strict(true).build()?});
 
     let search_handler = ToolsHandler::new(search_tool, |input: Value| {
         async move {
@@ -111,7 +157,7 @@ pub async fn chat(
 
     tool_registry.insert("web_search".to_string(), search_handler);
 
-    let scrape_tool: std::sync::Arc<Tool> = std::sync::Arc::new(Tool::from(FunctionToolArgs::default().name("web_scrape").description("Scrapes and generates a markdown representation of a website.").parameters(json!({"type": "object", "properties": {"url": {"type": "string", "description": "The URL to scrape."}}, "required": ["query"], "additionalProperties": false})).strict(true).build().expect("L rizz")));
+    let scrape_tool: std::sync::Arc<ChatCompletionTool> = std::sync::Arc::new(ChatCompletionTool { function: FunctionObjectArgs::default().name("web_scrape").description("Scrapes and generates a markdown representation of a website.").parameters(json!({"type": "object", "properties": {"url": {"type": "string", "description": "The URL to scrape."}}, "required": ["query"], "additionalProperties": false})).build()?});
 
     let scrape_handler = ToolsHandler::new(scrape_tool, |input: Value| {
         async move {
@@ -125,20 +171,13 @@ pub async fn chat(
 
     let (new_messages, new_message) = chat_with_funcs(messages, tool_registry).await?;
 
-    let new_user_content = TextgenDoc {
-        id: user_content.id,
-        userid: user_content.userid.clone(),
-        messages: new_messages.clone(),
-    };
+    let mut user_content_active = user_content.into_active_model();
 
-    mongoclient
-        .set_data::<TextgenDoc>(
-            "textgen",
-            &new_user_content,
-            Some(filter.clone()),
-            crate::mongo_helpers::SetMode::Replace,
-        )
-        .await?;
+    user_content_active
+        .messages
+        .set_ne(serde_json::to_value(new_messages)?);
+
+    user_content_active.save(psql_client).await?;
 
     for chunk in split_text(new_message.as_str(), 4000) {
         let embed = CreateEmbed::default()
