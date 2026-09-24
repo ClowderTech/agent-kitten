@@ -16,7 +16,7 @@ use async_openai::types::chat::{
 use base64::{Engine, engine::general_purpose};
 use futures::FutureExt;
 use html_to_markdown_rs::convert;
-use mongodb::bson::doc;
+// use mongodb::bson::doc;
 use poise::{CreateReply, serenity_prelude as serenity};
 use sea_orm::{
     ActiveModelTrait,

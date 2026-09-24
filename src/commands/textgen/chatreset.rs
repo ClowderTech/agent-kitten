@@ -2,7 +2,7 @@ use crate::{
     Context, Error,
     entity::textgen::{Entity as Textgen, Model as TextgenModel},
 };
-use mongodb::bson::doc;
+// use mongodb::bson::doc;
 
 use poise::CreateReply;
 use sea_orm::ModelTrait;
