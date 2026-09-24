@@ -74,9 +74,12 @@ pub async fn chat_with_funcs(
         .ok_or("No choices")?
         .message
         .clone();
-    let response_to_request: ChatCompletionRequestMessage =
-        serde_json::from_value(serde_json::to_value(response_message.clone()).expect("dead"))
-            .expect("dead");
+    let response_to_request: ChatCompletionRequestMessage = serde_json::from_str(
+        serde_json::to_string(&response_message)
+            .expect("dead")
+            .as_str(),
+    )
+    .expect("dead");
     full_response.push(response_to_request);
 
     // loop: while the latest choice contains tool calls, execute them, push tool messages, and re-call model
@@ -144,9 +147,12 @@ pub async fn chat_with_funcs(
             .ok_or("No choices")?
             .message
             .clone();
-        let response_to_request: ChatCompletionRequestMessage =
-            serde_json::from_value(serde_json::to_value(response_message.clone()).expect("dead"))
-                .expect("dead");
+        let response_to_request: ChatCompletionRequestMessage = serde_json::from_str(
+            serde_json::to_string(&response_message)
+                .expect("dead")
+                .as_str(),
+        )
+        .expect("dead");
         full_response.push(response_to_request);
     }
 
