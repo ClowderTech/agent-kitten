@@ -54,7 +54,7 @@ dependencies = [
 
 [[package]]
 name = "agent-kitten"
-version = "4.0.4"
+version = "4.0.5"
 dependencies = [
  "async-openai",
  "barexp",
