@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, path::Path};
 
 use crate::{
     Context, Error,
@@ -25,6 +25,9 @@ use sea_orm::{
 };
 use serde_json::{Value, json};
 use serenity::builder::CreateEmbed;
+use tokio::{fs, io};
+use wasmtime::{Engine as WasmEngine, Linker, Module, Store};
+use wasmtime_wasi::WasiCtx;
 
 /// Chat with Agent Kitten using Qwen 3.6
 #[poise::command(
@@ -263,6 +266,63 @@ pub async fn web_scrape(value: Value) -> Result<String, DynError> {
     let final_result = result.content.unwrap_or_default().trim().to_string();
 
     Ok(final_result)
+}
+
+pub async fn execute_python_in_sandbox(value: Value) -> Result<String, DynError> {
+    todo!("this aint worrk yet homeboy");
+
+    let python_code = value["code"].as_str().expect("u suhhhhh");
+
+    // --- STEP 1: Setup the Sandbox Filesystem ---
+    let sandbox_dir = Path::new("./wasm_sandbox");
+    if sandbox_dir.exists() {
+        fs::remove_dir_all(sandbox_dir).await?;
+    }
+    fs::create_dir_all(sandbox_dir).await?;
+
+    // Write the AI code to 'code.py' inside the sandbox
+    let script_path = sandbox_dir.join("code.py");
+    fs::write(&script_path, python_code).await?;
+
+    let stdout_capture = io::stdout();
+    let stderr_capture = io::stderr();
+
+    // --- STEP 2: Initialize Wasmtime ---
+    let engine = WasmEngine::default();
+    let mut linker = Linker::new(&engine);
+
+    // This is CRITICAL: This adds the WASI functions (filesystem, etc.) to the Wasm instance
+    wasmtime_wasi::p1::add_to_linker_async(&mut linker, |s| s)?;
+
+    // --- STEP 3: Configure the "Prison" (WASI Context) ---
+    // We create a WasiCtx and "pre-open" the sandbox directory.
+    // This is the magic line that makes it a sandbox!
+    let args = &["python", "code.py"];
+
+    let wasi = WasiCtx::builder()
+        .stdout(stdout_capture)
+        .stderr(stderr_capture)
+        .args(args)
+        .preopened_dir(sandbox_dir, "/", wasmtime_wasi::FsPerms::ReadOnly)?
+        .build_p1(); // Maps ./wasm_sandbox to / in Wasm
+
+    let mut store = Store::new(&engine, wasi);
+
+    // --- STEP 4: Load and Run the Module ---
+    let module = Module::from_file(&engine, "micropython.wasm")?;
+    let instance = linker.instantiate(&mut store, &module)?;
+
+    // We need to call the Python entry point.
+    // For MicroPython, we usually need to pass 'python code.py' as arguments.
+    let run_func = instance.get_typed_func::<(), ()>(&mut store, "run")?;
+
+    // NOTE: In a real MicroPython Wasm build, you'll likely need to use
+    // the WASI 'args' capability to tell it to run 'code.py'.
+    // This often requires a more complex setup with 'wasmtime_wasi::args::Args'.
+
+    run_func.call(&mut store, ())?;
+
+    Ok("Execution complete. Check your console for output!".to_string())
 }
 
 pub fn split_text(text: &str, max_length: usize) -> Vec<String> {

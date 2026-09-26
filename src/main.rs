@@ -77,6 +77,8 @@ async fn main() {
         .expect("Postgres unable to register schemas");
     let db_clone = db.clone();
 
+    let _ = crate::commands::execute_python_in_sandbox(json!({"code": "print('hi')"})).await;
+
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             commands: all_commands(),

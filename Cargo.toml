@@ -44,12 +44,16 @@ tokio-tungstenite = { version = "0.30.0", features = [
 native-tls = { version = "0.2.18" }
 simd-json = { version = "0.18.1" }
 songbird = { version = "0.6.0", features = [
+  "driver",
   "gateway",
   "serenity",
   "native",
+  "tungstenite",
   "builtin-queue",
 ], default-features = false }
-symphonia = { version = "0.6.1", features = ["opt-simd"] }
+symphonia = { version = "0.6.1", features = [
+  "opt-simd",
+], default-features = true }
 lavalink-rs = { version = "0.15.0", features = [
   "songbird",
   "serenity",
@@ -99,6 +103,8 @@ sea-orm = { version = "2.0.3", features = [
   "entity-registry",
   "schema-sync",
 ] }
+wasmtime = { version = "49.0.1" }
+wasmtime-wasi = { version = "49.0.1" }
 
 [build-dependencies]
 barexp = { version = "1.1.1" }
