@@ -13,8 +13,6 @@ pub async fn _join(
 
     let guild_id_num = guild_id.get();
 
-    println!("test0");
-
     if lava_client.get_player_context(guild_id_num).is_none() {
         let connect_to = match channel_id {
             Some(x) => x,
@@ -37,18 +35,12 @@ pub async fn _join(
             }
         };
 
-        println!("test1");
-
         let manager = songbird::get(ctx.serenity_context())
             .await
             .expect("SongBird dead as hell bru")
             .clone();
 
-        println!("test2");
-
         let handler = manager.join_gateway(guild_id, connect_to).await;
-
-        println!("test3");
 
         match handler {
             Ok((connection_info, _)) => {
@@ -64,15 +56,9 @@ pub async fn _join(
                     .await
                     .unwrap();
 
-                println!("test5");
-
-                // ctx.say(format!("Joined {}", connect_to.mention())).await?;
-
                 return Ok(true);
             }
             Err(why) => {
-                // ctx.say(format!("Error joining the channel: {}", why))
-                //     .await?;
                 return Err(why.into());
             }
         }

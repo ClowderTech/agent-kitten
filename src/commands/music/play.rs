@@ -15,15 +15,11 @@ pub async fn play(
 
     let guild_id = ctx.guild_id().unwrap();
 
-    print!("hi0");
-
     crate::music_helpers::_join(&ctx, guild_id, None)
         .await
         .unwrap();
 
     let lava_client = ctx.data().lavalink.clone();
-
-    print!("hi");
 
     let player = match lava_client.get_player_context(guild_id.get()) {
         Some(player) => player,
@@ -45,19 +41,13 @@ pub async fn play(
         }
     };
 
-    println!("hi1");
-
     let query = if term.starts_with("http") {
         term
     } else {
         SearchEngines::YouTubeMusic.to_query(&term).unwrap()
     };
 
-    println!("hi2");
-
     let loaded_tracks = lava_client.load_tracks(guild_id.get(), &query).await?;
-
-    println!("hi3");
 
     let mut playlist_info = None;
 
@@ -100,21 +90,12 @@ pub async fn play(
         i.track.user_data = Some(serde_json::json!({"requester_id": ctx.author().id.get()}));
     }
 
-    // for track in tracks {
-    //     if player.get_player().await.is_ok_and(|x| x.track.is_none()) {
-    //         player.play(&track.track).await?;
-    //     } else {
-    //         player.queue(track)?;
-    //     }
-    // }
-
-    let queue = player.get_queue();
-    queue.append(tracks.into())?;
-
-    if player.get_player().await.is_ok_and(|x| x.track.is_none())
-        && queue.get_track(0).await.is_ok_and(|y| y.is_some())
-    {
-        player.finish(true)?;
+    for track in tracks {
+        if player.get_player().await.is_ok_and(|x| x.track.is_none()) {
+            player.play(&track.track).await?;
+        } else {
+            player.queue(track)?;
+        }
     }
 
     Ok(())
