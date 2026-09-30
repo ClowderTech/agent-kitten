@@ -11,15 +11,34 @@ pub async fn play(
     #[rest]
     term: String,
 ) -> Result<(), Error> {
+    ctx.defer().await?;
+
     let guild_id = ctx.guild_id().unwrap();
 
-    // let has_joined = crate::music_helpers::_join(&ctx, guild_id, None).await?;
+    crate::music_helpers::_join(&ctx, guild_id, None)
+        .await
+        .unwrap();
 
     let lava_client = ctx.data().lavalink.clone();
 
-    let Some(player) = lava_client.get_player_context(guild_id.get()) else {
-        ctx.say("Join the bot to a voice channel first.").await?;
-        return Ok(());
+    let player = match lava_client.get_player_context(guild_id.get()) {
+        Some(player) => player,
+        None => {
+            let manager = songbird::get(ctx.serenity_context()).await.unwrap().clone();
+            let lava_client = ctx.data().lavalink.clone();
+
+            lava_client.delete_player(guild_id.get()).await?;
+
+            if manager.get(guild_id).is_some() {
+                manager.remove(guild_id).await?;
+            }
+
+            crate::music_helpers::_join(&ctx, guild_id, None).await?;
+
+            lava_client
+                .get_player_context(guild_id.get())
+                .expect("Lavalink refusing to connect")
+        }
     };
 
     let query = if term.starts_with("http") {
@@ -71,13 +90,12 @@ pub async fn play(
         i.track.user_data = Some(serde_json::json!({"requester_id": ctx.author().id.get()}));
     }
 
-    let queue = player.get_queue();
-    queue.append(tracks.into())?;
-
-    if player.get_player().await.is_ok_and(|x| x.track.is_none())
-        && queue.get_track(0).await.is_ok_and(|y| y.is_some())
-    {
-        player.skip()?;
+    for track in tracks {
+        if player.get_player().await.is_ok_and(|x| x.track.is_none()) {
+            player.play(&track.track).await?;
+        } else {
+            player.queue(track)?;
+        }
     }
 
     Ok(())

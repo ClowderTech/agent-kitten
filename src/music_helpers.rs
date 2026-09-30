@@ -1,9 +1,6 @@
-use std::str::FromStr;
-
 use lavalink_rs::model::ChannelId;
 use lavalink_rs::model::player::ConnectionInfo;
 use poise::serenity_prelude as serenity;
-use serenity::Mentionable;
 
 use crate::{Context, Error};
 
@@ -30,9 +27,9 @@ pub async fn _join(
                 match user_channel_id {
                     Some(channel) => channel,
                     None => {
-                        ctx.say("Not in a voice channel").await?;
+                        ctx.say("You are not in a voice channel").await?;
 
-                        return Err("Not in a voice channel".into());
+                        return Err("You are not in a voice channel".into());
                     }
                 }
             }
@@ -47,32 +44,21 @@ pub async fn _join(
 
         match handler {
             Ok((connection_info, _)) => {
-                let lava_channel_id =
-                    ChannelId::from_str(connection_info.channel_id.to_string().as_str())?;
+                let connect_info: ConnectionInfo = ConnectionInfo {
+                    endpoint: connection_info.endpoint,
+                    token: connection_info.token,
+                    session_id: connection_info.session_id,
+                    channel_id: Some(ChannelId(connection_info.channel_id.0.get())),
+                };
 
                 lava_client
-                    .create_player_context_with_data(
-                        guild_id,
-                        ConnectionInfo {
-                            endpoint: connection_info.endpoint,
-                            token: connection_info.token,
-                            session_id: connection_info.session_id,
-                            channel_id: Some(lava_channel_id),
-                        },
-                        std::sync::Arc::new((
-                            ctx.channel_id(),
-                            ctx.serenity_context().http.clone(),
-                        )),
-                    )
-                    .await?;
-
-                ctx.say(format!("Joined {}", connect_to.mention())).await?;
+                    .create_player_context(guild_id, connect_info)
+                    .await
+                    .unwrap();
 
                 return Ok(true);
             }
             Err(why) => {
-                ctx.say(format!("Error joining the channel: {}", why))
-                    .await?;
                 return Err(why.into());
             }
         }
