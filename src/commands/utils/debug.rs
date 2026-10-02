@@ -40,7 +40,8 @@ pub async fn debug(ctx: Context<'_>) -> Result<(), Error> {
         .expect("Failed to get current process");
     let heap = current_process.memory();
     let memory_usage = human_bytes(heap as f64);
-    let cpu_usage = current_process.cpu_usage();
+    let cpu_usage =
+        current_process.cpu_usage() / std::thread::available_parallelism().unwrap().get() as f32;
     let shard_id = ctx.serenity_context().shard_id;
     let amount_users = ctx.serenity_context().cache.user_count();
     let amount_guilds = ctx.serenity_context().cache.guild_count();
@@ -74,7 +75,7 @@ pub async fn debug(ctx: Context<'_>) -> Result<(), Error> {
         .field("Guild Count", amount_guilds.to_string(), true)
         .field("Current Shard ID", shard_id.to_string(), true)
         .field("Memory Usage", memory_usage, true)
-        .field("CPU Usage", format!("{} Cores", cpu_usage / 100.0), true);
+        .field("CPU Usage", format!("{:.3}%", cpu_usage), true);
 
     ctx.send(poise::CreateReply::default().embed(embed)).await?;
 

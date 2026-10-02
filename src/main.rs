@@ -402,5 +402,6 @@ async fn reset_text_chatters_limit() {
 
 async fn update_cpu_stats(system_stats: &Arc<Mutex<System>>) {
     let mut stats = system_stats.lock().await;
-    stats.refresh_cpu_all();
+    stats.refresh_cpu_usage();
+    stats.refresh_memory();
 }
