@@ -1,6 +1,6 @@
 [package]
 name = "agent-kitten"
-version = "4.1.1"
+version = "4.1.2"
 repository = "https://git.clowdertech.com/clowdertech/agent-kitten"
 edition = "2024"
 
