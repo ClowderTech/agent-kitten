@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, io::Cursor};
 
 use crate::{
     Context, Error,
@@ -16,6 +16,7 @@ use base64::{Engine, engine::general_purpose};
 use chrono::Utc;
 use futures::FutureExt;
 use html_to_markdown_rs::convert;
+use image::ImageReader;
 // use mongodb::bson::doc;
 use poise::{CreateReply, serenity_prelude as serenity};
 use sea_orm::{
@@ -102,10 +103,19 @@ pub async fn chat(
             if some_content_type.contains("image") {
                 let file = some_file.download().await?;
 
-                let encoding = general_purpose::STANDARD;
-                let encoded = encoding.encode(file);
+                let image = ImageReader::new(Cursor::new(file))
+                    .with_guessed_format()?
+                    .decode()?;
+                let mut converted_image: Vec<u8> = Vec::new();
+                image.write_to(
+                    &mut Cursor::new(&mut converted_image),
+                    image::ImageFormat::Jpeg,
+                )?;
 
-                let final_url = format!("data:{};base64,{}", some_content_type, encoded);
+                let encoding = general_purpose::STANDARD;
+                let encoded = encoding.encode(converted_image);
+
+                let final_url = format!("data:{};base64,{}", "image/jpeg", encoded);
 
                 sendable_user_message.push(
                     InputImageArgs::default()
