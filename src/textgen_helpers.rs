@@ -65,7 +65,7 @@ pub async fn chat_with_funcs(
         .input(InputParam::Items(full_response.clone()))
         .build()?;
 
-    let chat_response = client.responses().create(request).await?;
+    let mut chat_response = client.responses().create(request).await?;
 
     full_response.extend(
         chat_response
@@ -139,7 +139,7 @@ pub async fn chat_with_funcs(
             .input(InputParam::Items(full_response.clone()))
             .build()?;
 
-        let chat_response = client.responses().create(request).await?;
+        chat_response = client.responses().create(request).await?;
 
         full_response.extend(
             chat_response
