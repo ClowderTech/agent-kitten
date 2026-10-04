@@ -4,12 +4,12 @@ pub mod leave;
 pub mod pause;
 pub mod remove;
 pub mod queue;
-pub mod play;
 pub mod resume;
 pub mod seek;
 pub mod skip;
 pub mod stop;
 pub mod swap;
+pub mod play;
 
 pub use self::{
     clear::*,
@@ -18,10 +18,10 @@ pub use self::{
     pause::*,
     remove::*,
     queue::*,
-    play::*,
     resume::*,
     seek::*,
     skip::*,
     stop::*,
     swap::*,
+    play::*,
 };

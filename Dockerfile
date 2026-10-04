@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 
-ARG RUST_VERSION=1.98.0
+ARG RUST_VERSION=1.99.0
 ARG APP_NAME=agent-kitten
-ARG UID=10001
+ARG UID=1000
 
 FROM rust:${RUST_VERSION}-trixie AS build
 ARG APP_NAME
@@ -12,8 +12,10 @@ ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /app
 
 RUN apt-get update \
-    && apt-get install -y \
+    && apt-get install -y --no-install-recommends \
     cmake \
+    libssl-dev \
+    ca-certificates \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -22,7 +24,7 @@ COPY src/ ./src/
 
 RUN --mount=type=cache,target=/app/target/ \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
-    cargo build --locked --release && cp target/release/${APP_NAME} /app/server
+    cargo build --locked --profile release && cp target/release/${APP_NAME} /app/server
 
 FROM debian:trixie-slim AS final
 ARG APP_NAME
@@ -36,9 +38,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN groupadd \
     --gid "${UID}" \
     --system \
-    appuser \ 
+    appuser \
     && useradd \
-    --create-home \
     --uid "${UID}" \
     --gid "${UID}" \
     --no-log-init \
@@ -47,7 +48,7 @@ RUN groupadd \
 
 # Install only what's needed to run the binary
 RUN apt-get update \
-    && apt-get install -y \
+    && apt-get install -y --no-install-recommends \
     ca-certificates \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*

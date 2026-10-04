@@ -8,10 +8,9 @@ use crate::{
     textgen_helpers::{DynError, ToolsHandler, chat_with_funcs},
 };
 use ::serenity::all::{CreateEmbedAuthor, CreateEmbedFooter};
-use async_openai::types::chat::{
-    ChatCompletionRequestMessage, ChatCompletionRequestMessageContentPartImageArgs,
-    ChatCompletionRequestMessageContentPartTextArgs, ChatCompletionRequestSystemMessageArgs,
-    ChatCompletionRequestUserMessageArgs, ChatCompletionTool, FunctionObjectArgs,
+use async_openai::types::responses::{
+    FunctionToolArgs, InputFileArgs, InputImageArgs, InputItem, InputMessageArgs, InputRole,
+    InputTextContent, Tool,
 };
 use base64::{Engine, engine::general_purpose};
 use chrono::Utc;
@@ -76,33 +75,25 @@ pub async fn chat(
     let user_content = match user_content_search {
         Some(content) => content,
         None => {
-            let default_system_message: ChatCompletionRequestMessage = ChatCompletionRequestSystemMessageArgs::default()
-                .content("You are Agent Kitten, a helpful AI powered discord bot made by ClowderTech LLC. You are here to help people with their problems or to interact with the person to help them feel better. Your own website is https://agentkitten.com/. Please make sure to use your tools and function calls whenever useful. Also remember to follow discord's markdown syntax which is somewhat limited. You should ask questions to the user if it is needed to respond to them reasonably. There is no need to overthink the question.")
-                .build()
-                .expect("bleh")
-                .into();
+            let new_messages: Vec<InputItem> = vec![];
+            let messages_value = serde_json::to_value(new_messages).unwrap();
 
             let new_active_model = TextgenActiveModel {
                 id: NotSet,
                 user_id: Set(user_id),
-                messages: Set(json!(vec![default_system_message])),
+                messages: Set(messages_value),
             };
 
             new_active_model.insert(psql_client).await?
         }
     };
 
-    let mut messages: Vec<ChatCompletionRequestMessage> =
+    let mut messages: Vec<InputItem> =
         serde_json::from_value(user_content.messages.clone()).unwrap();
 
     let mut sendable_user_message = Vec::new();
 
-    sendable_user_message.push(
-        ChatCompletionRequestMessageContentPartTextArgs::default()
-            .text(message)
-            .build()?
-            .into(),
-    );
+    sendable_user_message.push(InputTextContent::from(message).into());
 
     for maybe_file in [file1, file2, file3, file4, file5] {
         if let Some(some_file) = maybe_file
@@ -117,8 +108,9 @@ pub async fn chat(
                 let final_url = format!("data:{};base64,{}", some_content_type, encoded);
 
                 sendable_user_message.push(
-                    ChatCompletionRequestMessageContentPartImageArgs::default()
+                    InputImageArgs::default()
                         .image_url(final_url)
+                        .file_id(some_file.id.get().to_string())
                         .build()?
                         .into(),
                 );
@@ -126,11 +118,12 @@ pub async fn chat(
                 let file = some_file.download().await?;
 
                 let text = String::from_utf8(file)?;
-                let final_text = format!("File {}:\n\n{}", some_file.filename, text);
 
                 sendable_user_message.push(
-                    ChatCompletionRequestMessageContentPartTextArgs::default()
-                        .text(final_text)
+                    InputFileArgs::default()
+                        .filename(some_file.filename)
+                        .file_data(text)
+                        .file_id(some_file.id.get().to_string())
                         .build()?
                         .into(),
                 );
@@ -138,22 +131,25 @@ pub async fn chat(
         }
     }
 
-    let user_message = ChatCompletionRequestUserMessageArgs::default()
+    let user_message = InputMessageArgs::default()
         .content(sendable_user_message)
+        .role(InputRole::User)
         .build()?;
 
     messages.push(user_message.into());
 
     let mut tool_registry: HashMap<String, ToolsHandler> = HashMap::new();
 
-    let search_tool: std::sync::Arc<ChatCompletionTool> = std::sync::Arc::new(ChatCompletionTool { 
-        function: FunctionObjectArgs::default()
-            .name("web_search")
-            .description("Use a search engine to find information on the given query.")
-            .parameters(json!({"type": "object", "properties": {"query": {"type": "string", "description": "What information to retrieve about on the search engine."}}, "required": ["query"], "additionalProperties": false}))
-            .strict(true)
-            .build()?
-        });
+    let search_tool: std::sync::Arc<Tool> = std::sync::Arc::new(
+        Tool::Function(
+            FunctionToolArgs::default()
+                .name("web_search")
+                .description("Use a search engine to find information on the given query.")
+                .parameters(json!({"type": "object", "properties": {"query": {"type": "string", "description": "What information to retrieve about on the search engine."}}, "required": ["query"], "additionalProperties": false}))
+                .strict(true)
+                .build()?
+        )
+    );
 
     let search_handler = ToolsHandler::new(search_tool, |input: Value| {
         async move {
@@ -165,14 +161,16 @@ pub async fn chat(
 
     tool_registry.insert("web_search".to_string(), search_handler);
 
-    let scrape_tool: std::sync::Arc<ChatCompletionTool> = std::sync::Arc::new(ChatCompletionTool { 
-        function: FunctionObjectArgs::default()
-            .name("web_scrape")
-            .description("Scrapes and generates a markdown representation of a website.")
-            .parameters(json!({"type": "object", "properties": {"url": {"type": "string", "description": "The URL to scrape."}}, "required": ["url"], "additionalProperties": false}))
-            .strict(true)
-            .build()?
-    });
+    let scrape_tool: std::sync::Arc<Tool> = std::sync::Arc::new(
+        Tool::Function(
+            FunctionToolArgs::default()
+                .name("web_scrape")
+                .description("Scrapes and generates a markdown representation of a website.")
+                .parameters(json!({"type": "object", "properties": {"url": {"type": "string", "description": "The URL to scrape."}}, "required": ["url"], "additionalProperties": false}))
+                .strict(true)
+                .build()?
+        )
+    );
 
     let scrape_handler = ToolsHandler::new(scrape_tool, |input: Value| {
         async move {
@@ -184,12 +182,12 @@ pub async fn chat(
 
     tool_registry.insert("web_scrape".to_string(), scrape_handler);
 
-    let time_tool: std::sync::Arc<ChatCompletionTool> = std::sync::Arc::new(ChatCompletionTool {
-        function: FunctionObjectArgs::default()
+    let time_tool: std::sync::Arc<Tool> = std::sync::Arc::new(Tool::Function(
+        FunctionToolArgs::default()
             .name("current_date_and_time")
             .description("Retrieves the current date and time in UTC.")
             .build()?,
-    });
+    ));
 
     let time_handler = ToolsHandler::new(time_tool, |input: Value| {
         async move {

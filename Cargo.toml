@@ -1,6 +1,7 @@
 [package]
 name = "agent-kitten"
-version = "4.1.0"
+version = "4.1.1"
+repository = "https://git.clowdertech.com/clowdertech/agent-kitten"
 edition = "2024"
 
 [dependencies]
@@ -27,7 +28,7 @@ poise = { version = "0.7.0", features = [
   "chrono",
   "handle_panics",
 ], default-features = false }
-tokio = { version = "1.53.1", features = [
+tokio = { version = "1.53.2", features = [
   "rt-multi-thread",
   "macros",
   "signal",
@@ -94,7 +95,7 @@ urlencoding = { version = "2.1.3" }
 base64 = { version = "0.23.1" }
 bytes = { version = "1.12.1" }
 human_bytes = { version = "0.4.3" }
-html-to-markdown-rs = { version = "3.15.1" }
+html-to-markdown-rs = { version = "3.16.0" }
 sea-orm = { version = "2.0.4", features = [
   "sqlx-postgres",
   "runtime-tokio-native-tls",
