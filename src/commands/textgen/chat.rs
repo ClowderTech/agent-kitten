@@ -9,13 +9,12 @@ use crate::{
 };
 use ::serenity::all::{CreateEmbedAuthor, CreateEmbedFooter};
 use async_openai::types::responses::{
-    FunctionToolArgs, InputFileArgs, InputImageArgs, InputItem, InputMessageArgs, InputRole,
-    InputTextContent, Tool,
+    FunctionToolArgs, InputContent, InputFileArgs, InputImageArgs, InputItem, InputMessageArgs,
+    InputRole, InputTextContent, Tool,
 };
 use base64::{Engine, engine::general_purpose};
 use chrono::Utc;
 use futures::FutureExt;
-use html_to_markdown_rs::convert;
 use image::ImageReader;
 // use mongodb::bson::doc;
 use poise::{CreateReply, serenity_prelude as serenity};
@@ -92,7 +91,7 @@ pub async fn chat(
     let mut messages: Vec<InputItem> =
         serde_json::from_value(user_content.messages.clone()).unwrap();
 
-    let mut sendable_user_message = Vec::new();
+    let mut sendable_user_message: Vec<InputContent> = Vec::new();
 
     sendable_user_message.push(InputTextContent::from(message).into());
 
@@ -175,8 +174,8 @@ pub async fn chat(
         Tool::Function(
             FunctionToolArgs::default()
                 .name("web_scrape")
-                .description("Scrapes and generates a markdown representation of a website.")
-                .parameters(json!({"type": "object", "properties": {"url": {"type": "string", "description": "The URL to scrape."}}, "required": ["url"], "additionalProperties": false}))
+                .description("Scrapes and generates a full screenshot and/or markdown representation of a website.")
+                .parameters(json!({"type": "object", "properties": {"url": {"type": "string", "description": "The URL to scrape."}, "types": {"type": "string", "enum": ["markdown", "screenshot", "both"]}}, "required": ["url", "types"], "additionalProperties": false}))
                 .strict(true)
                 .build()?
         )
@@ -208,6 +207,27 @@ pub async fn chat(
     });
 
     tool_registry.insert("current_date_and_time".to_string(), time_handler);
+
+    let image_tool: std::sync::Arc<Tool> = std::sync::Arc::new(
+        Tool::Function(
+            FunctionToolArgs::default()
+                .name("view_image")
+                .description("Turns an image url into a viewable image.")
+                .parameters(json!({"type": "object", "properties": {"url": {"type": "string", "description": "The url of the image to view."}}, "required": ["url"], "additionalProperties": false}))
+                .strict(true)
+                .build()?
+        )
+    );
+
+    let image_handler = ToolsHandler::new(image_tool, |input: Value| {
+        async move {
+            let result = view_image(input).await.expect("L rizz");
+            Ok(result)
+        }
+        .boxed()
+    });
+
+    tool_registry.insert("view_image".to_string(), image_handler);
 
     let (new_messages, new_message) = chat_with_funcs(messages, tool_registry).await?;
 
@@ -246,8 +266,8 @@ pub async fn chat(
     Ok(())
 }
 
-pub async fn search_searx(value: Value) -> Result<String, DynError> {
-    let query = value["query"].as_str().expect("u suhhhh");
+pub async fn search_searx(value: Value) -> Result<Vec<InputContent>, DynError> {
+    let query = value.get("query").unwrap().as_str().unwrap_or_default();
 
     let query_encoded: String = urlencoding::encode(query).to_string();
 
@@ -278,16 +298,30 @@ pub async fn search_searx(value: Value) -> Result<String, DynError> {
 
     let final_string = final_result.trim().to_string();
 
-    Ok(final_string)
+    let mut final_sendable: Vec<InputContent> = Vec::new();
+    final_sendable.push(InputTextContent::from(final_string).into());
+
+    Ok(final_sendable)
 }
 
-pub async fn web_scrape(value: Value) -> Result<String, DynError> {
-    let request_url = value["url"].as_str().expect("u suhhhh");
+pub async fn web_scrape(value: Value) -> Result<Vec<InputContent>, DynError> {
+    let request_url = value.get("url").unwrap().as_str().unwrap_or_default();
+    let types = value
+        .get("types")
+        .unwrap()
+        .as_str()
+        .unwrap_or_default()
+        .to_lowercase();
     let content_url =
-        std::env::var("BROWSERLESS_CONTENT_URL").expect("Missing BROWSERLESS_CONTENT_URL");
+        std::env::var("BROWSERLESS_SCRAPE_URL").expect("Missing BROWSERLESS_SCRAPE_URL");
 
-    let mut json_map = HashMap::new();
-    json_map.insert("url", request_url);
+    let json_map = json!({
+        "url": request_url,
+        "formats": [
+            "markdown",
+            "screenshot"
+        ]
+    });
 
     let client = reqwest::Client::new();
     let response = client
@@ -295,21 +329,94 @@ pub async fn web_scrape(value: Value) -> Result<String, DynError> {
         .json(&json_map)
         .send()
         .await?
-        .text()
+        .json::<serde_json::Value>()
         .await?;
 
-    let result = convert(response.as_str(), None)?;
-    let final_result = result.content.unwrap_or_default().trim().to_string();
+    let mut final_sendable: Vec<InputContent> = Vec::new();
 
-    Ok(final_result)
+    if types == "screenshot" || types == "both" {
+        let image_raw_bytes = response
+            .get("screenshot")
+            .unwrap()
+            .as_str()
+            .unwrap_or_default()
+            .as_bytes()
+            .to_vec();
+
+        let image = ImageReader::new(Cursor::new(image_raw_bytes))
+            .with_guessed_format()?
+            .decode()?;
+        let mut converted_image: Vec<u8> = Vec::new();
+        image.write_to(
+            &mut Cursor::new(&mut converted_image),
+            image::ImageFormat::Jpeg,
+        )?;
+
+        let encoding = general_purpose::STANDARD;
+        let encoded = encoding.encode(converted_image);
+
+        let final_image = format!("data:{};base64,{}", "image/jpeg", encoded);
+
+        final_sendable.push(
+            InputImageArgs::default()
+                .image_url(final_image)
+                .build()?
+                .into(),
+        );
+    }
+    if types == "markdown" || types == "both" {
+        let markdown = response
+            .get("markdown")
+            .unwrap()
+            .as_str()
+            .unwrap_or_default();
+
+        final_sendable.push(InputTextContent::from(markdown).into());
+    }
+
+    Ok(final_sendable)
 }
 
-pub async fn current_date_and_time(_value: Value) -> Result<String, DynError> {
+pub async fn current_date_and_time(_value: Value) -> Result<Vec<InputContent>, DynError> {
     let current_utc = Utc::now();
 
     let utc_string = format!("{}", current_utc);
 
-    Ok(utc_string)
+    let mut final_sendable: Vec<InputContent> = Vec::new();
+    final_sendable.push(InputTextContent::from(utc_string).into());
+
+    Ok(final_sendable)
+}
+
+pub async fn view_image(value: Value) -> Result<Vec<InputContent>, DynError> {
+    let request_url = value.get("url").unwrap().as_str().unwrap_or_default();
+
+    let response = reqwest::get(request_url).await?.bytes().await?;
+
+    let image = ImageReader::new(Cursor::new(response))
+        .with_guessed_format()?
+        .decode()?;
+    let mut converted_image: Vec<u8> = Vec::new();
+    image.write_to(
+        &mut Cursor::new(&mut converted_image),
+        image::ImageFormat::Jpeg,
+    )?;
+
+    let encoding = general_purpose::STANDARD;
+    let encoded = encoding.encode(converted_image);
+
+    let final_image = format!("data:{};base64,{}", "image/jpeg", encoded);
+
+    let mut final_sendable: Vec<InputContent> = Vec::new();
+
+    final_sendable.push(
+        InputImageArgs::default()
+            .image_url(final_image)
+            .build()?
+            .into(),
+    );
+
+    Ok(final_sendable)
 }
 
 pub fn split_text(text: &str, max_length: usize) -> Vec<String> {
