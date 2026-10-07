@@ -1,8 +1,8 @@
 use async_openai::{
     Client as OpenAIClient,
     types::responses::{
-        CreateResponseArgs, FunctionCallOutput, FunctionCallOutputItemParam, InputItem, InputParam,
-        Item, OutputItem, Tool,
+        CreateResponseArgs, FunctionCallOutput, FunctionCallOutputItemParam, InputContent,
+        InputItem, InputParam, Item, OutputItem, Tool,
     },
 };
 use futures::future::BoxFuture;
@@ -14,13 +14,17 @@ use std::{collections::HashMap, sync::Arc};
 
 pub struct ToolsHandler {
     tools: Arc<Tool>,
-    handler: Box<dyn Fn(Value) -> BoxFuture<'static, Result<String, DynError>> + Send + Sync>,
+    handler:
+        Box<dyn Fn(Value) -> BoxFuture<'static, Result<Vec<InputContent>, DynError>> + Send + Sync>,
 }
 
 impl ToolsHandler {
     pub fn new<F>(tools: Arc<Tool>, handler: F) -> Self
     where
-        F: Fn(Value) -> BoxFuture<'static, Result<String, DynError>> + Send + Sync + 'static,
+        F: Fn(Value) -> BoxFuture<'static, Result<Vec<InputContent>, DynError>>
+            + Send
+            + Sync
+            + 'static,
     {
         Self {
             tools,
@@ -28,7 +32,7 @@ impl ToolsHandler {
         }
     }
 
-    fn execute(&self, args: Value) -> BoxFuture<'static, Result<String, DynError>> {
+    fn execute(&self, args: Value) -> BoxFuture<'static, Result<Vec<InputContent>, DynError>> {
         (self.handler)(args)
     }
 
@@ -91,7 +95,7 @@ pub async fn chat_with_funcs(
                             serde_json::from_str(&tool_call.arguments).unwrap_or(Value::Null);
 
                         // execute handler (handler.execute returns a BoxFuture -> await it)
-                        let tool_call_response: String = handler.execute(func_args).await?;
+                        let tool_call_response = handler.execute(func_args).await?;
 
                         let tool_output = FunctionCallOutputItemParam {
                             call_id: Some(tool_call.call_id),
@@ -100,7 +104,7 @@ pub async fn chat_with_funcs(
                             name: Some(tool_call.name),
                             namespace: tool_call.namespace,
                             caller: tool_call.caller,
-                            output: FunctionCallOutput::Text(tool_call_response),
+                            output: FunctionCallOutput::Content(tool_call_response),
                         };
 
                         full_response.push(InputItem::Item(Item::FunctionCallOutput(tool_output)));
