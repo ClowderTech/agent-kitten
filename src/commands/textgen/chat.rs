@@ -1,4 +1,7 @@
-use std::{collections::HashMap, io::Cursor};
+use std::{
+    collections::{HashMap, HashSet},
+    io::Cursor,
+};
 
 use crate::{
     Context, Error,
@@ -15,6 +18,7 @@ use async_openai::types::responses::{
 use base64::{Engine, engine::general_purpose};
 use chrono::Utc;
 use futures::FutureExt;
+use html_to_markdown_rs::{ConversionOptions, convert};
 use image::ImageReader;
 // use mongodb::bson::doc;
 use poise::{CreateReply, serenity_prelude as serenity};
@@ -25,6 +29,7 @@ use sea_orm::{
 };
 use serde_json::{Value, json};
 use serenity::builder::CreateEmbed;
+use symphonia::core::meta::StandardTag::TrackSubtitle;
 
 /// Chat with Agent Kitten using Qwen 3.6
 #[poise::command(
@@ -271,8 +276,10 @@ pub async fn search_searx(value: Value) -> Result<Vec<InputContent>, DynError> {
 
     let query_encoded: String = urlencoding::encode(query).to_string();
 
+    let content_url = std::env::var("SEARXNG_URL").expect("Missing SEARXNG_URL");
     let full_url_query = format!(
-        "https://searx.clowdertech.com/search?q={}&format=json",
+        "{}/search?q={}&format=json",
+        content_url,
         query_encoded.as_str()
     );
 
@@ -312,38 +319,49 @@ pub async fn web_scrape(value: Value) -> Result<Vec<InputContent>, DynError> {
         .as_str()
         .unwrap_or_default()
         .to_lowercase();
-    let content_url =
-        std::env::var("BROWSERLESS_SCRAPE_URL").expect("Missing BROWSERLESS_SCRAPE_URL");
 
-    let json_map = json!({
-        "url": request_url,
-        "formats": [
-            "markdown",
-            "screenshot"
-        ]
-    });
+    let mut format_strings = HashSet::new();
+
+    match types.as_str() {
+        "screenshot" => format_strings.insert("screenshot"),
+        "markdown" => format_strings.insert("markdown"),
+        "both" => {
+            format_strings.insert("screenshot");
+            format_strings.insert("markdown")
+        }
+        _ => false,
+    };
+
+    let content_url = std::env::var("BROWSERLESS_URL").expect("Missing BROWSERLESS_URL");
+    let content_token = std::env::var("BROWSERLESS_TOKEN").expect("Missing BROWSERLESS_TOKEN");
 
     let client = reqwest::Client::new();
-    let response = client
-        .post(content_url)
-        .json(&json_map)
-        .send()
-        .await?
-        .json::<serde_json::Value>()
-        .await?;
 
     let mut final_sendable: Vec<InputContent> = Vec::new();
 
-    if types == "screenshot" || types == "both" {
-        let image_raw_bytes = response
-            .get("screenshot")
-            .unwrap()
-            .as_str()
-            .unwrap_or_default()
-            .as_bytes()
-            .to_vec();
+    if format_strings.contains("screenshot") {
+        let final_url = format!(
+            "{}/screenshot?token={}&blockAds=true",
+            &content_url, content_token
+        );
 
-        let image = ImageReader::new(Cursor::new(image_raw_bytes))
+        let json_map = json!({
+            "url": request_url,
+            "options": {
+                "type": "png",
+                "fullPage": true,
+            },
+        });
+
+        let response = client
+            .post(final_url)
+            .json(&json_map)
+            .send()
+            .await?
+            .bytes()
+            .await?;
+
+        let image = ImageReader::new(Cursor::new(response))
             .with_guessed_format()?
             .decode()?;
         let mut converted_image: Vec<u8> = Vec::new();
@@ -364,11 +382,32 @@ pub async fn web_scrape(value: Value) -> Result<Vec<InputContent>, DynError> {
                 .into(),
         );
     }
-    if types == "markdown" || types == "both" {
-        let markdown = response
-            .get("markdown")
-            .unwrap()
-            .as_str()
+    if format_strings.contains("markdown") {
+        let final_url = format!(
+            "{}/content?token={}&blockAds=true",
+            &content_url, content_token
+        );
+
+        let json_map = json!({
+            "url": request_url,
+        });
+
+        let response = client
+            .post(final_url)
+            .json(&json_map)
+            .send()
+            .await?
+            .text()
+            .await?;
+
+        let options = ConversionOptions::builder()
+            .compact_tables(true)
+            .inline_data_media(html_to_markdown_rs::InlineDataMedia::AltTextOnly)
+            .extract_images(true)
+            .build();
+        let markdown = convert(response.as_str(), options)
+            .unwrap_or_default()
+            .content
             .unwrap_or_default();
 
         final_sendable.push(InputTextContent::from(markdown).into());
