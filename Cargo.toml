@@ -1,6 +1,6 @@
 [package]
 name = "agent-kitten"
-version = "4.2.0"
+version = "4.2.1"
 repository = "https://git.clowdertech.com/clowdertech/agent-kitten"
 edition = "2024"
 
@@ -65,10 +65,10 @@ sysinfo = { version = "0.39.6" }
 chrono = { version = "0.4.45" }
 # mongodb = { version = "3.9.1" }
 serde = { version = "1.0.229", features = ["derive"] }
-serde_json = { version = "1.0.151" }
+serde_json = { version = "1.0.152" }
 serde_with = { version = "3.24.0" }
 futures = { version = "0.3.34" }
-async-openai = { version = "0.42.1", features = [
+async-openai = { version = "0.42.2", features = [
   "native-tls",
   "webhook",
   "responses",
