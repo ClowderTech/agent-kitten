@@ -259,10 +259,6 @@ async fn event_handler(
             let author_id_u64 = new_message.author.id.get();
             {
                 let mut set = USERS_MESSAGED.lock().await;
-                if set.contains(&author_id_u64) {
-                    // Already handled recently — skip
-                    return Ok(());
-                }
                 // mark as seen
                 set.insert(author_id_u64);
             }

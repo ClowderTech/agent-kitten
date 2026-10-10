@@ -45,7 +45,7 @@ dependencies = [
 
 [[package]]
 name = "agent-kitten"
-version = "4.2.0"
+version = "4.2.1"
 dependencies = [
  "async-openai",
  "barexp",
@@ -398,9 +398,9 @@ dependencies = [
 
 [[package]]
 name = "async-openai"
-version = "0.42.1"
+version = "0.42.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "63077bf55857e6963effefb5f28134c40cc2ee68bc176cc601bbdeb070017fba"
+checksum = "174e979f1e2ffe94b88d584740c11fd071f6d829c29120b1ba88bcaeb3374063"
 dependencies = [
  "async-openai-macros",
  "base64 0.22.1",
@@ -5581,9 +5581,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.151"
+version = "1.0.152"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c841b55ecdae098c80dcae9cf767f6f8a0c2cdb3416bbef72181df4d0fe73f14"
+checksum = "1741ab7a6cc54a03a89b5d563ed60075c277d9e3cfa73ad0c1f23f23974703c6"
 dependencies = [
  "itoa",
  "memchr",
