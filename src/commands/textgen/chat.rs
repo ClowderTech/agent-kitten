@@ -29,7 +29,6 @@ use sea_orm::{
 };
 use serde_json::{Value, json};
 use serenity::builder::CreateEmbed;
-use symphonia::core::meta::StandardTag::TrackSubtitle;
 
 /// Chat with Agent Kitten using Qwen 3.6
 #[poise::command(
@@ -272,36 +271,45 @@ pub async fn chat(
 }
 
 pub async fn search_searx(value: Value) -> Result<Vec<InputContent>, DynError> {
-    let query = value.get("query").unwrap().as_str().unwrap_or_default();
+    let query = value["query"]
+        .as_str()
+        .expect("query param did not exist or is not string");
 
-    let query_encoded: String = urlencoding::encode(query).to_string();
+    let query_encoded = urlencoding::encode(query).to_string();
 
     let content_url = std::env::var("SEARXNG_URL").expect("Missing SEARXNG_URL");
-    let full_url_query = format!(
-        "{}/search?q={}&format=json",
-        content_url,
-        query_encoded.as_str()
-    );
+    let full_url_query = format!("{}/search?q={}&format=json", content_url, query_encoded);
 
     let response = reqwest::get(full_url_query)
         .await?
+        .error_for_status()?
         .json::<serde_json::Value>()
         .await?;
 
-    let mut final_result = "".to_string();
-    let mut iteration: u8 = 0;
+    let results = response["results"]
+        .as_array()
+        .expect("response results did not exist or is not array");
 
-    for result in response["results"].as_array().expect("L rizz") {
-        iteration += 1;
-        let result_string = format!(
-            "{}. {} - {} - {}\n",
-            iteration,
-            result["url"].as_str().expect("L rizz"),
-            result["title"].as_str().expect("L rizz"),
-            result["content"].as_str().expect("L rizz")
-        );
-        final_result.push_str(result_string.as_str());
-    }
+    let final_result = results
+        .into_iter()
+        .enumerate()
+        .map(|(idx, x)| {
+            format!(
+                "{}. {} - {} - {}",
+                idx,
+                x["url"]
+                    .as_str()
+                    .expect("response url did not exist or is not string"),
+                x["title"]
+                    .as_str()
+                    .expect("response title did not exist or is not string"),
+                x["content"]
+                    .as_str()
+                    .expect("response content did not exist or is not string")
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
 
     let final_string = final_result.trim().to_string();
 
@@ -312,12 +320,12 @@ pub async fn search_searx(value: Value) -> Result<Vec<InputContent>, DynError> {
 }
 
 pub async fn web_scrape(value: Value) -> Result<Vec<InputContent>, DynError> {
-    let request_url = value.get("url").unwrap().as_str().unwrap_or_default();
-    let types = value
-        .get("types")
-        .unwrap()
+    let request_url = value["url"]
         .as_str()
-        .unwrap_or_default()
+        .expect("url param did not exist or is not string");
+    let types = value["types"]
+        .as_str()
+        .expect("types param did not exist or is not string")
         .to_lowercase();
 
     let mut format_strings = HashSet::new();
@@ -358,6 +366,7 @@ pub async fn web_scrape(value: Value) -> Result<Vec<InputContent>, DynError> {
             .json(&json_map)
             .send()
             .await?
+            .error_for_status()?
             .bytes()
             .await?;
 
@@ -397,6 +406,7 @@ pub async fn web_scrape(value: Value) -> Result<Vec<InputContent>, DynError> {
             .json(&json_map)
             .send()
             .await?
+            .error_for_status()?
             .text()
             .await?;
 
@@ -428,9 +438,15 @@ pub async fn current_date_and_time(_value: Value) -> Result<Vec<InputContent>, D
 }
 
 pub async fn view_image(value: Value) -> Result<Vec<InputContent>, DynError> {
-    let request_url = value.get("url").unwrap().as_str().unwrap_or_default();
+    let request_url = value["url"]
+        .as_str()
+        .expect("url param did not exist or is not string");
 
-    let response = reqwest::get(request_url).await?.bytes().await?;
+    let response = reqwest::get(request_url)
+        .await?
+        .error_for_status()?
+        .bytes()
+        .await?;
 
     let image = ImageReader::new(Cursor::new(response))
         .with_guessed_format()?
