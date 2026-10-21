@@ -1,4 +1,5 @@
 use ::serenity::all::VoiceState;
+use ::serenity::model::channel::MessageFlags;
 use chrono::{DateTime, Utc};
 use lavalink_rs::client::LavalinkClient;
 use lavalink_rs::model::events::Events;
@@ -284,7 +285,12 @@ async fn event_handler(
                     // Example (send an embed to the user as DM):
                     new_message
                         .author
-                        .direct_message(&ctx.http, serenity::CreateMessage::new().embed(embed))
+                        .direct_message(
+                            &ctx.http,
+                            serenity::CreateMessage::new()
+                                .embed(embed)
+                                .flags(MessageFlags::SUPPRESS_NOTIFICATIONS),
+                        )
                         .await
                         .ok();
                 }
@@ -378,7 +384,12 @@ async fn level_speakers_in_voice_chats(
                     // If you want to send the DM from here using serenity, do it now.
                     // Example (send an embed to the user as DM):
                     user_id_obj
-                        .direct_message(&http, serenity::CreateMessage::new().embed(embed))
+                        .direct_message(
+                            &http,
+                            serenity::CreateMessage::new()
+                                .embed(embed)
+                                .flags(MessageFlags::SUPPRESS_NOTIFICATIONS),
+                        )
                         .await
                         .ok();
                 }
