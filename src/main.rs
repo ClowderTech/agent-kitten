@@ -122,7 +122,9 @@ async fn main() {
                     //     _ready.user.display_name().to_string(),
                     // ),
                     lavalink: lavalink_client,
-                    system_stats: Arc::new(Mutex::new(System::new_all())),
+                    system_stats: Arc::new(Mutex::new(
+                        System::new_all().expect("Failed to initialize system stats"),
+                    )),
                     psql_client: db_clone,
                 })
             })
@@ -204,12 +206,31 @@ async fn event_handler(
                 LOOPS_RUNNING.swap(true, std::sync::atomic::Ordering::Relaxed);
             }
         }
-        serenity::FullEvent::VoiceStateUpdate { old: _, new } => {
+        serenity::FullEvent::VoiceStateUpdate { old, new } => {
             let mut voice_states = USER_VOICE_STATES.lock().await;
             if new.guild_id.is_some() && new.channel_id.is_some() {
                 voice_states.insert(new.user_id.get(), new.clone());
             } else {
                 voice_states.remove(&new.user_id.get());
+                if new.user_id.eq(&framework.bot_id()) {
+                    let guild_id = old
+                        .as_ref()
+                        .expect("somehow old voice data doesn't exist")
+                        .guild_id
+                        .expect("somehow old voice data guild id doesn't exist");
+
+                    let manager = songbird::get(ctx)
+                        .await
+                        .expect("SongBird would not work for some reason")
+                        .clone();
+                    let lava_client = data.lavalink.clone();
+
+                    lava_client.delete_player(guild_id.get()).await?;
+
+                    if manager.get(guild_id).is_some() {
+                        manager.remove(guild_id).await?;
+                    }
+                }
             }
         }
         serenity::FullEvent::Message { new_message } => {

@@ -1,23 +1,19 @@
-use std::{
-    collections::{HashMap, HashSet},
-    io::Cursor,
-};
+use std::{collections::HashSet, io::Cursor};
 
 use crate::{
     Context, Error,
     entity::textgen::{
         ActiveModel as TextgenActiveModel, Entity as Textgen, Model as TextgenModel,
     },
-    textgen_helpers::{DynError, ToolsHandler, chat_with_funcs},
+    textgen_helpers::{DynError, RegisteredTools, chat_with_funcs, tool},
 };
 use ::serenity::all::{CreateEmbedAuthor, CreateEmbedFooter};
 use async_openai::types::responses::{
-    FunctionToolArgs, InputContent, InputFileArgs, InputImageArgs, InputItem, InputMessageArgs,
-    InputRole, InputTextContent, Tool,
+    InputContent, InputFileArgs, InputImageArgs, InputItem, InputMessageArgs, InputRole,
+    InputTextContent,
 };
 use base64::{Engine, engine::general_purpose};
 use chrono::Utc;
-use futures::FutureExt;
 use html_to_markdown_rs::{ConversionOptions, convert};
 use image::ImageReader;
 // use mongodb::bson::doc;
@@ -151,87 +147,31 @@ pub async fn chat(
 
     messages.push(user_message.into());
 
-    let mut tool_registry: HashMap<String, ToolsHandler> = HashMap::new();
-
-    let search_tool: std::sync::Arc<Tool> = std::sync::Arc::new(
-        Tool::Function(
-            FunctionToolArgs::default()
-                .name("web_search")
+    let tool_registry = RegisteredTools::new()
+        .register(
+            tool("web_search")
                 .description("Use a search engine to find information on the given query.")
                 .parameters(json!({"type": "object", "properties": {"query": {"type": "string", "description": "What information to retrieve about on the search engine."}}, "required": ["query"], "additionalProperties": false}))
-                .strict(true)
-                .build()?
+                .handler(search_searx)?,
         )
-    );
-
-    let search_handler = ToolsHandler::new(search_tool, |input: Value| {
-        async move {
-            let result = search_searx(input).await.expect("L rizz");
-            Ok(result)
-        }
-        .boxed()
-    });
-
-    tool_registry.insert("web_search".to_string(), search_handler);
-
-    let scrape_tool: std::sync::Arc<Tool> = std::sync::Arc::new(
-        Tool::Function(
-            FunctionToolArgs::default()
-                .name("web_scrape")
+        .register(
+            tool("web_scrape")
                 .description("Scrapes and generates a full screenshot and/or markdown representation of a website.")
                 .parameters(json!({"type": "object", "properties": {"url": {"type": "string", "description": "The URL to scrape."}, "types": {"type": "string", "enum": ["markdown", "screenshot", "both"]}}, "required": ["url", "types"], "additionalProperties": false}))
-                .strict(true)
-                .build()?
+                .handler(web_scrape)?,
         )
-    );
-
-    let scrape_handler = ToolsHandler::new(scrape_tool, |input: Value| {
-        async move {
-            let result = web_scrape(input).await.expect("L rizz");
-            Ok(result)
-        }
-        .boxed()
-    });
-
-    tool_registry.insert("web_scrape".to_string(), scrape_handler);
-
-    let time_tool: std::sync::Arc<Tool> = std::sync::Arc::new(Tool::Function(
-        FunctionToolArgs::default()
-            .name("current_date_and_time")
-            .description("Retrieves the current date and time in UTC.")
-            .build()?,
-    ));
-
-    let time_handler = ToolsHandler::new(time_tool, |input: Value| {
-        async move {
-            let result = current_date_and_time(input).await.expect("L rizz");
-            Ok(result)
-        }
-        .boxed()
-    });
-
-    tool_registry.insert("current_date_and_time".to_string(), time_handler);
-
-    let image_tool: std::sync::Arc<Tool> = std::sync::Arc::new(
-        Tool::Function(
-            FunctionToolArgs::default()
-                .name("view_image")
+        .register(
+            tool("current_date_and_time")
+                .description("Retrieves the current date and time in UTC.")
+                .handler(current_date_and_time)?,
+        )
+        .register(
+            tool("view_image")
                 .description("Turns an image url into a viewable image.")
                 .parameters(json!({"type": "object", "properties": {"url": {"type": "string", "description": "The url of the image to view."}}, "required": ["url"], "additionalProperties": false}))
-                .strict(true)
-                .build()?
+                .handler(view_image)?,
         )
-    );
-
-    let image_handler = ToolsHandler::new(image_tool, |input: Value| {
-        async move {
-            let result = view_image(input).await.expect("L rizz");
-            Ok(result)
-        }
-        .boxed()
-    });
-
-    tool_registry.insert("view_image".to_string(), image_handler);
+        .build();
 
     let (new_messages, new_message) = chat_with_funcs(messages, tool_registry).await?;
 
