@@ -15,9 +15,7 @@ pub async fn play(
 
     let guild_id = ctx.guild_id().unwrap();
 
-    crate::music_helpers::_join(&ctx, guild_id, None)
-        .await
-        .unwrap();
+    crate::music_helpers::_join(&ctx, guild_id, None).await.expect("Bot could not join voice call");
 
     let lava_client = ctx.data().lavalink.clone();
 

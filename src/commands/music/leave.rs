@@ -5,7 +5,10 @@ use crate::{Context, Error};
 pub async fn leave(ctx: Context<'_>) -> Result<(), Error> {
     let guild_id = ctx.guild_id().unwrap();
 
-    let manager = songbird::get(ctx.serenity_context()).await.unwrap().clone();
+    let manager = songbird::get(ctx.serenity_context())
+        .await
+        .expect("SongBird would not work for some reason")
+        .clone();
     let lava_client = ctx.data().lavalink.clone();
 
     lava_client.delete_player(guild_id.get()).await?;
