@@ -1,6 +1,6 @@
 [package]
 name = "agent-kitten"
-version = "4.2.4"
+version = "4.2.5"
 repository = "https://git.clowdertech.com/clowdertech/agent-kitten"
 edition = "2024"
 
@@ -116,6 +116,3 @@ image = { version = "0.25.10", features = [
   "rayon",
   "serde",
 ], default-features = false }
-
-[build-dependencies]
-barexp = { version = "1.1.1" }

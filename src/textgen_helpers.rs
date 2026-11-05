@@ -12,9 +12,8 @@ use std::{collections::HashMap, sync::Arc};
 // use mongodb::bson::doc;
 // use serde::{Deserialize, Serialize};
 
-type BoxedToolHandler = Box<
-    dyn Fn(Value) -> BoxFuture<'static, Result<Vec<InputContent>, DynError>> + Send + Sync,
->;
+type BoxedToolHandler =
+    Box<dyn Fn(Value) -> BoxFuture<'static, Result<Vec<InputContent>, DynError>> + Send + Sync>;
 
 pub struct ToolsHandler {
     tools: Arc<Tool>,
@@ -115,10 +114,7 @@ impl ToolBuilder {
         }
         Ok(RegisteredTool {
             name,
-            handler: ToolsHandler::from_tool(
-                Tool::Function(args.build()?),
-                handler.into_handler(),
-            ),
+            handler: ToolsHandler::from_tool(Tool::Function(args.build()?), handler.into_handler()),
         })
     }
 }
@@ -206,14 +202,13 @@ pub async fn chat_with_funcs(
                         let tool_call_response = match handler.execute(func_args).await {
                             Ok(returnable) => returnable,
                             Err(error) => {
-                                let mut final_sendable: Vec<InputContent> = Vec::new();
-                                final_sendable.push(
+                                let final_sendable: Vec<InputContent> = vec![
                                     InputTextContent::from(format!(
                                         "Function has returned an error: {}",
                                         error
                                     ))
                                     .into(),
-                                );
+                                ];
                                 final_sendable
                             }
                         };
@@ -232,8 +227,13 @@ pub async fn chat_with_funcs(
                     }
                     None => {
                         // unknown function name — push an error-style tool message so the model sees it
-                        let err_text =
-                            format!("No handler registered for function: {}", function_name);
+                        let err_text: Vec<InputContent> = vec![
+                            InputTextContent::from(format!(
+                                "No handler registered for function: {}",
+                                function_name
+                            ))
+                            .into(),
+                        ];
 
                         let tool_output = FunctionCallOutputItemParam {
                             call_id: Some(tool_call.call_id),
@@ -242,7 +242,7 @@ pub async fn chat_with_funcs(
                             name: Some(tool_call.name),
                             namespace: tool_call.namespace,
                             caller: tool_call.caller,
-                            output: FunctionCallOutput::Text(err_text),
+                            output: FunctionCallOutput::Content(err_text),
                         };
 
                         full_response.push(InputItem::Item(Item::FunctionCallOutput(tool_output)));
@@ -262,11 +262,3 @@ pub async fn chat_with_funcs(
 
     Ok((full_response, final_output))
 }
-
-// #[derive(Debug, Clone, Serialize, Deserialize)]
-// pub struct TextgenDoc {
-//     #[serde(rename = "_id")]
-//     pub id: bson::oid::ObjectId,
-//     pub userid: String,
-//     pub messages: Vec<ChatCompletionRequestMessage>,
-// }

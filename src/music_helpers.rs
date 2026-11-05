@@ -13,55 +13,53 @@ pub async fn _join(
 
     let guild_id_num = guild_id.get();
 
-    match lava_client.get_player_context(guild_id_num) {
-        Some(_) => Ok(false),
-        None => {
-            let connect_to = match channel_id {
-                Some(x) => x,
-                None => {
-                    let user_channel_id = guild_id
-                        .to_guild_cached(ctx.cache())
-                        .unwrap()
-                        .voice_states
-                        .get(&ctx.author().id)
-                        .and_then(|voice_state| voice_state.channel_id);
-
-                    match user_channel_id {
-                        Some(channel) => channel,
-                        None => {
-                            ctx.say("You are not in a voice channel").await?;
-
-                            return Err("You are not in a voice channel".into());
-                        }
-                    }
-                }
-            };
-
-            let manager = songbird::get(ctx.serenity_context())
-                .await
-                .expect("SongBird would not work for some reason")
-                .clone();
-
-            match manager.join_gateway(guild_id, connect_to).await {
-                Ok((connection_info, _)) => {
-                    let connect_info: ConnectionInfo = ConnectionInfo {
-                        endpoint: connection_info.endpoint,
-                        token: connection_info.token,
-                        session_id: connection_info.session_id,
-                        channel_id: Some(ChannelId(connection_info.channel_id.0.get())),
-                    };
-
-                    lava_client
-                        .create_player_context(guild_id, connect_info)
-                        .await
-                        .unwrap();
-
-                    return Ok(true);
-                }
-                Err(why) => {
-                    return Err(why.into());
-                }
-            };
-        }
+    if lava_client.get_player_context(guild_id_num).is_some() {
+        return Ok(false);
     }
+
+    let connect_to = match channel_id {
+        Some(x) => x,
+        None => {
+            let user_channel_id = guild_id
+                .to_guild_cached(ctx.cache())
+                .unwrap()
+                .voice_states
+                .get(&ctx.author().id)
+                .and_then(|voice_state| voice_state.channel_id);
+
+            match user_channel_id {
+                Some(channel) => channel,
+                None => {
+                    ctx.say("You are not in a voice channel").await?;
+
+                    return Err("You are not in a voice channel".into());
+                }
+            }
+        }
+    };
+
+    let manager = songbird::get(ctx.serenity_context())
+        .await
+        .expect("SongBird would not work for some reason")
+        .clone();
+
+    let connection = manager.join_gateway(guild_id, connect_to).await;
+
+    if let Ok((connection_info, _)) = connection {
+        let connect_info: ConnectionInfo = ConnectionInfo {
+            endpoint: connection_info.endpoint,
+            token: connection_info.token,
+            session_id: connection_info.session_id,
+            channel_id: Some(ChannelId(connection_info.channel_id.0.get())),
+        };
+
+        lava_client
+            .create_player_context(guild_id, connect_info)
+            .await
+            .unwrap();
+
+        return Ok(true);
+    }
+
+    Ok(false)
 }

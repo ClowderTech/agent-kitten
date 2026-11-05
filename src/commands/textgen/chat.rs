@@ -231,7 +231,7 @@ pub async fn search_searx(value: Value) -> Result<Vec<InputContent>, DynError> {
         .expect("response results did not exist or is not array");
 
     let final_result = results
-        .into_iter()
+        .iter()
         .enumerate()
         .map(|(idx, x)| {
             format!(
@@ -253,8 +253,7 @@ pub async fn search_searx(value: Value) -> Result<Vec<InputContent>, DynError> {
 
     let final_string = final_result.trim().to_string();
 
-    let mut final_sendable: Vec<InputContent> = Vec::new();
-    final_sendable.push(InputTextContent::from(final_string).into());
+    let final_sendable: Vec<InputContent> = vec![InputTextContent::from(final_string).into()];
 
     Ok(final_sendable)
 }
@@ -290,7 +289,7 @@ pub async fn web_scrape(value: Value) -> Result<Vec<InputContent>, DynError> {
     if format_strings.contains("screenshot") {
         let final_url = format!(
             "{}/screenshot?token={}&blockAds=true",
-            &content_url, content_token
+            content_url, content_token
         );
 
         let json_map = json!({
@@ -334,7 +333,7 @@ pub async fn web_scrape(value: Value) -> Result<Vec<InputContent>, DynError> {
     if format_strings.contains("markdown") {
         let final_url = format!(
             "{}/content?token={}&blockAds=true",
-            &content_url, content_token
+            content_url, content_token
         );
 
         let json_map = json!({
@@ -371,8 +370,7 @@ pub async fn current_date_and_time(_value: Value) -> Result<Vec<InputContent>, D
 
     let utc_string = format!("{}", current_utc);
 
-    let mut final_sendable: Vec<InputContent> = Vec::new();
-    final_sendable.push(InputTextContent::from(utc_string).into());
+    let final_sendable: Vec<InputContent> = vec![InputTextContent::from(utc_string).into()];
 
     Ok(final_sendable)
 }
@@ -402,14 +400,12 @@ pub async fn view_image(value: Value) -> Result<Vec<InputContent>, DynError> {
 
     let final_image = format!("data:{};base64,{}", "image/jpeg", encoded);
 
-    let mut final_sendable: Vec<InputContent> = Vec::new();
-
-    final_sendable.push(
+    let final_sendable: Vec<InputContent> = vec![
         InputImageArgs::default()
             .image_url(final_image)
             .build()?
             .into(),
-    );
+    ];
 
     Ok(final_sendable)
 }
