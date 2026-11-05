@@ -19,29 +19,12 @@ use tokio::sync::Mutex;
 use std::collections::HashMap;
 use std::time::Duration;
 
-pub mod commands;
-pub mod commands_gen;
-use commands_gen::all_commands;
+// Every module under src/ (and `all_commands`) is declared by build.rs via #[path].
+include!("modules.rs");
 
-// mod mongo_helpers;
-// use mongo_helpers::MongoClient;
-// use mongodb::bson::doc;
-// use mongodb::{Client, options::ClientOptions};
-
-pub mod textgen_helpers;
-
-pub mod config_helpers;
 use config_helpers::get_nested_key;
-
-pub mod leveling_helpers;
-use leveling_helpers::pretty_exp_gain;
-
-pub mod music_helpers;
-
-pub mod music_events;
-
-pub mod entity;
 use entity::server::{ActiveModel as ServerActiveModel, Entity as Server, Model as ServerModel};
+use leveling_helpers::pretty_exp_gain;
 use sea_orm::ActiveValue::{NotSet, Set};
 
 #[derive(Clone)]
@@ -62,12 +45,6 @@ static LOOPS_RUNNING: AtomicBool = AtomicBool::new(false);
 
 #[tokio::main]
 async fn main() {
-    // let raw_client = Client::with_options(
-    //     ClientOptions::parse(std::env::var("MONGODB_URI").expect("Missing MONGODB_URI"))
-    //         .await
-    //         .expect("MONGODB_URI unparsable"),
-    // )
-    // .expect("MongoDB unable to connect");
     let opt = ConnectOptions::new(std::env::var("PSQL_URI").expect("Missing PSQL_URI"));
     let db = Database::connect(opt)
         .await

@@ -92,8 +92,8 @@ pub async fn level(
         }
     };
 
-    let level = user_content.level.clone();
-    let experience = user_content.experience.clone();
+    let level = user_content.level;
+    let experience = user_content.experience;
 
     // Compute exp needed for next level
     let exp_needed = calculate_exp_to_next_level(level, experience);
