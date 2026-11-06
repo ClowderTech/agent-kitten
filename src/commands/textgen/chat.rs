@@ -9,8 +9,7 @@ use crate::{
 };
 use ::serenity::all::{CreateEmbedAuthor, CreateEmbedFooter};
 use async_openai::types::responses::{
-    InputContent, InputFileArgs, InputImageArgs, InputItem, InputMessageArgs, InputRole,
-    InputTextContent,
+    InputContent, InputImageArgs, InputItem, InputMessageArgs, InputRole, InputTextContent,
 };
 use base64::{Engine, engine::general_purpose};
 use chrono::Utc;
@@ -129,12 +128,11 @@ pub async fn chat(
                 let text = String::from_utf8(file)?;
 
                 sendable_user_message.push(
-                    InputFileArgs::default()
-                        .filename(some_file.filename)
-                        .file_data(text)
-                        .file_id(some_file.id.get().to_string())
-                        .build()?
-                        .into(),
+                    InputTextContent::from(format!(
+                        "--- File Name - {} ---\n\n{}",
+                        some_file.filename, text
+                    ))
+                    .into(),
                 );
             }
         }
