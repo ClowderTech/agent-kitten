@@ -22,10 +22,10 @@ use std::time::Duration;
 // Every module under src/ (and `all_commands`) is declared by build.rs via #[path].
 include!("modules.rs");
 
-use config_helpers::get_nested_key;
 use entity::server::{ActiveModel as ServerActiveModel, Entity as Server, Model as ServerModel};
-use leveling_helpers::pretty_exp_gain;
 use sea_orm::ActiveValue::{NotSet, Set};
+use utils::config::get_nested_key;
+use utils::leveling::pretty_exp_gain;
 
 #[derive(Clone)]
 pub struct Data {

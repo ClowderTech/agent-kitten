@@ -16,7 +16,7 @@ use crate::entity::leveling::{
 // use crate::leveling_helpers::{
 //     calculate_exp_to_next_level, get_member_experience, get_member_level,
 // };
-use crate::leveling_helpers::calculate_exp_to_next_level;
+use crate::utils::leveling::calculate_exp_to_next_level;
 
 /// Check a user's level in the server
 #[poise::command(slash_command, guild_only)]

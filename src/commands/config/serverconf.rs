@@ -7,10 +7,10 @@ use serenity::builder::CreateEmbed;
 
 use crate::Data;
 use crate::Error;
-use crate::config_helpers::{get_nested_key, set_nested_key};
 use crate::entity::server::{
     ActiveModel as ServerActiveModel, Entity as Server, Model as ServerModel,
 };
+use crate::utils::config::{get_nested_key, set_nested_key};
 use sea_orm::ActiveValue::{NotSet, Set};
 
 /// Root slash command with subcommands: set, get, setraw, getraw

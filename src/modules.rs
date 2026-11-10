@@ -71,20 +71,17 @@ pub mod entity {
     pub mod user;
 }
 
-#[path = "config_helpers.rs"]
-pub mod config_helpers;
-
-#[path = "leveling_helpers.rs"]
-pub mod leveling_helpers;
-
-#[path = "music_events.rs"]
-pub mod music_events;
-
-#[path = "music_helpers.rs"]
-pub mod music_helpers;
-
-#[path = "textgen_helpers.rs"]
-pub mod textgen_helpers;
+#[path = "utils"]
+pub mod utils {
+    #[path = "config.rs"]
+    pub mod config;
+    #[path = "leveling.rs"]
+    pub mod leveling;
+    #[path = "music.rs"]
+    pub mod music;
+    #[path = "textgen.rs"]
+    pub mod textgen;
+}
 
 pub fn all_commands() -> Vec<poise::Command<crate::Data, crate::Error>> {
     vec![

@@ -1,9 +1,9 @@
 use crate::Error;
-use crate::config_helpers::get_nested_key;
 use crate::entity::leveling::{
     ActiveModel as LevelingActiveModel, Entity as Leveling, Model as LevelingModel,
 };
 use crate::entity::user::{ActiveModel as UserActiveModel, Entity as User, Model as UserModel};
+use crate::utils::config::get_nested_key;
 use sea_orm::ActiveValue::{NotSet, Set};
 use sea_orm::{ActiveModelTrait, DatabaseConnection, IntoActiveModel};
 use serde_json::{Value, json};
