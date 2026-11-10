@@ -1,4 +1,4 @@
-use crate::{Context, Error};
+use crate::{Context, Error, utils::music::join_voice_call};
 
 /// Join the specified voice channel or the one you are currently in.
 #[poise::command(slash_command, guild_only)]
@@ -10,7 +10,9 @@ pub async fn join(
 ) -> Result<(), Error> {
     let guild_id = ctx.guild_id().unwrap();
 
-    crate::music_helpers::_join(&ctx, guild_id, channel_id).await?;
+    join_voice_call(&ctx, guild_id, channel_id)
+        .await
+        .expect("Bot could not join voice call");
 
     Ok(())
 }

@@ -1,3 +1,4 @@
+use crate::utils::music::join_voice_call;
 use crate::{Context, Error};
 use lavalink_rs::model::search::SearchEngines;
 use lavalink_rs::model::track::TrackLoadData;
@@ -15,7 +16,9 @@ pub async fn play(
 
     let guild_id = ctx.guild_id().unwrap();
 
-    crate::music_helpers::_join(&ctx, guild_id, None).await.expect("Bot could not join voice call");
+    join_voice_call(&ctx, guild_id, None)
+        .await
+        .expect("Bot could not join voice call");
 
     let lava_client = ctx.data().lavalink.clone();
 
@@ -31,7 +34,9 @@ pub async fn play(
                 manager.remove(guild_id).await?;
             }
 
-            crate::music_helpers::_join(&ctx, guild_id, None).await?;
+            join_voice_call(&ctx, guild_id, None)
+                .await
+                .expect("Bot could not join voice call");
 
             lava_client
                 .get_player_context(guild_id.get())

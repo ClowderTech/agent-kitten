@@ -4,7 +4,7 @@ use poise::serenity_prelude as serenity;
 
 use crate::{Context, Error};
 
-pub async fn _join(
+pub async fn join_voice_call(
     ctx: &Context<'_>,
     guild_id: serenity::model::id::GuildId,
     channel_id: Option<serenity::model::id::ChannelId>,

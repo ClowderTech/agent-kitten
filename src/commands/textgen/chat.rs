@@ -5,7 +5,7 @@ use crate::{
     entity::textgen::{
         ActiveModel as TextgenActiveModel, Entity as Textgen, Model as TextgenModel,
     },
-    textgen_helpers::{DynError, RegisteredTools, chat_with_funcs, tool},
+    utils::textgen::{DynError, RegisteredTools, chat_with_funcs, tool},
 };
 use ::serenity::all::{CreateEmbedAuthor, CreateEmbedFooter};
 use async_openai::types::responses::{
