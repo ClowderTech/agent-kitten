@@ -81,7 +81,7 @@ async fn main() {
                     is_ssl: std::env::var("LAVALINK_SECURE")
                         .expect("Missing LAVALINK_SECURE")
                         .contains("true"),
-                    session_id: None,
+                    session_id: Some("pg313iam9olh5vha".to_string()),
                     events: Events::default(),
                 };
 
