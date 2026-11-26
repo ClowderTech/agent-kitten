@@ -3,6 +3,8 @@ use crate::{Context, Error};
 use lavalink_rs::model::search::SearchEngines;
 use lavalink_rs::model::track::TrackLoadData;
 use lavalink_rs::player_context::TrackInQueue;
+use poise::CreateReply;
+use serenity::builder::{CreateEmbed, CreateEmbedAuthor, CreateEmbedFooter};
 
 /// Play a song in the voice channel you are connected in.
 #[poise::command(slash_command, guild_only)]
@@ -68,24 +70,43 @@ pub async fn play(
         }
     };
 
+    let mut embed = CreateEmbed::default()
+        .author(
+            CreateEmbedAuthor::new(ctx.http().get_current_user().await?.display_name()).icon_url(
+                ctx.http()
+                    .get_current_user()
+                    .await?
+                    .avatar_url()
+                    .unwrap_or_default(),
+            ),
+        )
+        .timestamp(chrono::Utc::now())
+        .footer(
+            CreateEmbedFooter::new(ctx.author().display_name())
+                .icon_url(ctx.author().avatar_url().unwrap_or_default()),
+        )
+        .title("Added to queue!")
+        .color(0x9A2D7D);
+
+    if let Some(track_artwork) = &tracks[0].track.info.artwork_url {
+        embed = embed.thumbnail(track_artwork);
+    }
+
     if let Some(info) = playlist_info {
-        ctx.say(format!("Added playlist to queue: {}", info.name,))
-            .await?;
+        embed = embed.description(format!("{}", info.name));
+        ctx.send(CreateReply::default().embed(embed)).await?;
     } else {
         let track = &tracks[0].track;
 
         if let Some(uri) = &track.info.uri {
-            ctx.say(format!(
-                "Added to queue: [{} - {}](<{}>)",
+            embed = embed.description(format!(
+                "[{} - {}](<{}>)",
                 track.info.author, track.info.title, uri
-            ))
-            .await?;
+            ));
+            ctx.send(CreateReply::default().embed(embed)).await?;
         } else {
-            ctx.say(format!(
-                "Added to queue: {} - {}",
-                track.info.author, track.info.title
-            ))
-            .await?;
+            embed = embed.description(format!("{} - {}", track.info.author, track.info.title));
+            ctx.send(CreateReply::default().embed(embed)).await?;
         }
     }
 
