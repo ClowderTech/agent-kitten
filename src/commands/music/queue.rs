@@ -1,4 +1,6 @@
 use futures::StreamExt;
+use poise::CreateReply;
+use serenity::builder::{CreateEmbed, CreateEmbedAuthor, CreateEmbedFooter};
 
 use crate::{Context, Error};
 
@@ -18,6 +20,25 @@ pub async fn queue(ctx: Context<'_>) -> Result<(), Error> {
     let player_data = player.get_player().await?;
 
     let max = queue.get_count().await?.min(9);
+    let maxxed_out = queue.get_count().await? < max;
+
+    let mut embed = CreateEmbed::default()
+        .author(
+            CreateEmbedAuthor::new(ctx.http().get_current_user().await?.display_name()).icon_url(
+                ctx.http()
+                    .get_current_user()
+                    .await?
+                    .avatar_url()
+                    .unwrap_or_default(),
+            ),
+        )
+        .timestamp(chrono::Utc::now())
+        .footer(
+            CreateEmbedFooter::new(ctx.author().display_name())
+                .icon_url(ctx.author().avatar_url().unwrap_or_default()),
+        )
+        .title("Queue")
+        .color(0x9A2D7D);
 
     let queue_message = queue
         .enumerate()
@@ -46,10 +67,22 @@ pub async fn queue(ctx: Context<'_>) -> Result<(), Error> {
         .await
         .join("\n");
 
+    let final_queue_message;
+
+    if maxxed_out {
+        final_queue_message = format!("{}\n...", queue_message);
+    } else {
+        final_queue_message = queue_message;
+    }
+
     let now_playing_message = if let Some(track) = player_data.track {
         let time_s = player_data.state.position / 1000 % 60;
         let time_m = player_data.state.position / 1000 / 60;
         let time = format!("{:02}:{:02}", time_m, time_s);
+
+        if let Some(track_artwork) = &track.info.artwork_url {
+            embed = embed.thumbnail(track_artwork);
+        }
 
         if let Some(uri) = &track.info.uri {
             format!(
@@ -73,8 +106,12 @@ pub async fn queue(ctx: Context<'_>) -> Result<(), Error> {
         "Now playing: nothing".to_string()
     };
 
-    ctx.say(format!("{}\n\n{}", now_playing_message, queue_message))
-        .await?;
+    embed = embed.description(format!(
+        "{}\n\n{}",
+        now_playing_message, final_queue_message
+    ));
+
+    ctx.send(CreateReply::default().embed(embed)).await?;
 
     Ok(())
 }
